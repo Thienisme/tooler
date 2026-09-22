@@ -1,0 +1,1399 @@
+{
+  "schema_version": "1.0",
+  "title": "Horror Story Seeds Library",
+  "description": "Tập hợp ý tưởng hạt giống cho truyện kinh dị tâm linh. Mỗi seed là một ý tưởng ngắn để AI phát triển thành câu chuyện hoàn chỉnh dài 10.000–15.000 từ.",
+  "seeds": [
+    {
+      "id": "horror-001",
+      "title": "Tiếng Khóc Hàng Đêm",
+      "genre": "supernatural_horror",
+      "seed": "Tiếng khóc hàng đêm trong một căn nhà hoang.",
+      "setting": "Một ngôi làng miền núi hẻo lánh, nơi sương mù bao phủ quanh năm và người dân sống cách biệt nhau.",
+      "elements": [
+        "abandoned_house",
+        "female_ghost",
+        "nightly_crying",
+        "old_murder",
+        "curse"
+      ],
+      "tone": [
+        "dark",
+        "mysterious",
+        "slow_burn",
+        "psychological"
+      ],
+      "ending_type": [
+        "twist",
+        "ambiguous"
+      ],
+      "status": "generated",
+      "story_id": "b5d72804-5e89-4aa2-8935-63bc9b63c483"
+    },
+    {
+      "id": "horror-002",
+      "title": "Tấm Gương Không Phản Chiếu",
+      "genre": "supernatural_horror",
+      "seed": "Một tấm gương cổ được mua từ phiên chợ đêm không bao giờ phản chiếu đúng hình ảnh của chủ nhân.",
+      "setting": "Một căn hộ chung cư ở thành phố lớn, nơi người thuê trẻ sống một mình.",
+      "elements": [
+        "cursed_mirror",
+        "doppelganger",
+        "paranoia",
+        "identity_loss",
+        "ancient_artifact"
+      ],
+      "tone": [
+        "psychological",
+        "claustrophobic",
+        "unsettling",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "dark",
+        "ambiguous"
+      ],
+      "status": "generated",
+      "story_id": "b281bc03-3fa7-4324-bdf5-19698f164702"
+    },
+    {
+      "id": "horror-003",
+      "title": "Người Đứng Cuối Hành Lang",
+      "genre": "supernatural_horror",
+      "seed": "Mỗi đêm lúc 3 giờ sáng, một bóng người đứng im lìm ở cuối hành lang bệnh viện — không phải bệnh nhân, không phải nhân viên.",
+      "setting": "Một bệnh viện tâm thần cũ đang trong quá trình cải tạo, nơi một y tá ca đêm làm việc một mình.",
+      "elements": [
+        "hospital",
+        "night_shift",
+        "shadow_figure",
+        "mental_institution",
+        "forgotten_patient"
+      ],
+      "tone": [
+        "tense",
+        "atmospheric",
+        "isolated",
+        "dread"
+      ],
+      "ending_type": [
+        "tragic",
+        "reveal"
+      ],
+      "status": "generated",
+      "story_id": "c6f80b54-936e-40e2-89bb-d55fccb713f5"
+    },
+    {
+      "id": "horror-004",
+      "title": "Bức Thư Từ Người Đã Chết",
+      "genre": "supernatural_horror",
+      "seed": "Ba năm sau khi bà nội mất, cháu gái nhận được một lá thư viết tay với nét chữ của bà, cảnh báo về điều sắp xảy ra với gia đình.",
+      "setting": "Một ngôi nhà cổ ở ngoại thành, nơi ba thế hệ cùng sinh sống.",
+      "elements": [
+        "posthumous_letter",
+        "family_curse",
+        "ancestral_secret",
+        "protective_spirit",
+        "generational_trauma"
+      ],
+      "tone": [
+        "melancholic",
+        "mysterious",
+        "family_horror",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "bittersweet",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "29346b44-0435-4b3c-8d3c-c91b66e5054b"
+    },
+    {
+      "id": "horror-005",
+      "title": "Đứa Trẻ Không Bao Giờ Lớn",
+      "genre": "supernatural_horror",
+      "seed": "Sau khi chuyển đến một ngôi nhà vườn ngoại ô, cặp vợ chồng trẻ nhận thấy con trai bốn tuổi thường xuyên nói chuyện với một 'người bạn' mà không ai nhìn thấy. Đứa trẻ khẳng định bạn mình tên là Minh và đã sống ở căn nhà này từ trước. Ban đầu cha mẹ nghĩ đó chỉ là trí tưởng tượng, cho đến khi con trai bắt đầu kể chính xác những chuyện từng xảy ra trong ngôi nhà mà người lớn không hề nói cho nó biết. Một đêm, đứa trẻ nói: 'Minh bảo mẹ đừng mở căn phòng cuối vườn.' Khi hai vợ chồng kiểm tra, họ phát hiện căn phòng bị khóa nhiều năm và bên trong vẫn còn đồ chơi trẻ em phủ bụi. Điều đáng sợ là trong những bức ảnh gia đình cũ của chủ nhà trước đây, một đứa trẻ tên Minh luôn xuất hiện ở cùng một độ tuổi — không hề lớn lên qua hàng chục năm. Càng tìm hiểu, họ càng nhận ra 'người bạn' của con trai không chỉ đang sống trong căn nhà, mà đang chờ một người thay thế mình.",
+      "setting": "Một ngôi nhà vườn cũ ở ngoại ô yên tĩnh, có căn phòng phụ phía cuối vườn bị khóa nhiều năm và từng xảy ra một bi kịch liên quan đến trẻ nhỏ.",
+      "elements": [
+        "child_medium",
+        "ghost_child",
+        "haunted_house",
+        "tragic_past",
+        "innocent_connection",
+        "old_photographs",
+        "replacement_ritual"
+      ],
+      "tone": [
+        "creepy",
+        "tender",
+        "melancholic",
+        "dread"
+      ],
+      "ending_type": [
+        "twist",
+        "bittersweet"
+      ],
+      "status": "generated",
+      "story_id": "e1cb115d-d087-453a-81ae-9f587083862c"
+    },
+    {
+      "id": "horror-006",
+      "title": "Ba Tiếng Gõ Cửa",
+      "genre": "supernatural_horror",
+      "seed": "Một người đàn ông thuê phòng trong khu trọ cũ giữa một con ngõ sâu ở Hà Nội. Đúng nửa đêm mỗi đêm, anh nghe ba tiếng gõ cửa. Khi mở cửa, hành lang luôn trống không. Chủ nhà bảo đó chỉ là tiếng ống nước, nhưng khi người đàn ông hỏi những người thuê trước, anh phát hiện họ đều từng nghe cùng ba tiếng gõ. Có người chuyển đi, có người bỏ phòng giữa đêm, và chủ nhà cũ đã chết đúng ba tuần sau khi nghe tiếng gõ lần đầu. Người đàn ông bắt đầu ghi âm mỗi đêm và nhận ra ba tiếng gõ không phải lúc nào cũng đến từ cửa phòng mình. Đêm thứ bảy, chúng vang lên từ phía sau bức tường nơi không có căn phòng nào. Khi phá tường, anh tìm thấy một cánh cửa cũ bị xây kín từ bên trong. Trên cánh cửa có những dòng chữ do nhiều người thuê trước để lại, mỗi dòng chỉ có một cái tên và một ngày tháng.",
+      "setting": "Một khu trọ cũ nằm sâu trong con ngõ nhỏ ở Hà Nội, hành lang hẹp, tường ẩm và nhiều căn phòng đã được sửa đi sửa lại qua nhiều năm.",
+      "elements": [
+        "knocking",
+        "ominous_pattern",
+        "previous_victims",
+        "urban_legend",
+        "countdown",
+        "sealed_door",
+        "tenant_records"
+      ],
+      "tone": [
+        "tense",
+        "paranoid",
+        "urban_horror",
+        "escalating_dread"
+      ],
+      "ending_type": [
+        "dark",
+        "twist"
+      ],
+      "status": "generated",
+      "story_id": "547ad169-57ca-492b-8273-fe2c7c3eebc2"
+    },
+    {
+      "id": "horror-007",
+      "title": "Cái Ao Sau Nhà",
+      "genre": "supernatural_horror",
+      "seed": "Một cái ao nhỏ phía sau nhà dân trong làng chưa bao giờ cạn nước, ngay cả những năm hạn nặng nhất. Người lớn trong làng không cho trẻ con đến gần sau khi mặt trời lặn và tuyệt đối không được gọi tên ai bên mép ao. Một mùa hè, một đứa trẻ mất tích sau khi chơi gần đó. Dân làng kéo lưới tìm kiếm nhưng ngoài bùn đất và những món đồ cũ, họ không tìm thấy thi thể. Vài ngày sau, đứa trẻ trở về một mình, quần áo khô ráo dù cả làng đang giữa mùa mưa. Nó không nhớ mình đã đi đâu, chỉ lặp đi lặp lại một câu: 'Dưới đó còn nhiều người lắm.' Khi gia đình kiểm tra chiếc ao, họ phát hiện dưới lớp bùn có một bậc thềm đá dẫn xuống nước. Người già trong làng cuối cùng phải kể về một lời hứa được lập ra nhiều đời trước để đổi lấy việc cái ao không bao giờ cạn.",
+      "setting": "Một ngôi làng nông thôn vùng Đồng bằng sông Cửu Long, nơi nhà cửa nằm sát kênh rạch và cái ao phía sau khu dân cư đã tồn tại từ rất lâu.",
+      "elements": [
+        "cursed_pond",
+        "water_spirit",
+        "missing_child",
+        "returned_child",
+        "village_taboo",
+        "ancient_pact",
+        "buried_structure"
+      ],
+      "tone": [
+        "folk_horror",
+        "rural",
+        "atmospheric",
+        "dread"
+      ],
+      "ending_type": [
+        "tragic",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "53ebf265-2361-4708-9988-87df7d7ff7f0"
+    },
+    {
+      "id": "horror-008",
+      "title": "Ảnh Selfie Lúc 3:33",
+      "genre": "supernatural_horror",
+      "seed": "Một cô gái sống một mình trong ký túc xá có thói quen chụp selfie trước khi ngủ. Sau vài tháng, cô nhận ra những bức ảnh chụp đúng 3 giờ 33 phút sáng luôn có thêm một bóng người đứng phía sau. Người trong ảnh xuất hiện ngày càng rõ, từ một vùng tối mờ cho đến khi có thể nhìn thấy quần áo và mái tóc. Cô thử đổi phòng, đổi điện thoại và ngừng chụp ảnh nhưng hiện tượng vẫn tiếp tục. Điều đáng sợ là bóng người không chỉ xuất hiện trong ảnh mà vị trí của nó bắt đầu thay đổi theo khoảng cách giữa cô và camera. Một đêm, cô chụp ảnh trong phòng tắm và lần đầu tiên khuôn mặt của người phía sau hiện rõ. Đó là khuôn mặt của chính cô, nhưng già hơn hàng chục tuổi. Những bức ảnh sau đó bắt đầu cho thấy các sự kiện chưa xảy ra trong căn phòng.",
+      "setting": "Một khu ký túc xá đại học ở thành phố, nơi cô gái sống xa nhà lần đầu, hành lang dài và khu nhà cũ thường vắng người sau nửa đêm.",
+      "elements": [
+        "photograph_evidence",
+        "digital_horror",
+        "college_setting",
+        "future_image",
+        "older_double",
+        "time_pattern",
+        "watcher"
+      ],
+      "tone": [
+        "modern_horror",
+        "paranoid",
+        "voyeuristic",
+        "escalating"
+      ],
+      "ending_type": [
+        "dark",
+        "ambiguous"
+      ],
+      "status": "generated",
+      "story_id": "60510d6d-e89f-408a-ab7e-a838871122dd"
+    },
+    {
+      "id": "horror-009",
+      "title": "Người Đàn Bà Bán Xôi",
+      "genre": "supernatural_horror",
+      "seed": "Mỗi sáng trước bình minh, ở đầu một con ngõ cũ tại Hà Nội xuất hiện một người đàn bà mặc áo trắng bán xôi. Bà không bao giờ lớn tiếng mời khách, chỉ đứng đó và nói đúng một câu: 'Mua một gói mang về cho người đang đợi.' Những người mua xôi của bà đều đêm đó mơ cùng một giấc mơ: họ đứng trước một căn nhà cũ, bên trong có một người đang chờ họ mở cửa. Khi một người trong nhóm tìm đến địa chỉ trong giấc mơ, anh phát hiện đó chính là căn nhà đã bị cháy nhiều năm trước. Người đàn bà bán xôi biến mất sau đúng bảy ngày. Nhưng từ ngày đó, những người từng mua xôi bắt đầu nhận được một gói xôi đặt trước cửa mỗi sáng, dù không ai biết người gửi.",
+      "setting": "Một khu phố cũ ở Hà Nội, những con ngõ hẹp, hàng quán mở từ sáng sớm và căn nhà cháy năm xưa nằm ở cuối ngõ.",
+      "elements": [
+        "mysterious_vendor",
+        "shared_dream",
+        "disappearance",
+        "street_ghost",
+        "urban_folklore",
+        "old_fire",
+        "recurring_offering"
+      ],
+      "tone": [
+        "folk_horror",
+        "urban",
+        "mysterious",
+        "communal_dread"
+      ],
+      "ending_type": [
+        "ambiguous",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "19c74787-988d-4c40-9066-7c5bca8438e5"
+    },
+    {
+      "id": "horror-010",
+      "title": "Căn Phòng Số 0",
+      "genre": "supernatural_horror",
+      "seed": "Một khách sạn nhỏ trên đèo chỉ có chín phòng được đánh số từ 1 đến 9, nhưng hành lang luôn có một cánh cửa thứ mười mang số 0. Nhân viên lâu năm không bao giờ nhắc đến nó và cấm khách mở cửa, đặc biệt trong những đêm mưa lớn. Một đêm mất điện, cánh cửa số 0 tự nhiên hé ra. Người khách đang bị mắc kẹt vì sạt lở nghe thấy tiếng nước nhỏ giọt và tiếng một người phụ nữ gọi tên mình từ bên trong. Khi anh nhìn qua khe cửa, căn phòng bên kia giống hệt căn phòng số 7 anh đang ở — nhưng mọi thứ bên trong đều cũ hơn hàng chục năm. Trên bàn có một cuốn sổ ghi tên những người từng nghỉ tại khách sạn. Tên cuối cùng trong danh sách chính là tên anh, nhưng ngày nhận phòng được ghi từ mười hai năm trước.",
+      "setting": "Một khách sạn nhỏ trên đèo miền núi, bị cô lập bởi mưa lớn và sạt lở, mất điện và mất sóng điện thoại trong nhiều giờ.",
+      "elements": [
+        "impossible_room",
+        "isolation",
+        "mountain_pass",
+        "storm",
+        "forbidden_space",
+        "hotel_history",
+        "time_anomaly"
+      ],
+      "tone": [
+        "claustrophobic",
+        "classic_horror",
+        "atmospheric",
+        "mysterious"
+      ],
+      "ending_type": [
+        "dark",
+        "twist"
+      ],
+      "status": "generated",
+      "story_id": "5ffe2cdc-972b-4b81-86c5-4e9383467fc0"
+    },
+    {
+      "id": "horror-011",
+      "title": "Bát Cơm Cúng Thừa Một Đôi Đũa",
+      "genre": "supernatural_horror",
+      "seed": "Mỗi năm vào ngày giỗ ông nội, mâm cơm cúng trong căn nhà ba gian luôn được đặt thừa một đôi đũa, dù gia đình chỉ có bốn người và không ai thừa nhận mình đã đặt chúng. Năm nay, đứa cháu lớn quyết định bí mật đặt điện thoại quay lại bàn thờ sau khi cả nhà đi ngủ. Sáng hôm sau, trong đoạn video không có bất kỳ bóng người nào xuất hiện, nhưng bát cơm cúng đã vơi đi một nửa và đôi đũa thừa nằm lệch sang phía chiếc ghế cũ của người chú đã mất nhiều năm trước. Khi cả nhà bắt đầu hỏi tại sao ông nội vẫn cúng thêm một phần cơm mỗi năm, một bí mật bị chôn trong gia đình từ trước ngày ông qua đời dần được hé lộ.",
+      "setting": "Một ngôi nhà cổ ba gian ở vùng Bắc Bộ, bàn thờ gia tiên đặt chính giữa nhà, phía sau là gian buồng cũ đã khóa nhiều năm.",
+      "elements": [
+        "ancestor_worship",
+        "death_anniversary",
+        "extra_chopsticks",
+        "unseen_guest",
+        "family_secret",
+        "ritual",
+        "old_family_house"
+      ],
+      "tone": [
+        "folk_horror",
+        "melancholic",
+        "slow_burn",
+        "dread"
+      ],
+      "ending_type": [
+        "revelation",
+        "bittersweet"
+      ],
+      "status": "generated",
+      "story_id": "3be52939-5082-40e9-b895-444a575de80c"
+    },
+    {
+      "id": "horror-012",
+      "title": "Người Ngồi Cuối Xe Đò",
+      "genre": "supernatural_horror",
+      "seed": "Chuyến xe khách đêm từ Sài Gòn về miền Tây chỉ có hai mươi mốt hành khách, nhưng tài xế liên tục nhìn thấy hai mươi hai người trong gương chiếu hậu. Người thừa luôn ngồi ở hàng ghế cuối, mặc áo mưa cũ và không bao giờ nhìn lên. Mỗi lần xe đi ngang một đoạn quốc lộ từng xảy ra tai nạn chết người, tài xế lại nghe tiếng người phía sau hỏi: 'Còn mấy cây nữa tới chỗ tôi xuống?' Khi phụ xe kiểm tra danh sách, không ai có tên ở ghế cuối. Đáng sợ hơn, camera trong xe không ghi lại người đó. Sau mỗi lần có hành khách xuống xe, số người trong gương vẫn không thay đổi.",
+      "setting": "Một chuyến xe khách đường dài chạy từ Thành phố Hồ Chí Minh về miền Tây vào lúc gần hai giờ sáng, đi qua những đoạn quốc lộ vắng và từng xảy ra nhiều tai nạn.",
+      "elements": [
+        "night_bus",
+        "extra_passenger",
+        "haunted_road",
+        "accident_site",
+        "rearview_mirror",
+        "missing_camera_image",
+        "driver_superstition"
+      ],
+      "tone": [
+        "tense",
+        "escalating_dread",
+        "isolated",
+        "atmospheric"
+      ],
+      "ending_type": [
+        "dark",
+        "twist"
+      ],
+      "status": "generated",
+      "story_id": "21fe89fb-c1a5-4e68-aa74-cfec50c22ec1"
+    },
+    {
+      "id": "horror-013",
+      "title": "Cây Đa Cuối Làng",
+      "genre": "supernatural_horror",
+      "seed": "Cây đa hơn trăm năm tuổi ở cuối làng không bao giờ đổ bóng xuống mặt đất, ngay cả giữa trưa nắng. Người già trong làng bảo cây đã 'có người ở' từ rất lâu và tuyệt đối không được chặt. Khi con đường mới được mở qua khu đất đó, chính quyền quyết định đốn cây. Ngay sau khi những nhát rìu đầu tiên được bổ xuống, những người tham gia công trình bắt đầu nhìn thấy những vật nhỏ bị mắc trong rễ cây: vòng tay trẻ em, ảnh cũ, những mảnh vải có thêu tên người đã chết. Một ông lão trong làng chỉ nói một câu: 'Ngày trước, người ta đem những thứ này đến đây để xin cây giữ hộ.' Không ai giải thích được cây đã giữ thứ gì suốt hơn nửa thế kỷ, và vì sao những người từng chạm vào bộ rễ bắt đầu mơ thấy cùng một đứa trẻ đứng dưới gốc cây.",
+      "setting": "Một ngôi làng đồng bằng Bắc Bộ đang được quy hoạch mở đường, nơi cây đa cổ nằm cạnh một miếu nhỏ đã xuống cấp và người trẻ trong làng hầu hết đã rời quê.",
+      "elements": [
+        "sacred_banyan_tree",
+        "spirit_dwelling",
+        "village_belief",
+        "buried_objects",
+        "forgotten_children",
+        "development_vs_tradition",
+        "ancient_secret"
+      ],
+      "tone": [
+        "folk_horror",
+        "atmospheric",
+        "slow_burn",
+        "melancholic"
+      ],
+      "ending_type": [
+        "tragic",
+        "ambiguous"
+      ],
+      "status": "generated",
+      "story_id": "07b09db2-39ee-4d4e-af00-17fb2bacf55b"
+    },
+    {
+      "id": "horror-014",
+      "title": "Thang Máy Hiện Tầng 13 Trong 47 Giây",
+      "genre": "supernatural_horror",
+      "seed": "Chung cư cũ chỉ có mười hai tầng, nhưng thang máy đôi khi hiện số 13 trên bảng điều khiển trong đúng bốn mươi bảy giây. Không có nút tầng 13 và bản thiết kế tòa nhà cũng không có tầng này. Ban đầu cư dân nghĩ đó chỉ là lỗi điện tử. Cho đến khi một nhân viên bảo vệ bước vào thang máy lúc 2 giờ 13 sáng và nhìn thấy con số 13 sáng lên. Cửa mở ra một hành lang giống hệt tầng của anh, nhưng tất cả các căn hộ đều có cửa gỗ cũ và tên của những người đã từng sống trong tòa nhà. Khi anh quay trở lại, camera an ninh cho thấy anh đã đứng bất động trong thang máy suốt bốn mươi bảy giây. Nhưng trên chiếc điện thoại anh mang theo lại có một đoạn video dài hơn hai phút, quay cảnh anh đang đi dọc hành lang của tầng 13.",
+      "setting": "Một chung cư cũ ở Hà Nội được xây từ thời bao cấp, nơi nhiều gia đình đã sống qua hai hoặc ba thế hệ và một phần hồ sơ xây dựng cũ đã thất lạc.",
+      "elements": [
+        "elevator",
+        "missing_floor",
+        "47_seconds",
+        "liminal_space",
+        "old_apartment_building",
+        "forgotten_history",
+        "security_camera"
+      ],
+      "tone": [
+        "psychological",
+        "claustrophobic",
+        "urban_horror",
+        "unsettling"
+      ],
+      "ending_type": [
+        "dark",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "a1492a36-652e-410b-bd09-1a5c919b3bf9"
+    },
+    {
+      "id": "horror-015",
+      "title": "Người Thừa Trong Bức Ảnh Gia Đình",
+      "genre": "supernatural_horror",
+      "seed": "Sau ngày giỗ của ông ngoại, gia đình nhận được một bộ ảnh vừa rửa và phát hiện trong mỗi tấm ảnh đều có mười người, dù hôm đó chỉ có chín người về dự. Người đứng thừa luôn ở một vị trí khác nhau nhưng khuôn mặt đều bị che khuất. Ban đầu mọi người nghĩ đó là lỗi ánh sáng. Cho đến khi họ nhận ra người này luôn đứng phía sau một thành viên trong gia đình. Ba ngày sau, người mà 'người thứ mười' đứng phía sau bất ngờ gặp một tai nạn nhưng sống sót. Từ đó, gia đình bắt đầu kiểm tra những bức ảnh cũ và phát hiện người thừa đã xuất hiện trong ảnh từ nhiều năm trước. Điều đáng sợ nhất là trong một bức ảnh được chụp ngay sau đám tang của ông ngoại, người thừa không đứng phía sau ai cả mà đang đứng ngay cạnh người đã chụp ảnh.",
+      "setting": "Một gia đình nhiều thế hệ tụ họp tại ngôi nhà quê miền Trung vào ngày giỗ, nơi hàng chục năm qua gia đình vẫn giữ thói quen chụp ảnh chung sau mỗi dịp cúng giỗ.",
+      "elements": [
+        "family_photograph",
+        "extra_person",
+        "death_anniversary",
+        "unrecognized_figure",
+        "future_death_omen",
+        "generational_connection",
+        "old_photographs"
+      ],
+      "tone": [
+        "creepy",
+        "melancholic",
+        "mysterious",
+        "family_horror"
+      ],
+      "ending_type": [
+        "revelation",
+        "bittersweet"
+      ],
+      "status": "generated",
+      "story_id": "5baa57f4-fa70-479c-9b10-4e865219fad7"
+    },
+    {
+      "id": "horror-016",
+      "title": "Chiếc Giếng Làng",
+      "genre": "supernatural_horror",
+      "seed": "Một chiếc giếng làng bị lấp hơn bốn mươi năm trước sau một vụ việc mà những người lớn tuổi tuyệt đối không muốn nhắc tới. Khi công trình đào đường vô tình làm lộ lại phần thành giếng, những gia đình sống xung quanh bắt đầu nghe tiếng gọi tên mình từ dưới lòng đất, nhưng mỗi người lại nghe một giọng khác nhau. Một bà cụ nghe tiếng con trai đã mất, một người đàn ông nghe tiếng mẹ mình, còn một đứa trẻ nghe tiếng một người phụ nữ mà nó chưa từng gặp. Ban đêm, tiếng gọi chỉ xuất hiện đúng lúc có người trong nhà chuẩn bị đi ngủ. Sau khi một người dân đáp lại tiếng gọi, anh ta bắt đầu mơ thấy một căn nhà cũ nằm dưới đáy giếng. Cuộc tìm kiếm sự thật dẫn đến một chuyện đã bị cả làng cố tình quên đi: năm xưa, có những người không bao giờ được tìm thấy sau một đêm mưa lớn.",
+      "setting": "Một thị trấn miền Trung được xây dựng trên nền một ngôi làng cũ, nơi con đường mới đang được mở qua khu đất từng có chiếc giếng chung của làng.",
+      "elements": [
+        "old_well",
+        "buried_secret",
+        "voices_from_below",
+        "forgotten_tragedy",
+        "village_secret",
+        "excavation_trigger",
+        "missing_people"
+      ],
+      "tone": [
+        "folk_horror",
+        "dread",
+        "atmospheric",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "tragic",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "cce33104-0bc7-4fa0-bb24-882d087d35a8"
+    },
+    {
+      "id": "horror-017",
+      "title": "Chiếc Võng Ngoài Hiên",
+      "genre": "supernatural_horror",
+      "seed": "Sau khi ông nội mất, chiếc võng ngoài hiên vẫn tự đưa mỗi chiều, đúng giờ ông thường nằm nghỉ. Gia đình nghĩ đó chỉ là gió cho đến khi nhận ra những ngày chiếc võng tự chuyển động luôn trùng với thời điểm một người trong họ gặp chuyện. Ban đầu chỉ là những tai nạn nhỏ. Sau đó, một người họ hàng qua đời đúng ba ngày sau khi cả nhà nhìn thấy chiếc võng đung đưa dù trời hoàn toàn lặng gió. Đứa cháu từ Thành phố Hồ Chí Minh trở về quyết định tháo chiếc võng xuống. Đêm hôm đó, chiếc võng không còn ở ngoài hiên mà xuất hiện trong gian nhà cũ. Nó tiếp tục tự đưa dù không có gió. Khi anh kiểm tra lại những lần ông nội từng kể về chiếc võng, anh phát hiện trước đây ông cũng từng chứng kiến nó tự đưa, và lần nào cũng có một người trong gia đình qua đời sau đó.",
+      "setting": "Một ngôi nhà vườn miền Tây vào mùa mưa, chiếc võng được treo dưới mái hiên nơi ông nội từng nằm nghỉ mỗi chiều.",
+      "elements": [
+        "swinging_hammock",
+        "deceased_grandfather",
+        "death_omen",
+        "family_pattern",
+        "daily_ritual",
+        "skeptic_protagonist",
+        "old_family_memory"
+      ],
+      "tone": [
+        "melancholic",
+        "atmospheric",
+        "slow_burn",
+        "dread"
+      ],
+      "ending_type": [
+        "bittersweet",
+        "ambiguous"
+      ],
+      "status": "generated",
+      "story_id": "ede007b3-ac12-460f-b2d3-ac03dc4f2e4d"
+    },
+    {
+      "id": "horror-018",
+      "title": "Số Điện Thoại Của Người Đã Mất",
+      "genre": "supernatural_horror",
+      "seed": "Sáu tháng sau khi người bạn thân qua đời trong một vụ tai nạn, một lập trình viên sống một mình bất ngờ nhận được tin nhắn từ chính số điện thoại của cô ấy, dù số đã bị hủy ngay sau ngày cô mất. Tin nhắn đầu tiên chỉ có ba chữ: 'Tao sắp về.' Anh nghĩ đó là trò đùa cho đến khi những tin nhắn tiếp theo bắt đầu nhắc đến những chuyện chỉ hai người biết. Sau đó, tin nhắn chuyển thành những thông tin về những việc sắp xảy ra trong căn hộ của anh, từ tiếng gõ cửa đến việc điện trong phòng khách sẽ tắt lúc 3 giờ 13. Mọi thứ đều xảy ra chính xác. Khi anh lần theo lịch sử của số điện thoại, phát hiện chiếc SIM đã được kích hoạt lại nhiều tháng trước bởi một người không tồn tại trong hồ sơ thuê bao. Tin nhắn cuối cùng gửi đến trước khi điện thoại của anh mất hoàn toàn tín hiệu chỉ có một câu: 'Mở cửa cho tao.'",
+      "setting": "Một căn hộ cao tầng ở Thành phố Hồ Chí Minh, nơi nhân vật chính sống một mình và làm việc từ xa vào ban đêm.",
+      "elements": [
+        "text_from_dead",
+        "disconnected_number",
+        "digital_haunting",
+        "grief",
+        "unfinished_business",
+        "predictive_messages",
+        "smartphone"
+      ],
+      "tone": [
+        "modern_horror",
+        "psychological",
+        "tense",
+        "escalating"
+      ],
+      "ending_type": [
+        "twist",
+        "dark"
+      ],
+      "status": "generated",
+      "story_id": "42254c4b-e40f-4d1f-a272-a125438364ec"
+    },
+    {
+      "id": "horror-019",
+      "title": "Người Thuê Phòng Không Bao Giờ Ra Ngoài",
+      "genre": "supernatural_horror",
+      "seed": "Chủ một dãy phòng trọ nhận tiền thuê phòng 207 đều đặn vào ngày mùng năm hàng tháng. Suốt gần một năm, không một người hàng xóm nào từng nhìn thấy người thuê phòng ra ngoài, nhưng tiền vẫn được chuyển đúng giờ từ cùng một tài khoản. Một đêm mất điện, chủ trọ nghe tiếng thở rất rõ phía sau cánh cửa phòng 207 và quyết định mở cửa bằng chìa khóa dự phòng. Căn phòng trống không, không có đồ đạc, không có quần áo và phủ đầy bụi. Chỉ có một chiếc điện thoại cũ đang cắm sạc trên nền nhà. Khi kiểm tra lịch sử chuyển khoản, ông phát hiện người gửi tiền không phải người đang thuê phòng. Tài khoản đó thuộc về một người đàn ông đã chết tám năm trước, và địa chỉ cuối cùng trong hồ sơ của ông ta chính là căn phòng 207. Nhưng đáng sợ nhất là tháng cuối cùng tiền thuê được chuyển đến vào ngày mà chủ trọ biết chắc căn phòng đã hoàn toàn bỏ trống.",
+      "setting": "Một dãy nhà trọ cũ ở khu vực ven đô, chủ nhà sống ở tầng trệt và các phòng cho thuê nằm trên tầng hai.",
+      "elements": [
+        "mysterious_tenant",
+        "unseen_presence",
+        "rental_payment",
+        "breathing_sound",
+        "locked_room",
+        "dead_bank_account",
+        "empty_room"
+      ],
+      "tone": [
+        "creepy",
+        "slow_burn",
+        "urban_horror",
+        "dread"
+      ],
+      "ending_type": [
+        "dark",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "58ba1188-d5b7-40f0-9918-e7c9b516cc8c"
+    },
+    {
+      "id": "horror-020",
+      "title": "Bộ Áo Tang Màu Trắng",
+      "genre": "supernatural_horror",
+      "seed": "Ở một khu dân cư cũ miền Trung tồn tại một lời đồn mà người trẻ không ai tin: trước khi một người trong khu phố qua đời, vào lúc gần sáng sẽ xuất hiện một bộ áo tang trắng trước cửa nhà họ. Không ai biết ai mang đến và camera an ninh chưa bao giờ ghi lại được người đặt áo. Người dân coi đó là chuyện mê tín cho đến khi một gia đình phát hiện bộ áo tang trước cửa nhà mình và người cha qua đời đúng ba ngày sau. Một cô gái sống trong khu phố quyết định tìm hiểu những trường hợp từng xảy ra trong nhiều năm và phát hiện bộ áo tang không chỉ báo trước cái chết. Nó luôn xuất hiện trước nhà của người có liên quan đến một cái chết cũ mà khu phố đã cố tình che giấu. Một buổi sáng, cô thức dậy và thấy một bộ áo tang trắng nằm ngay trước cửa nhà mình. Trên cổ áo được thêu tên cô.",
+      "setting": "Một khu dân cư nhà ống cũ ở một thành phố tỉnh lẻ miền Trung, nơi các gia đình sống san sát và nhiều người đã ở đó từ trước khi khu phố được quy hoạch.",
+      "elements": [
+        "mourning_clothes",
+        "death_omen",
+        "neighborhood_secret",
+        "old_death",
+        "unexplained_appearance",
+        "folk_belief",
+        "personal_connection"
+      ],
+      "tone": [
+        "dread",
+        "psychological",
+        "melancholic",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "revelation",
+        "ambiguous"
+      ],
+      "status": "generated",
+      "story_id": "dd1e7aa3-e753-45d7-a5e4-50a44dc8338e"
+    },
+    {
+      "id": "horror-021",
+      "title": "Người Đi Bộ Không Có Bóng",
+      "genre": "supernatural_horror",
+      "seed": "Bảo vệ một khu công nghiệp phát hiện camera an ninh ghi lại cùng một người đàn ông đi bộ qua cổng lúc 2 giờ 15 sáng mỗi đêm. Người này không quẹt thẻ, không mở cổng và đặc biệt không có bóng dưới ánh đèn cao áp. Một bảo vệ mới nhận ra khuôn mặt đó giống hệt một công nhân đã nghỉ việc rồi qua đời ba tháng trước. Khi họ kiểm tra dữ liệu cũ, người đàn ông đã xuất hiện trong camera từ nhiều tháng trước thời điểm anh ta chết. Đáng sợ hơn, mỗi đêm người đó lại đi sâu hơn vào bên trong khu nhà xưởng, như thể đang tìm một người nào đó.",
+      "setting": "Một khu công nghiệp ngoại thành, ca trực đêm vắng người, các nhà xưởng nối với nhau bằng những hành lang dài và khu vực kho bỏ trống.",
+      "elements": [
+        "security_camera",
+        "shadowless_figure",
+        "deceased_worker",
+        "night_shift",
+        "identity_recognition",
+        "industrial_area",
+        "hidden_accident"
+      ],
+      "tone": [
+        "tense",
+        "atmospheric",
+        "modern_horror",
+        "dread"
+      ],
+      "ending_type": [
+        "dark",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "f4fde49b-df91-4c16-bfd6-2d8e2ab8c6a7"
+    },
+    {
+      "id": "horror-022",
+      "title": "Miếu Hoang Giữa Ruộng",
+      "genre": "supernatural_horror",
+      "seed": "Giữa cánh đồng có một ngôi miếu nhỏ không ai biết thờ ai. Người làng vẫn để nguyên khoảng đất quanh miếu dù nơi đó màu mỡ hơn những thửa ruộng khác. Một chủ đất mới từ thành phố về quyết định phá miếu để mở rộng canh tác. Sau khi miếu bị dỡ, những người làm ruộng bắt đầu nhìn thấy một người phụ nữ đứng giữa ruộng vào lúc chạng vạng. Không ai biết bà là ai, nhưng mỗi lần bà xuất hiện, trong làng lại có một người bị bệnh hoặc gặp tai nạn. Một cụ già cuối cùng tiết lộ rằng ngôi miếu được dựng lên để thờ những người từng chết trong một trận lũ lớn và không tìm được xác. Nhưng điều dân làng sợ nhất không phải là phá miếu, mà là đã có người từng phá nó một lần trước đây.",
+      "setting": "Cánh đồng lúa vùng đồng bằng sông Cửu Long, mùa khô, những con mương nhỏ chạy quanh ruộng và một ngôi miếu cũ nằm tách biệt giữa đồng.",
+      "elements": [
+        "abandoned_shrine",
+        "forgotten_dead",
+        "land_dispute",
+        "desecration",
+        "village_belief",
+        "flood_tragedy",
+        "repeated_curse"
+      ],
+      "tone": [
+        "folk_horror",
+        "rural",
+        "slow_burn",
+        "dread"
+      ],
+      "ending_type": [
+        "tragic",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "2909369b-e7ef-4289-9edc-980e6900d6f6"
+    },
+    {
+      "id": "horror-023",
+      "title": "Cuộn Băng Cát Sét Không Tên",
+      "genre": "supernatural_horror",
+      "seed": "Sau khi cha qua đời, người con trai về quê dọn kho và tìm thấy một cuộn băng cassette không có nhãn. Khi bật lên, giọng nói trên băng chính xác là giọng của cha anh, nhưng nội dung khiến cả gia đình lạnh người: ông đọc tên từng thành viên và thời điểm họ sẽ chết. Ba người đầu tiên trong danh sách đã qua đời đúng những ngày được ghi. Người cuối cùng là chính anh, với ngày chết là ngày mai. Khi nghe lại cuộn băng, anh phát hiện có một đoạn âm thanh bị ghi đè ở cuối băng. Đó là giọng của chính anh, đang nói chuyện với cha trong một căn phòng mà anh chưa từng nhớ mình đã bước vào.",
+      "setting": "Ngôi nhà cũ ở một tỉnh miền Bắc sau khi người cha qua đời, căn kho chứa đầy đồ đạc cũ và những cuộn băng cassette từ nhiều năm trước.",
+      "elements": [
+        "cassette_tape",
+        "deceased_father_voice",
+        "death_prophecy",
+        "family_list",
+        "countdown",
+        "recorded_future",
+        "family_secret"
+      ],
+      "tone": [
+        "psychological",
+        "dread",
+        "slow_burn",
+        "family_horror"
+      ],
+      "ending_type": [
+        "dark",
+        "twist"
+      ],
+      "status": "generated",
+      "story_id": "d60dc373-7298-4633-80ac-5f5b14adc62c"
+    },
+    {
+      "id": "horror-024",
+      "title": "Con Đường Về Làng",
+      "genre": "supernatural_horror",
+      "seed": "Một tài xế taxi nhận chuyến đi lúc gần một giờ sáng. Người khách là một phụ nữ trung niên, yêu cầu đưa về một ngôi làng nằm sâu trong vùng núi. GPS liên tục chỉ vào một con đường đất mà tài xế chưa từng thấy, dù ban ngày tuyến đường đó hoàn toàn không tồn tại. Khi đến nơi, người phụ nữ xuống xe và bảo anh đừng chờ. Tài xế quay lại thành phố, nhưng sáng hôm sau phát hiện trên ứng dụng chuyến xe không có thông tin người khách. Anh tìm đến địa chỉ trên giấy tờ của cô và được biết người phụ nữ đó đã chết hơn ba mươi năm trước, trong một vụ việc khiến cả ngôi làng cũ bị di dời. Điều đáng sợ là đêm hôm sau, GPS trên xe lại tự động hiện đúng con đường ấy.",
+      "setting": "Vùng quê miền Trung, những con đường đất quanh đồi thấp, đêm nhiều sương và các làng cũ từng bị di dời.",
+      "elements": [
+        "gps_anomaly",
+        "vanished_village",
+        "ghost_passenger",
+        "displaced_village",
+        "night_road",
+        "repeating_route",
+        "unfinished_journey"
+      ],
+      "tone": [
+        "atmospheric",
+        "mysterious",
+        "slow_burn",
+        "folk_horror"
+      ],
+      "ending_type": [
+        "revelation",
+        "ambiguous"
+      ],
+      "status": "generated",
+      "story_id": "c52f5d57-f158-4f6f-9e32-a613b81ad055"
+    },
+    {
+      "id": "horror-025",
+      "title": "Phòng Bệnh Số Bảy",
+      "genre": "supernatural_horror",
+      "seed": "Bệnh viện huyện có một quy tắc bất thành văn: phòng bệnh số bảy luôn phải để trống sau khi trời tối. Một y tá mới không biết chuyện và xếp một bệnh nhân vào đó. Đúng 3 giờ sáng, bệnh nhân tỉnh dậy vì nghe tiếng kéo rèm quanh giường. Khi mở mắt, anh nhìn thấy một người đang nằm trên chiếc giường đối diện, dù phòng chỉ có một bệnh nhân. Sáng hôm sau, hồ sơ bệnh viện cho thấy căn phòng từng có một bệnh nhân nữ tử vong nhiều năm trước. Nhưng điều không ai giải thích được là hồ sơ nhập viện của người phụ nữ đó ghi chính xác tên, tuổi và căn bệnh của bệnh nhân đang nằm trong phòng tối hôm nay.",
+      "setting": "Một bệnh viện huyện cũ ở vùng trung du, tòa nhà lâu năm, hành lang dài, phòng bệnh ít sử dụng và khu hồ sơ giấy đã xuống cấp.",
+      "elements": [
+        "forbidden_room",
+        "hospital_ward",
+        "occupied_bed",
+        "unwritten_rule",
+        "night_encounter",
+        "old_medical_record",
+        "repeating_death"
+      ],
+      "tone": [
+        "tense",
+        "atmospheric",
+        "isolated",
+        "dread"
+      ],
+      "ending_type": [
+        "dark",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "4ef6f3be-5fbe-4bef-b04d-ba7a452a34f0"
+    },
+    {
+      "id": "horror-026",
+      "title": "Tiếng Rao Hàng Rong",
+      "genre": "supernatural_horror",
+      "seed": "Trong một con hẻm cũ ở Sài Gòn, đúng nửa đêm mỗi ngày lại vang lên tiếng rao của một người bán hàng rong mà không ai nhìn thấy. Những người từng mua đồ đều không nhớ mình đã mua gì. Chỉ đến sáng, họ mới phát hiện trong nhà xuất hiện một món đồ cũ không thuộc về mình: một chiếc lược, một chiếc nhẫn, một tấm ảnh hoặc một món đồ chơi. Khi một cô gái giữ lại món đồ thay vì vứt đi, cô bắt đầu nhìn thấy những hình ảnh không thuộc về cuộc đời mình. Cô dần nhận ra những món đồ đó từng thuộc về những người đã chết trong chính con hẻm này.",
+      "setting": "Một con hẻm cũ ở Thành phố Hồ Chí Minh, nhà san sát, nhiều gia đình sống qua nhiều thế hệ, ban ngày đông đúc nhưng sau nửa đêm gần như vắng người.",
+      "elements": [
+        "midnight_vendor",
+        "memory_loss",
+        "dead_person_belongings",
+        "mysterious_object",
+        "urban_folklore",
+        "old_alley",
+        "unresolved_deaths"
+      ],
+      "tone": [
+        "folk_horror",
+        "urban",
+        "mysterious",
+        "unsettling"
+      ],
+      "ending_type": [
+        "ambiguous",
+        "dark"
+      ],
+      "status": "generated",
+      "story_id": "db34e1d0-28dd-4d35-8ce4-9850ae0d77ea"
+    },
+    {
+      "id": "horror-027",
+      "title": "Chiếc Đồng Hồ Dừng Lại Lần Thứ Tư",
+      "genre": "supernatural_horror",
+      "seed": "Chiếc đồng hồ treo tường trong nhà bà ngoại đã chạy suốt hơn năm mươi năm. Gia đình phát hiện nó từng dừng đúng ba lần, và mỗi lần trong vòng bảy ngày lại có một người thân qua đời. Không ai biết vì sao chiếc đồng hồ dừng lại. Nhiều năm sau, trong lúc cả gia đình chuẩn bị sửa lại căn nhà, chiếc đồng hồ đột nhiên dừng đúng 3 giờ 17 phút sáng. Những người lớn trong nhà lập tức nhận ra điều đó và giấu kín với con cháu. Nhưng một người cháu đã nhìn thấy mặt sau chiếc đồng hồ có một mảnh giấy cũ ghi ba cái tên. Dòng thứ tư vừa được viết thêm vào sáng hôm sau.",
+      "setting": "Một ngôi nhà cổ ở thành phố Huế, gian thờ nằm giữa nhà, chiếc đồng hồ cũ treo trên bức tường đối diện bàn thờ.",
+      "elements": [
+        "omen_clock",
+        "death_pattern",
+        "family_heirloom",
+        "countdown",
+        "ancestral_home",
+        "hidden_note",
+        "family_silence"
+      ],
+      "tone": [
+        "dread",
+        "slow_burn",
+        "melancholic",
+        "atmospheric"
+      ],
+      "ending_type": [
+        "tragic",
+        "twist"
+      ],
+      "status": "generated",
+      "story_id": "75c91093-97e1-446a-a2ab-71496ee5045a"
+    },
+    {
+      "id": "horror-028",
+      "title": "Lời Hứa Với Người Chết",
+      "genre": "supernatural_horror",
+      "seed": "Trước khi mất, người mẹ dặn con trai duy nhất: 'Đừng bao giờ bán ngôi nhà này.' Anh hứa. Mười năm sau, vì nợ nần, anh vẫn bán nhà và chuyển lên thành phố. Từ đêm đầu tiên ở phòng trọ, anh bắt đầu nghe tiếng dép kéo lê ngoài cửa vào đúng giờ mẹ thường đi kiểm tra các phòng trong nhà cũ. Anh chuyển chỗ ở nhiều lần nhưng tiếng bước chân vẫn theo đến. Khi trở về quê tìm lời giải, anh phát hiện mẹ không chỉ để lại lời dặn. Trước khi mất, bà đã chôn một thứ dưới nền nhà và biết chính xác người mua sau này sẽ làm gì với căn nhà.",
+      "setting": "Xen kẽ giữa ngôi làng cũ ở quê và những căn phòng trọ chật hẹp nơi thành phố, tạo sự đối lập giữa quê nhà và cuộc sống tha hương.",
+      "elements": [
+        "broken_deathbed_promise",
+        "following_spirit",
+        "guilt",
+        "footsteps",
+        "maternal_bond",
+        "hidden_object",
+        "old_house_secret"
+      ],
+      "tone": [
+        "melancholic",
+        "psychological",
+        "slow_burn",
+        "dread"
+      ],
+      "ending_type": [
+        "tragic",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "c563914f-deaf-4a36-8fdd-5c9b990b7edf"
+    },
+    {
+      "id": "horror-029",
+      "title": "Người Ngồi Trên Mui Xe Suốt Hai Mươi Cây Số",
+      "genre": "supernatural_horror",
+      "seed": "Một tài xế xe tải chạy đêm qua con đèo miền Trung. Sau khi giao hàng, anh xem lại camera hành trình và phát hiện một người đàn ông đang ngồi trên mui xe suốt gần hai mươi cây số. Người đó quay mặt về phía trước, không di chuyển dù xe chạy với tốc độ cao. Tài xế hoảng sợ vì trong suốt chuyến đi anh không hề nhìn thấy ai. Khi phóng to hình ảnh, anh nhận ra người đàn ông chính là một tài xế khác từng chết trong vụ tai nạn trên chính con đèo đó. Đoạn camera cuối cùng cho thấy người đàn ông quay đầu nhìn thẳng vào ống kính đúng lúc chiếc xe chuẩn bị đi qua khúc cua nơi anh ta đã chết.",
+      "setting": "Một con đèo miền Trung, chuyến xe tải chạy hàng ban đêm, đường vắng và một bên là vực sâu.",
+      "elements": [
+        "dashcam_footage",
+        "figure_on_roof",
+        "mountain_pass",
+        "night_driving",
+        "deceased_driver",
+        "old_accident",
+        "camera_reveal"
+      ],
+      "tone": [
+        "tense",
+        "atmospheric",
+        "dread",
+        "modern_horror"
+      ],
+      "ending_type": [
+        "dark",
+        "ambiguous"
+      ],
+      "status": "generated",
+      "story_id": "60bb2361-1bd8-41d6-9d9c-b71fc435757a"
+    },
+    {
+      "id": "horror-030",
+      "title": "Đình Làng Chỉ Mở Cửa Vào Một Đêm",
+      "genre": "supernatural_horror",
+      "seed": "Ngôi đình cổ trong làng chỉ mở cửa vào một đêm duy nhất mỗi năm. Người lớn dặn trẻ con khi đi lễ phải bước vào và bước ra mà không được ngoái nhìn phía sau. Một năm nọ, một đứa trẻ tò mò quay đầu lại và nhìn thấy trong sân đình hàng chục người đang đứng xếp hàng, tất cả đều mặc quần áo của những thời kỳ khác nhau. Từ hôm đó, đứa trẻ không nói chuyện nữa, chỉ thường xuyên vẽ cùng một căn nhà cũ mà không ai trong làng nhận ra. Khi người lớn tìm đến đình để hỏi chuyện, họ phát hiện căn nhà trong bức vẽ chính là nơi từng xảy ra một vụ chết tập thể mà hồ sơ làng đã không còn ghi lại.",
+      "setting": "Một làng cổ vùng trung du Bắc Bộ vào dịp rằm tháng bảy, ngôi đình nằm cuối làng cạnh một con đường đất ít người đi.",
+      "elements": [
+        "communal_temple",
+        "ghost_month",
+        "forbidden_glance",
+        "child_affected",
+        "village_ritual",
+        "forgotten_dead",
+        "lost_history"
+      ],
+      "tone": [
+        "folk_horror",
+        "atmospheric",
+        "mysterious",
+        "dread"
+      ],
+      "ending_type": [
+        "ambiguous",
+        "tragic"
+      ],
+      "status": "generated",
+      "story_id": "eecee7c2-0fb9-4a86-8e8a-b471caa1e2b1"
+    },
+    {
+      "id": "horror-031",
+      "title": "Người Trở Về Sau Mười Năm Mất Tích",
+      "genre": "supernatural_horror",
+      "seed": "Anh Tuấn mất tích năm hai mươi tuổi và gia đình tìm kiếm suốt nhiều năm nhưng không có tung tích. Đúng mười năm sau, anh đột nhiên đứng trước cửa nhà vào một đêm mưa. Khuôn mặt, giọng nói và quần áo của anh gần như không thay đổi. Anh chỉ nói rằng mình vừa đi xa vài ngày. Gia đình không dám nói cho anh biết rằng suốt mười năm qua, họ đã lập bàn thờ cho anh. Nhưng khi người mẹ nhìn thấy cổ tay con trai, bà nhận ra một vết sẹo mà anh chỉ có được sau khi mất tích. Tối hôm đó, một người hàng xóm nghe tiếng gõ cửa nhà họ và kể rằng mười năm trước cũng chính đêm ấy, anh Tuấn đã gõ cửa xin giúp đỡ.",
+      "setting": "Một ngôi làng trung du miền Bắc, nhà ngói cũ, mùa đông lạnh và bàn thờ người mất tích vẫn được gia đình giữ nguyên suốt mười năm.",
+      "elements": [
+        "missing_person_returns",
+        "no_aging",
+        "time_discrepancy",
+        "family_silence",
+        "uncanny_return",
+        "old_disappearance",
+        "repeating_night"
+      ],
+      "tone": [
+        "psychological",
+        "unsettling",
+        "slow_burn",
+        "dread"
+      ],
+      "ending_type": [
+        "dark",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "1e3acc90-4fee-44e6-92d1-6754e621b684"
+    },
+    {
+      "id": "horror-032",
+      "title": "Tiếng Ru Con Từ Căn Phòng Trống",
+      "genre": "supernatural_horror",
+      "seed": "Một căn hộ ở tầng trên đã bỏ trống suốt ba năm nhưng đêm nào người mẹ sống ở tầng dưới cũng nghe tiếng ru con vọng xuống qua trần nhà. Ban đầu cô nghĩ hàng xóm mới chuyển đến. Nhưng ban quản lý khẳng định căn hộ chưa từng có người thuê lại. Điều kỳ lạ là bài hát ru giống hệt bài mẹ cô từng hát cho cô khi còn nhỏ. Một đêm, tiếng ru chuyển thành tiếng khóc trẻ con. Cô lên tầng kiểm tra và thấy căn hộ vẫn khóa. Khi mở cửa, căn phòng hoàn toàn trống nhưng trên nền bụi có dấu chân nhỏ đi từ cửa vào một góc tường. Ở đó có một bức ảnh cũ của chính cô lúc còn bé.",
+      "setting": "Một chung cư cũ ở ngoại thành Hà Nội, hành lang ẩm thấp, hệ thống điện cũ và một căn hộ bỏ trống nhiều năm.",
+      "elements": [
+        "lullaby",
+        "empty_apartment",
+        "voice_recognition",
+        "childhood_memory",
+        "old_photograph",
+        "mother_daughter_bond",
+        "unexplained_footprints"
+      ],
+      "tone": [
+        "psychological",
+        "melancholic",
+        "creepy",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "twist",
+        "bittersweet"
+      ],
+      "status": "generated",
+      "story_id": "c3cac560-d494-4d28-bb2e-3d25a2e8e6f4"
+    },
+    {
+      "id": "horror-033",
+      "title": "Bức Ảnh Trên Bàn Thờ Người Đang Sống",
+      "genre": "supernatural_horror",
+      "seed": "Một người đàn ông trở về quê sau nhiều năm và vô tình nhìn thấy bàn thờ trong nhà hàng xóm có đặt ảnh của chính mình. Người phụ nữ trong nhà khẳng định đó là ảnh của anh trai cô, người đã chết ba năm trước. Nhưng người đàn ông chưa từng có anh em sinh đôi. Càng điều tra, anh càng phát hiện nhiều người trong làng từng gặp một người giống hệt mình trước khi anh trở về. Người đó biết những chuyện chỉ anh mới biết. Đêm cuối cùng, anh tìm thấy một bức ảnh cũ chụp trước ngày mình rời quê, và ở phía sau đám đông có một người giống hệt anh đang đứng nhìn thẳng vào máy ảnh.",
+      "setting": "Một ngôi làng miền Bắc, nơi nhiều gia đình đã sống qua nhiều thế hệ và mọi người đều biết rõ chuyện của nhau.",
+      "elements": [
+        "living_person_on_altar",
+        "mistaken_identity",
+        "identity_crisis",
+        "village_memory",
+        "doppelganger",
+        "old_photograph",
+        "unexplained_return"
+      ],
+      "tone": [
+        "unsettling",
+        "psychological",
+        "mysterious",
+        "dread"
+      ],
+      "ending_type": [
+        "dark",
+        "revelation"
+      ],
+      "status": "generated",
+      "story_id": "ce81d3e2-79c0-4e54-a16f-557ad62c0df2"
+    },
+    {
+      "id": "horror-034",
+      "title": "Bảy Con Hình Nhân Trước Cửa",
+      "genre": "supernatural_horror",
+      "seed": "Suốt bảy buổi sáng liên tiếp, một cô gái tìm thấy một con hình nhân bằng vải đặt trước cửa nhà. Mỗi con được khâu bằng một loại vải khác nhau và trên ngực đều có một dấu chỉ giống nhau. Bà cụ hàng xóm nhận ra đó là kiểu hình nhân từng được người trong vùng dùng trong những nghi thức dân gian để 'gánh' hoặc chuyển tai họa. Cô gái đem vứt sáu con nhưng sáng hôm sau chúng lại xuất hiện trước cửa. Đến con thứ bảy, cô phát hiện bên trong hình nhân có một mảnh giấy ghi tên mình và ngày tháng năm sinh. Từ đó, cô bắt đầu tìm hiểu xem ai đã đặt chúng và tại sao người đó muốn chuyển một thứ gì đó sang mình.",
+      "setting": "Một khu dân cư cũ ở thành phố miền Trung, những căn nhà san sát, con hẻm nhỏ và nhiều gia đình sống ở đây từ nhiều thế hệ.",
+      "elements": [
+        "cloth_doll",
+        "folk_magic",
+        "curse_transfer",
+        "daily_omen",
+        "birthday_connection",
+        "mysterious_sender",
+        "local_belief"
+      ],
+      "tone": [
+        "dread",
+        "folk_horror",
+        "slow_burn",
+        "psychological"
+      ],
+      "ending_type": [
+        "dark",
+        "twist"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-035",
+      "title": "Người Chỉ Đường Trên Đèo",
+      "genre": "supernatural_horror",
+      "seed": "Một tài xế lạc đường trên đèo trong đêm mưa lớn và gặp một người đàn ông đứng bên đường vẫy xe. Người này chỉ cho anh một con đường tắt xuyên qua rừng và dặn tuyệt đối không dừng lại giữa đường. Nhờ con đường đó, anh thoát khỏi đoạn đèo bị sạt lở chỉ vài phút sau. Khi về đến nhà, anh kể lại người đã giúp mình. Vợ anh tái mặt vì người đàn ông đó chính là cha cô, người đã chết một năm trước trong một vụ tai nạn đúng trên con đèo ấy. Nhưng khi kiểm tra lại camera hành trình, tài xế nhận ra người đàn ông không hề đứng bên đường. Ông ta xuất hiện lần đầu tiên ngay trong cabin xe.",
+      "setting": "Một con đèo vùng Tây Bắc trong đêm mưa lớn, đường núi vắng, nhiều đoạn mất sóng điện thoại và rừng già hai bên.",
+      "elements": [
+        "ghostly_guide",
+        "mountain_road",
+        "deceased_relative",
+        "posthumous_protection",
+        "dashcam_anomaly",
+        "old_accident",
+        "protective_spirit"
+      ],
+      "tone": [
+        "atmospheric",
+        "melancholic",
+        "folk_horror",
+        "mysterious"
+      ],
+      "ending_type": [
+        "bittersweet",
+        "revelation"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-036",
+      "title": "Vết Tay Trên Mặt Ngoài Cửa Kính",
+      "genre": "supernatural_horror",
+      "seed": "Một nhân viên lau kính phát hiện những dấu tay trẻ con in rõ trên mặt ngoài cửa kính tầng mười hai. Không có ban công, gờ tường hay thiết bị nào có thể giúp một đứa trẻ đứng ở đó. Điều kỳ lạ là dấu tay chỉ xuất hiện vào sáng thứ Hai và biến mất trước buổi trưa. Nhân viên an ninh kiểm tra camera nhưng không thấy ai tiếp cận khu vực đó. Khi tìm hồ sơ tòa nhà, họ phát hiện trước đây khu đất từng có một trường học nhỏ đã bị phá bỏ sau một vụ tai nạn. Đêm trước khi xảy ra vụ việc, một nhân viên bảo vệ nhìn thấy dấu tay xuất hiện từ phía bên trong cửa kính, như thể có một đứa trẻ đang đứng trong phòng.",
+      "setting": "Một tòa nhà văn phòng cao tầng ở trung tâm thành phố, tầng mười hai có một khu văn phòng bỏ trống từ lâu.",
+      "elements": [
+        "impossible_handprint",
+        "child_ghost",
+        "high_rise",
+        "inaccessible_location",
+        "vacant_floor",
+        "demolished_school",
+        "security_camera"
+      ],
+      "tone": [
+        "creepy",
+        "unsettling",
+        "atmospheric",
+        "dread"
+      ],
+      "ending_type": [
+        "dark",
+        "revelation"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-037",
+      "title": "Những Ngôi Mộ Không Có Tên Dưới Khu Đô Thị Mới",
+      "genre": "supernatural_horror",
+      "seed": "Một công trường xây khu đô thị mới phát hiện hàng chục ngôi mộ cũ không có bia và không được đánh dấu trên hồ sơ đất đai. Chủ đầu tư yêu cầu nhanh chóng di dời để tiếp tục thi công. Sau đêm đầu tiên san lấp, ba công nhân đồng loạt gặp cùng một giấc mơ: một đoàn người đứng giữa cánh đồng và lần lượt đọc tên mình. Những ngày sau đó, các công nhân bắt đầu nghe thấy tiếng gọi từ dưới nền đất vào đúng giờ giao ca. Một người quyết định đào lại khu vực cũ và tìm thấy những mảnh đồ cá nhân có khắc tên của những người chưa từng xuất hiện trong hồ sơ địa phương.",
+      "setting": "Một khu đất ven đô đang được san lấp để xây khu dân cư mới, trước đây là ruộng và một phần đất hoang lâu năm.",
+      "elements": [
+        "unmarked_graves",
+        "construction_desecration",
+        "forgotten_burial",
+        "collective_haunting",
+        "name_utterance",
+        "land_history",
+        "suppressed_truth"
+      ],
+      "tone": [
+        "folk_horror",
+        "dread",
+        "atmospheric",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "tragic",
+        "revelation"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-038",
+      "title": "Cuốn Sổ Ghi Những Điều Chưa Xảy Ra",
+      "genre": "supernatural_horror",
+      "seed": "Một sinh viên thuê căn phòng trọ giá rẻ và tìm thấy một cuốn sổ cũ dưới gầm giường. Những trang đầu hoàn toàn trống. Sáng hôm sau, trong sổ xuất hiện vài dòng chữ mô tả chính xác những gì cô đã làm đêm qua, kể cả một cuộc điện thoại mà không ai khác biết. Mỗi ngày, chữ viết lại xuất hiện trước khi sự việc xảy ra. Cô bắt đầu dùng cuốn sổ để tránh những điều được ghi trong đó. Nhưng càng cố thay đổi, những dòng chữ càng trở nên kỳ lạ. Cuối cùng, cô phát hiện cuốn sổ từng thuộc về người thuê trước và trang cuối cùng ghi lại chính xác ngày người đó biến mất.",
+      "setting": "Một căn phòng trọ nhỏ gần trường đại học, nằm trong dãy nhà cũ có nhiều người thuê ngắn hạn.",
+      "elements": [
+        "self_writing_journal",
+        "future_prediction",
+        "boarding_house",
+        "documented_secrets",
+        "previous_tenant_mystery",
+        "attempted_avoidance",
+        "fate_loop"
+      ],
+      "tone": [
+        "psychological",
+        "paranoid",
+        "creepy",
+        "escalating"
+      ],
+      "ending_type": [
+        "dark",
+        "twist"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-039",
+      "title": "Ông Già Câu Cá Giữa Dòng Nước Lũ",
+      "genre": "supernatural_horror",
+      "seed": "Mỗi sáng trước bình minh, người dân trong làng đều thấy một ông già ngồi câu cá ở bờ sông. Mọi người quen đến mức đôi khi còn chào hỏi ông. Mùa lũ năm đó, nước sông dâng cao phủ kín cả bãi bồi. Không ai ra câu được nữa, nhưng ông già vẫn ngồi đúng chỗ cũ. Một buổi sáng, nước đã dâng đến ngang ngực ông mà ông vẫn bất động, cần câu vẫn thả xuống dòng nước. Khi dân làng chèo thuyền đến gần, chỗ đó hoàn toàn trống rỗng. Một cụ già nhận ra người câu cá chính là một ngư dân mất tích trong trận lũ hơn hai mươi năm trước, người chưa bao giờ tìm thấy xác.",
+      "setting": "Một làng ven sông vùng đồng bằng Bắc Bộ, mùa lũ, bờ đê và bãi bồi thường xuyên ngập nước.",
+      "elements": [
+        "fisherman_ghost",
+        "flood_season",
+        "daily_apparition",
+        "normalized_presence",
+        "missing_fisherman",
+        "river_memory",
+        "seasonal_reveal"
+      ],
+      "tone": [
+        "atmospheric",
+        "folk_horror",
+        "melancholic",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "bittersweet",
+        "revelation"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-040",
+      "title": "Căn Phòng Cuối Hành Lang Nhà Nghỉ",
+      "genre": "supernatural_horror",
+      "seed": "Một nhà nghỉ ven quốc lộ có một căn phòng cuối hành lang mà chủ nhà luôn nói rằng không cho khách thuê. Nhưng mỗi đêm, khách ở các phòng bên cạnh đều nghe tiếng gõ cửa phát ra từ đó. Người mới đến nghĩ đó là căn phòng của một vị khách khác. Đến khi hỏi lại, chủ nhà khẳng định căn phòng đã khóa suốt mười năm. Một đêm, một vị khách nghe tiếng gõ ba lần rồi tiếng một người phụ nữ hỏi: 'Anh có thấy con tôi không?' Sáng hôm sau, anh phát hiện trước cửa phòng mình một chiếc dép trẻ em ướt sũng.",
+      "setting": "Một nhà nghỉ ven quốc lộ ở miền Trung, cách thị trấn gần nhất nhiều cây số, xung quanh chỉ có rừng thấp và đường đèo.",
+      "elements": [
+        "roadside_motel",
+        "knocking_from_empty_room",
+        "isolation",
+        "ten_year_mystery",
+        "missing_child",
+        "hidden_room",
+        "unexplained_object"
+      ],
+      "tone": [
+        "classic_horror",
+        "tense",
+        "atmospheric",
+        "dread"
+      ],
+      "ending_type": [
+        "dark",
+        "revelation"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-041",
+      "title": "Đơn Hàng Giao Bí Ẩn",
+      "genre": "supernatural_horror",
+      "seed": "Một shipper nhận đơn giao hàng đến cuối một con hẻm ở Sài Gòn. Người nhận là một bà cụ tóc bạc, mở cửa nhận gói hàng rồi chỉ nói: 'Cảm ơn con, bà chờ cái này lâu rồi.' Bà không ký nhận và cũng không đưa tiền. Khi trở về, ứng dụng báo đơn giao thất bại vì địa chỉ đó không tồn tại. Shipper quay lại hôm sau nhưng con hẻm đã biến mất, thay vào đó là một bức tường mới xây. Tìm hiểu qua người dân xung quanh, anh biết khu nhà ấy đã bị giải tỏa hơn mười năm trước. Điều khiến anh ám ảnh là gói hàng anh giao hôm đó chưa từng được đặt bởi khách hàng hiện tại, mà được gửi từ một địa chỉ có tên chính anh.",
+      "setting": "Một khu dân cư cũ ở Thành phố Hồ Chí Minh, những con hẻm nhỏ thay đổi nhanh vì giải tỏa và xây dựng.",
+      "elements": [
+        "delivery_to_nowhere",
+        "elderly_ghost",
+        "nonexistent_address",
+        "disappeared_alley",
+        "awaited_package",
+        "delivery_app",
+        "personal_connection"
+      ],
+      "tone": [
+        "mysterious",
+        "urban_horror",
+        "melancholic",
+        "unsettling"
+      ],
+      "ending_type": [
+        "ambiguous",
+        "twist"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-042",
+      "title": "Chiếc Radio Phát Lại Đêm Cuối Cùng",
+      "genre": "supernatural_horror",
+      "seed": "Chiếc radio của ông nội đã hỏng hơn mười lăm năm, không pin, không điện và dây cắm đã bị tháo. Trong đêm đầu tiên về quê dọn nhà, người cháu bất ngờ nghe radio phát chương trình thời sự đúng ngày ông mất. Nội dung hoàn toàn giống bản ghi cũ mà gia đình từng nghe. Cô ngồi nghe đến hết thì phát hiện giữa chương trình có một đoạn âm thanh chưa từng được phát trên radio: giọng ông đang nói tên từng người trong gia đình. Cuối cùng là một câu ngắn dành riêng cho cô, nhắc đến một căn phòng trong nhà mà cả gia đình đã khóa từ ngày ông qua đời.",
+      "setting": "Một ngôi nhà cổ ở tỉnh lẻ miền Bắc, được con cháu dọn dẹp sau nhiều năm bỏ trống.",
+      "elements": [
+        "broken_radio",
+        "broadcast_from_past",
+        "deceased_grandfather",
+        "specific_date_replay",
+        "hidden_message",
+        "locked_room",
+        "family_secret"
+      ],
+      "tone": [
+        "melancholic",
+        "atmospheric",
+        "mysterious",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "bittersweet",
+        "revelation"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-043",
+      "title": "Người Chăm Sóc Cụ Ông",
+      "genre": "supernatural_horror",
+      "seed": "Gia đình thuê một người phụ nữ chăm sóc cụ ông lớn tuổi sống một mình. Người chăm sóc luôn làm việc rất tốt nhưng kỳ lạ là bà không bao giờ xuất hiện trong camera trước cổng. Cụ ông mắc chứng hay quên nhưng mỗi đêm lại kể rằng người phụ nữ mặc áo lụa xanh thường ngồi bên giường nói chuyện với mình. Gia đình nghĩ ông bị lẫn cho đến khi một người con về nhà bất ngờ nhìn thấy một đôi dép phụ nữ đặt cạnh giường. Người chăm sóc khẳng định đó không phải dép của mình. Khi kiểm tra lại giấy tờ thuê người, gia đình phát hiện tên người phụ nữ họ đang thuê trùng với tên một người đã mất nhiều năm trước tại chính căn nhà này.",
+      "setting": "Một ngôi nhà cổ ở Hội An, có phòng ngủ nhìn ra khu vườn nhỏ với cây hoa sứ và một hành lang gỗ cũ.",
+      "elements": [
+        "elderly_patient",
+        "mysterious_caregiver",
+        "night_visitor",
+        "blue_dress_figure",
+        "camera_absence",
+        "dead_caregiver",
+        "old_house_secret"
+      ],
+      "tone": [
+        "psychological",
+        "melancholic",
+        "atmospheric",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "bittersweet",
+        "ambiguous"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-044",
+      "title": "Ngôi Nhà Có Hai Gian Bếp",
+      "genre": "supernatural_horror",
+      "seed": "Một gia đình trẻ xây nhà mới trên mảnh đất vừa mua ở ngoại ô. Khi đào móng, thợ xây phát hiện nền gạch của một căn nhà cũ bên dưới nhưng chủ đất yêu cầu giữ nguyên vì sợ chậm tiến độ. Sau khi dọn vào, đứa con ba tuổi thường xuyên chỉ vào một góc tường và hỏi: 'Ba ơi, sao nhà mình có hai cái bếp?' Người lớn không thấy gì ở đó. Nhưng mỗi tối, cả nhà bắt đầu nghe tiếng chén bát va vào nhau từ bức tường trống. Khi phá lớp tường để kiểm tra, họ phát hiện phía sau là một gian bếp cũ được xây kín từ nhiều năm trước.",
+      "setting": "Một khu dân cư mới ở ngoại ô thành phố, những căn nhà xây san sát trên khu đất trước đây là vườn và nhà cũ.",
+      "elements": [
+        "built_over_old_foundation",
+        "child_perception",
+        "hidden_room",
+        "second_kitchen",
+        "layered_history",
+        "family_home",
+        "old_household_secret"
+      ],
+      "tone": [
+        "creepy",
+        "slow_burn",
+        "family_horror",
+        "psychological"
+      ],
+      "ending_type": [
+        "dark",
+        "revelation"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-045",
+      "title": "Người Phụ Nữ Bán Đồ Của Người Chết",
+      "genre": "supernatural_horror",
+      "seed": "Ở cuối một khu chợ đêm có một người phụ nữ lớn tuổi chuyên bán đồ cũ. Người mua thường tìm thấy những món đồ rất lạ: nhẫn cưới, ảnh gia đình, đồng hồ, sổ tay và những vật dụng mà người bán luôn nói là 'đồ người ta không cần nữa'. Nhưng sau khi mang về, người mua bắt đầu nhìn thấy người trong những bức ảnh xuất hiện bên giường lúc nửa đêm. Một người đàn ông mua chiếc đồng hồ cũ rồi phát hiện kim đồng hồ chỉ dừng đúng giờ một người trong ảnh đã chết. Khi quay lại khu chợ, anh phát hiện không ai biết người phụ nữ bán hàng là ai, và gian hàng đó chỉ xuất hiện sau nửa đêm.",
+      "setting": "Một khu chợ đêm ở thị xã miền Bắc, ánh đèn vàng, mùa đông lạnh và khu vực cuối chợ thường vắng người.",
+      "elements": [
+        "night_market",
+        "dead_person_belongings",
+        "curse_through_objects",
+        "apparition_at_bedside",
+        "mysterious_seller",
+        "haunted_heirloom",
+        "disappearing_stall"
+      ],
+      "tone": [
+        "folk_horror",
+        "atmospheric",
+        "dread",
+        "mysterious"
+      ],
+      "ending_type": [
+        "dark",
+        "twist"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-046",
+      "title": "Dấu Chân Đen Trên Cánh Đồng Muối",
+      "genre": "supernatural_horror",
+      "seed": "Một diêm dân thường ra cánh đồng muối lúc gần sáng. Nhiều ngày liên tiếp, anh nhìn thấy một người đứng ở rất xa giữa ruộng muối trắng. Người đó luôn quay lưng và không bao giờ di chuyển. Một sáng, anh quyết định đi đến gần và phát hiện người kia không có mặt, chỉ có một bộ quần áo cũ dựng đứng trên nền muối. Khi quay lại, anh thấy hàng loạt dấu chân đen xuất hiện phía sau mình, dẫn thẳng về phía khu vực từng có một người mất tích nhiều năm trước. Từ ngày đó, cứ trước khi bình minh, những dấu chân lại xuất hiện thêm một đoạn gần hơn với khu nhà của anh.",
+      "setting": "Cánh đồng muối ven biển miền Trung, không gian rộng và trống trải, gió biển mạnh, người làm muối thường bắt đầu công việc từ trước bình minh.",
+      "elements": [
+        "salt_field",
+        "motionless_figure",
+        "black_footprints",
+        "coastal_folklore",
+        "pre_dawn_encounter",
+        "missing_person",
+        "approaching_presence"
+      ],
+      "tone": [
+        "atmospheric",
+        "folk_horror",
+        "dread",
+        "mysterious"
+      ],
+      "ending_type": [
+        "ambiguous",
+        "revelation"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-047",
+      "title": "Ba Người Chết Trong Một Tháng",
+      "genre": "supernatural_horror",
+      "seed": "Sau cái chết bất ngờ của một người trong dòng họ, liên tiếp hai người thân khác qua đời chỉ trong vòng một tháng. Người lớn trong nhà bắt đầu nhắc đến chuyện trùng tang và yêu cầu làm một nghi lễ mà cô con dâu vốn không tin mê tín phản đối. Cô âm thầm điều tra và phát hiện trước khi chết, cả ba người đều từng kể rằng họ nhìn thấy một người đứng ngoài sân vào lúc gần sáng. Người đó không có khuôn mặt và luôn hỏi cùng một câu: 'Nhà mình còn ai chưa về?' Khi người thứ tư trong gia đình nghe thấy câu hỏi ấy, cô nhận ra người được nhắc đến chính là một thành viên đã mất tích nhiều năm trước.",
+      "setting": "Một dòng họ lớn ở vùng đồng bằng Bắc Bộ, nhiều gia đình sống gần nhau và có chung một nhà thờ họ.",
+      "elements": [
+        "death_chain",
+        "trung_tang_belief",
+        "skeptic_investigator",
+        "shared_vision_before_death",
+        "family_ritual",
+        "missing_relative",
+        "ancestral_house"
+      ],
+      "tone": [
+        "folk_horror",
+        "psychological",
+        "dread",
+        "slow_burn"
+      ],
+      "ending_type": [
+        "tragic",
+        "revelation"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-048",
+      "title": "Đừng Mở Cổng Nghĩa Trang",
+      "genre": "supernatural_horror",
+      "seed": "Bảo vệ nghĩa trang được người tiền nhiệm dặn một quy tắc duy nhất: từ 11 giờ đêm đến 1 giờ sáng, tuyệt đối không mở cổng dù nghe thấy ai gọi tên mình. Đêm đầu tiên, anh nghe tiếng gõ cổng rồi giọng cha đã mất gọi đúng tên mình. Anh nhìn qua camera và thấy một người đàn ông đứng ngoài cổng, khuôn mặt giống hệt cha. Người đó không ngừng yêu cầu anh mở cửa. Khi anh từ chối, người ngoài cổng bắt đầu đọc tên từng người trong gia đình anh. Sáng hôm sau, camera cho thấy suốt hai tiếng đó không hề có ai đứng ngoài cổng.",
+      "setting": "Một nghĩa trang lớn ở ngoại thành, khu vực nhiều cây, đường đi giữa các phần mộ kéo dài và phòng bảo vệ nằm ngay cạnh cổng chính.",
+      "elements": [
+        "cemetery_night_watch",
+        "forbidden_exit",
+        "deceased_father_voice",
+        "time_window",
+        "rule_temptation",
+        "security_camera",
+        "family_names"
+      ],
+      "tone": [
+        "tense",
+        "atmospheric",
+        "dread",
+        "folk_horror"
+      ],
+      "ending_type": [
+        "dark",
+        "twist"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-049",
+      "title": "Tấm Bản Đồ Trong Ví Người Chết",
+      "genre": "supernatural_horror",
+      "seed": "Một ngư dân tìm thấy thi thể người đàn ông trôi dạt vào lưới. Trong chiếc ví chỉ có giấy tờ tùy thân và một mảnh giấy vẽ tay. Đó là bản đồ vùng biển chính xác đến mức có thể xác định vị trí chiếc ghe đang đánh cá, nhưng trên bản đồ có một dấu X nằm ngoài vùng mà ngư dân quen đi. Người chết không phải người địa phương và không ai biết vì sao anh ta lại có bản đồ ấy. Khi một nhóm ngư dân tìm đến vị trí được đánh dấu, họ phát hiện dưới nước có một chiếc thuyền gỗ chìm đã nhiều năm. Bên trong vẫn còn những vật dụng cá nhân, trong đó có một chiếc ví giống hệt chiếc ví đang nằm trong tay họ.",
+      "setting": "Một làng chài miền Trung, vùng biển gần bờ, ghe gỗ nhỏ và những chuyến đánh cá bắt đầu từ sáng sớm.",
+      "elements": [
+        "drowned_body",
+        "map_in_wallet",
+        "underwater_discovery",
+        "sunken_boat",
+        "repeated_object",
+        "fishing_community",
+        "unexplained_identity"
+      ],
+      "tone": [
+        "mysterious",
+        "atmospheric",
+        "slow_burn",
+        "dread"
+      ],
+      "ending_type": [
+        "dark",
+        "ambiguous"
+      ],
+      "status": "pending",
+      "story_id": null
+    },
+    {
+      "id": "horror-050",
+      "title": "Ngôi Nhà Bí Ẩn Khi Trời Mưa",
+      "genre": "supernatural_horror",
+      "seed": "Mỗi khi một trận mưa lớn kéo dài qua đêm, cuối con đường sau làng lại xuất hiện một ngôi nhà ngói cũ mà ban ngày không hề tồn tại. Người dân gọi đó là căn nhà mưa. Một đứa trẻ từng trú mưa trong đó nhưng sáng hôm sau không nhớ chuyện gì đã xảy ra. Từ đó, nó bắt đầu biết trước ngày một người thân sẽ qua đời. Nhiều năm sau, người anh của đứa trẻ quay lại tìm hiểu và phát hiện những đứa trẻ từng bước vào căn nhà này đều có chung một khả năng. Nhưng không ai biết tại sao ngôi nhà xuất hiện, cho đến khi anh tìm thấy một bức ảnh cũ chụp ngôi làng trước khi nó được xây dựng lại. Trong ảnh, ngôi nhà ấy đã đứng ở cuối con đường từ hơn sáu mươi năm trước.",
+      "setting": "Một làng nhỏ vùng trung du miền Bắc, những con đường đất lầy lội sau mưa và khu vực cuối làng thường bị sương phủ kín.",
+      "elements": [
+        "seasonal_ghost_house",
+        "amnesia_after_visit",
+        "death_foresight",
+        "child_victim",
+        "cyclical_appearance",
+        "old_photograph",
+        "village_history"
+      ],
+      "tone": [
+        "folk_horror",
+        "mysterious",
+        "atmospheric",
+        "melancholic"
+      ],
+      "ending_type": [
+        "ambiguous",
+        "dark"
+      ],
+      "status": "pending",
+      "story_id": null
+    }
+  ]
+}

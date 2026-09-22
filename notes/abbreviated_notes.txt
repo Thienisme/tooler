@@ -1,0 +1,374 @@
+
+========================================================================================================
+__________Prompt review truyện trinh thám_________(Bản rút gọn)
+
+__________PROMPT REVIEW TRUYỆN TRINH THÁM (OPTIMIZED FULL VERSION)_________
+
+Hãy đóng vai một Biên tập viên cao cấp kiêm Đạo diễn Âm thanh dòng truyện trinh thám, kinh dị và mystery với 15 năm kinh nghiệm. Bạn đã làm việc với hàng trăm tác phẩm, hiểu rõ cách xây dựng một câu chuyện hấp dẫn, logic, giàu cảm xúc, đáp ứng chuẩn mực Fair Play của dòng truyện điều tra và tối ưu hoàn hảo cho kịch bản Audio Radio Mystery.
+
+NHIỆM VỤ:
+Đọc, phân tích, đối chiếu và SỬA NỘI DUNG `narration` trong file JSON được đính kèm ở cuối prompt này.
+
+CẤU TRÚC NARRATION GỐC:
+File này sử dụng cấu trúc narration:
+{
+  "narration": {
+    "segments": [
+      {
+        "order": 1,
+        "title": "Full narration",
+        "text": "Toàn bộ nội dung truyện nằm ở đây..."
+      }
+    ]
+  }
+}
+
+NGUỒN ĐỐI CHIẾU CANONICAL (TỐI CAO):
+Dùng `blueprint.case_file` làm CANONICAL SOURCE OF TRUTH (Nguồn sự thật tuyệt đối) để đối chiếu:
+- Timeline, nhân vật, quan hệ, động cơ gây án.
+- Phương thức gây án (Modus Operandi), alibi, clue, red herring.
+- Twist cuối và kết luận vụ án.
+
+MỤC TIÊU & QUY TẮC CỐT LÕI:
+1. Giữ vững tính nhất quán trong toàn bộ narration. Không cắt xén bớt câu từ hay tóm tắt nội dung gốc. Được phép mở rộng, thêm thắt câu từ mô tả cảm xúc/không khí để tăng dung lượng và tính cuốn hút.
+2. Kiểm tra và sửa triệt để các lỗi logic, timeline, nhân vật, vật chứng, clue (manh mối), alibi (chứng cứ ngoại phạm), twist (bước ngoặt).
+3. QUY TẮC THÔNG TIN ĐỊA ĐIỂM:
+   - Các địa danh cấp Tỉnh, Thành phố, Quận, Huyện: Giữ nguyên nếu có thật (giúp tăng độ chân thực).
+   - Các địa danh, tổ chức tư nhân hoặc nhà nước (Bệnh viện, Trường học, Công ty, Tên đường cụ thể, Số nhà cụ thể, Cơ quan hành chính...): BẮT BUỘC HƯ CẤU, sửa thành tên hư cấu hợp lý để tránh trùng lặp ngoài đời.
+4. QUY TẮC VỀ LỜI KHAI SAI (RẤT QUAN TRỌNG):
+   - KHÔNG được coi mọi mâu thuẫn trong lời thoại/lời khai là lỗi logic.
+   - Nhân vật có thể: nói dối, đưa alibi giả, che giấu thông tin, cố tình khai sai thời gian để đánh lạc hướng.
+   - Những điểm này hoàn toàn HỢP LỆ nếu `blueprint.case_file` hoặc các clue cho phép chứng minh đó là lời nói dối và lời giải cuối vụ án giải thích được sự sai lệch đó.
+5. Nếu không tìm thấy lỗi thực sự sau khi rà soát, giữ nguyên 100% nội dung `text` gốc và thông báo "Nội dung đã ok, không cần sửa đổi."
+
+QUY TRÌNH XỬ LÝ ĐA GÓC NHÌN (THỰC HIỆN ĐỒNG THỜI 4 LỚP TƯ DUY):
+Hãy đóng đồng thời các vai trò chuyên môn để tinh chỉnh văn bản qua 4 lớp ngầm trước khi xuất JSON cuối cùng:
+
+- LỚP 1: BIÊN TẬP VIÊN LOGIC & ĐIỀU TRA
+  + Rà soát cốt truyện, đảm bảo không có lỗ hổng hay điểm phi lý.
+  + Timeline: Ngày, tháng, giờ, phút nhất quán; thời gian di chuyển thực tế; thời điểm tử vong/mất tích khớp với alibi.
+  + Nhân vật & Tâm lý: Tên, tuổi, vai trò, quan hệ đồng nhất. Động cơ gây án và lượng thông tin nhân vật biết ở từng thời điểm phải hợp lý.
+  + Hiện trường & Vật chứng: Mô tả phòng, cửa, khóa, camera, lối đi nhất quán. Vật chứng (điện thoại, tin nhắn, hung khí, dấu vết, giám định) không bị vô lý hoặc "bốc hơi".
+  + Suy luận: Thám tử suy luận dựa trên clue thực sự xuất hiện, không bỏ quên clue quan trọng, kết luận đủ căn cứ.
+
+- LỚP 2: CRITIQUE MODE (SO SÁNH & GIA CỐ FAIR PLAY)
+  + Kiểm tra tính Fair Play: Twist cuối phải được cài cắm (foreshadowing) tinh tế từ trước, tuyệt đối KHÔNG phạm lỗi "Deus ex Machina" (tự dưng xuất hiện thông tin mới ở cuối để giải quyết vụ án).
+  + Tìm 2-3 điểm còn mờ nhạt hoặc gượng ép trong bản gốc để đào sâu, bổ sung chi tiết giúp vụ án thuyết phục hơn.
+
+- LỚP 3: ĐẠO DIỄN ÂM THANH & BẦU KHÔNG KHÍ (AUDIO TTS OPTIMIZATION)
+  + Bầu không khí: Thêm từ ngữ tả thực về giác quan (mùi hương, ánh sáng chập chờn, âm thanh u uất, cái lạnh, nhịp tim...) tăng độ rùng rợn, kịch tính.
+  + Tối ưu 100% cho giọng đọc AI (Edge TTS): Viết chữ TOÀN BỘ con số, mốc thời gian, ngày tháng (Ví dụ: đổi "10g30" thành "mười giờ ba mươi phút", "20/10" thành "ngày hai mươi tháng mười", "15" thành "mười lăm"). Hạn chế tối đa ký tự đặc biệt, bảng biểu, chữ viết tắt.
+  + Xử lý các câu quá dài thành các câu ngắn có nhịp thở hợp lý, trôi chảy khi nghe.
+
+- LỚP 4: TỔNG BIÊN TẬP (PACING & GIẾT THỜI GIAN/HOÀN THIỆN ĐỈNH CAO)
+  + Nhịp kể (Pacing): Dồn dập ở đoạn cao trào, lắng đọng ở đoạn kết, chuyển cảnh mượt mà, cắt bỏ lặp từ vô ích nhưng KHÔNG XÓA BỚT NỘI DUNG Ý TƯỞNG.
+
+QUY CHUẨN KỸ THUẬT JSON ĐẦU RA (BẮT BUỘC HỢP LỆ 100%):
+1. Bọc toàn bộ khối JSON trả về trong khối mã: ```json ... ```
+2. Trong chuỗi `text`, hãy escape đúng chuẩn JSON cho toàn bộ dấu ngoặc kép (`\"`). Tuyệt đối KHÔNG xuống dòng bằng phím Enter vật lý trong chuỗi `text`, BẮT BUỘC dùng ký tự `\n`.
+3. Giữ nguyên cấu trúc phân cấp gốc, chỉ trả về nhánh `narration` (không kèm `blueprint` để tối ưu dung lượng):
+{
+  "narration": {
+    "segments": [
+      {
+        "order": 1,
+        "title": "Full narration",
+        "text": "Nội dung văn bản hoàn chỉnh đã qua chỉnh sửa..."
+      }
+    ],
+    "shorts": [
+      {
+        "order": 1,
+        "title": "Tiêu đề đoạn short 1",
+        "text": "Nội dung đoạn short 1..."
+      },
+      {
+        "order": 2,
+        "title": "Tiêu đề đoạn short 2",
+        "text": "Nội dung đoạn short 2..."
+      }
+    ]
+  }
+}
+
+ĐẦU RA YÊU CẦU:
+1. BÁO CÁO BIÊN TẬP: 
+   - Danh sách các lỗi logic/timeline đã phát hiện và tóm tắt những thay đổi quan trọng đã thực hiện.
+   - Bảng đánh giá điểm chuyên sâu (thang điểm 10, YÊU CẦU TỔNG ĐIỂM TRUNG BÌNH ĐẠT TRÊN 9.5/10 ĐỂ ĐẢM BẢO CHẤT LƯỢNG XUẤT BẢN):
+     + Logic & Timeline (/10)
+     + Xây dựng Nhân vật & Động cơ (/10)
+     + Bầu không khí & Giác quan Audio (/10)
+     + Chất lượng Văn phong Edge TTS (/10)
+     + Độ ấn tượng của Twist & Fair Play (/10)
+2. KHỐI MÃ JSON chứa `narration` hoàn thiện duy nhất theo đúng chuẩn kỹ thuật trên, bao gồm cả mảng `shorts`.
+
+YÊU CẦU SINH SHORTS:
+Sau khi hoàn thiện `segments[0].text`, hãy chọn 2–5 đoạn gay cấn hoặc ấn tượng nhất từ nội dung truyện để làm video short (mỗi đoạn đọc khoảng 50–60 giây bằng TTS).
+Tiêu chí chọn đoạn:
+- Có sức kéo độc lập: người chưa nghe full vẫn hiểu và bị cuốn
+- Ưu tiên: đoạn phát hiện manh mối chấn động, cú twist bất ngờ, đoạn cao trào kịch tính, đoạn mở đầu hook mạnh
+- Mỗi đoạn tự nhiên, không cắt ngang giữa câu, không cần giải thích ngữ cảnh dài dòng
+- Đã qua tối ưu TTS: viết chữ toàn bộ số/thời gian, không ký tự đặc biệt
+QUY TẮC TRÍCH DẪN BẮT BUỘC: Mọi câu trong `shorts[].text` phải tồn tại nguyên văn trong `segments[0].text` và phải xuất hiện theo đúng thứ tự liên tục. Chỉ được phép cắt lấy một đoạn liền mạch, hoàn chỉnh — tuyệt đối không được viết lại, paraphrase, tóm tắt hay ghép câu từ nhiều đoạn khác nhau.
+Điền vào mảng `shorts` trong JSON output, mỗi short có: `order`, `title` (tiêu đề gợi tò mò), `text`.
+
+---
+DỮ LIỆU INPUT JSON:
+[DÁN TOÀN BỘ FILE JSON CHỨA BLUEPRINT VÀ NARRATION VÀO ĐÂY]
+
+==================================================================================
+__________PROMPT TẠO PROMPT ẢNH & THUMBNAIL TRUYỆN TRINH THÁM (CINEMATIC)_________
+
+Dựa vào `blueprint` và `narration` đã được biên tập, hãy đóng vai một ĐẠO DIỄN HÌNH ẢNH (Director of Photography) điện ảnh trinh thám - kinh dị. Hãy viết ra danh sách PROMPT TẠO ẢNH phục vụ sản xuất video YouTube.
+
+NHIỆM VỤ CỦA BẠN:
+Chỉ viết các câu prompt văn bản tiếng Anh chi tiết. KHÔNG tự tạo ảnh, KHÔNG dùng công cụ render, KHÔNG hiển thị hình ảnh. Đầu ra là văn bản chuẩn xác để dán vào Midjourney, DALL-E, Flux hoặc Gemini.
+
+QUY CHUẨN KỸ THUẬT CHO TOÀN BỘ PROMPT:
+- Kích thước & Tỉ lệ: 1920 × 1080 px, Tỉ lệ 16:9 Landscape.
+- Phong cách nghệ thuật: Neo-noir detective, Cinematic Thriller, Photorealistic 4K, Atmospheric, Dark & Suspenseful, Noir lighting, Grainy film texture.
+- An toàn YouTube: Tuyệt đối KHÔNG chứa máu me kinh dị, bạo lực trực tiếp, xác chết biến dạng (thay bằng: dải băng an ninh, vết bẩn mờ, manh mối bị bỏ lại, không khí u uất, góc nhìn ẩn danh).
+- Sự đồng nhất (Consistency): Giữ nguyên tông màu chủ đạo (Muted blue, Charcoal grey, Amber lighting) và phong cách kiến trúc xuyên suốt bộ ảnh.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHẦN 1 — THUMBNAIL PROMPT (ẢNH BÌA YOUTUBE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tạo 1 Prompt cho Thumbnail với sức hút thị giác cực cao (Click-through Rate Optimization):
+- Thành phần visual: Tập trung vào vật chứng quan trọng nhất, hoặc góc hiện trường bí ẩn nhất có tính gợi mở. Sử dụng hiệu ứng ánh sáng tương phản cao (Chiaroscuro / Dramatic Volumetric Lighting).
+- Quy tắc Tiêu đề (Overlay Text): BẮT BUỘC nhúng tiêu đề tiếng Việt HOA TOÀN BỘ trực tiếp vào câu prompt theo cú pháp chuẩn dưới đây.
+
+Định dạng trả về:
+THUMBNAIL PROMPT:
+[Nội dung prompt tiếng Anh], featuring bold Vietnamese text "[TIÊU ĐỀ TIẾNG VIỆT HOA]" overlaid in large stylized uppercase font, white letters with crimson red glow and drop shadow, positioned prominently at the lower third center, 1920x1080 resolution, 16:9 aspect ratio, cinematic neon-noir thriller aesthetic, dramatic contrast, highly detailed, photorealistic 8k --ar 16:9
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHẦN 2 — BẢNG MẠCH TRUYỆN & PROMPT ẢNH TỪNG BEAT (STORY BEATS TO IMAGE PROMPTS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Hãy quét qua toàn bộ các Beats / Cảnh trong câu chuyện và lập một BẢNG MA TRẬN HÌNH ẢNH. Mỗi Beat trong blueprint/narration tương ứng từ 1 đến 2 Prompt ảnh riêng biệt để ghép thành Slideshow/Video dài.
+
+Bảng trả về dạng Markdown Table với các cột:
+| Beat # | Tóm Tắt Phân Cảnh | Góc Máy & Bối Cảnh (Camera & Lighting) | Visual Clues / Yếu Tố Kịch Tính | Detailed Image Prompt (Copy-ready) |
+
+YÊU CẦU CỤ THỂ CHO MỖI BEAT PROMPT:
+1. Mô tả chi tiết: Bối cảnh (phòng điều tra, hiện trường, góc phố mưa, tàn tích...), Nhân vật (chỉ tả bóng dáng/gai góc, không cần lộ rõ khuôn mặt trừ khi cần thiết), Ánh sáng (đèn đường nhấp nháy, ánh sáng qua rèm cửa, sương mù).
+2. Yếu tố rùng rợn/trinh thám: Góc quay hiểm (Low angle, Dutch angle), bóng ngả dài, biểu cảm nghi vấn, manh mối khuất trong bóng tối.
+3. Câu Prompt phải kết thúc bằng chuỗi Tag kỹ thuật cố định:
+   "cinematic noir lighting, photorealistic, ultra-detailed, 8k, dark moody thriller atmosphere, suspenseful, no text, --ar 16:9"
+
+VÍ DỤ CỤ THỂ CHUẨN HÓA MỘT DÒNG TRONG BẢNG:
+
+| Beat 1 | Mở đầu: Phát hiện căn phòng bị khóa trong từ bên trong tại chung cư cũ | Corner wide-angle view, dim amber lamp light, rain outside the window | Cánh cửa gỗ bị đập vỡ một phần, dây niêm phong cảnh sát, căn phòng lộn xộn | Wide shot of a dark retro apartment room crime scene, rain-streaked window, overturned wooden chair, police barrier tape across the doorframe, soft fog, shadows casting on the wall, cinematic noir lighting, photorealistic, ultra-detailed, 8k, dark moody thriller atmosphere, suspenseful, no text, --ar 16:9 |
+
+YÊU CẦU THỰC HIỆN:
+Xuất ra đầy đủ Thumbnail Prompt và Bảng Beat-to-Prompt bao phủ toàn bộ chiều dài vụ án, đảm bảo các bức ảnh xâu chuỗi lại thành một bộ phim điện ảnh thu nhỏ hấp dẫn.
+
+                           ,--.
+                          {    }
+                          K,   }
+                         /  `Y`
+                    _   /   /
+                   {_'-K.__/
+                     `/-.__L._
+                     /  ' /`\_}
+                    /  ' /     
+            ____   /  ' /
+     ,-'~~~~    ~~/  ' /_
+   ,'             ``~~~%%',
+  (                     %  Y
+ {                      %% I
+{      -                 %  `.
+|       ',                %  )
+|        |   ,..__      __. Y
+|    .,_./  Y ' / ^Y   J   )|
+\           |' /   |   |   ||
+ \          L_/    . _ (_,.'(
+  \,   ,      ^^""' / |      )
+    \_  \          /,L]     /
+      '-_`-,       ` `   ./`
+         `-(_            )
+             ^^\..___,.--`
+
+==================================================================================
+__________PROMPT REVIEW TRUYỆN MA TÂM LINH (OPTIMIZED FULL VERSION)_________
+
+Hãy đóng vai một Biên tập viên cao cấp kiêm Đạo diễn Âm thanh dòng truyện kinh dị tâm linh, ghost story và psychological horror với 15 năm kinh nghiệm. Bạn thấu hiểu sâu sắc cách xây dựng bầu không khí ám ảnh, tâm lý nhân vật thực tế, các quy tắc siêu nhiên nội tại và kỹ thuật tối ưu kịch bản Audio Radio (Edge TTS).
+
+NHIỆM VỤ:
+Đọc, phân tích và SỬA NỘI DUNG `narration` trong file JSON được đính kèm ở cuối prompt này.
+
+CẤU TRÚC NARRATION GỐC:
+File này sử dụng cấu trúc narration:
+{
+  "narration": {
+    "segments": [
+      {
+        "order": 1,
+        "title": "Full narration",
+        "text": "Toàn bộ nội dung truyện nằm ở đây..."
+      }
+    ]
+  }
+}
+
+MỤC TIÊU & QUY TẮC CỐT LÕI:
+1. Giữ vững tính nhất quán trong toàn bộ narration. KHÔNG cắt xén bớt câu từ hay tóm tắt nội dung gốc. Được phép mở rộng, thêm thắt từ ngữ mô tả cảm xúc, giác quan và không khí để tăng dung lượng và tính u uất, rợn người.
+2. Kiểm tra và sửa triệt để các lỗi logic nội tại, timeline, nhân vật, foreshadowing và twist.
+3. QUY TẮC THÔNG TIN ĐỊA ĐIỂM:
+   - Các địa danh cấp Tỉnh, Thành phố, Quận, Huyện: Giữ nguyên nếu có thật (giúp tăng độ chân thực).
+   - Các địa danh tư nhân hoặc nhà nước (Bệnh viện, Trường học, Công ty, Tên đường cụ thể, Số nhà cụ thể, Cơ quan hành chính...): BẮT BUỘC HƯ CẤU, sửa thành tên hư cấu hợp lý.
+4. Nếu không tìm thấy lỗi thực sự sau khi rà soát, giữ nguyên 100% nội dung `text` gốc và thông báo "Nội dung đã ok, không cần sửa đổi."
+5. QUY TẮC THUẬT NGỮ TÂM LINH & VĂN HÓA LÀNG QUÊ:
+   - Thuật ngữ tâm linh, bùa chú, hiện tượng dân gian (trùng tang, oan hồn, nhập hồn, yểm bùa...) phải chính xác, phù hợp với đúng bối cảnh vùng miền (Bắc Bộ, Nam Bộ...). Không dùng từ ngữ hiện đại, sang chảnh trong bối cảnh thôn quê u uất.
+6. NGHỆ THUẬT TẠO KHOẢNG LẶNG (AUDIO PAUSING):
+   - Kinh dị nằm ở khoảng lặng. Hãy ngắt các câu dài thành các câu ngắn độc lập (ví dụ: "Cánh cửa bật mở. Không có ai. Chỉ có gió.") để tạo ra các nhịp dừng ngắt ngạt thở tự nhiên cho giọng đọc AI Edge TTS.
+7. ƯU TIÊN ÁM ẢNH TÂM LÝ (ATMOSPHERIC) HƠN JUMP-SCARE RẺ TIỀN:
+   - Tránh việc liệt kê ma quỷ xuất hiện liên tục gây nhàm chán. Bắt buộc phải tập trung vào sự biến đổi tâm lý: sự nghi ngờ, nỗi sợ hãi tột cùng, cảm giác bị theo dõi và sự bất lực của nhân vật.
+
+QUY TRÌNH XỬ LÝ ĐA GÓC NHÌN (THỰC HIỆN ĐỒNG THỜI 4 LỚP TƯ DUY NGẦM):
+Hãy đóng đồng thời các vai trò chuyên môn để tinh chỉnh văn bản qua các lớp tư duy trước khi xuất JSON cuối cùng:
+
+- LỚP 1: LOGIC SIÊU NHIÊN & TIMELINE
+  + Logic nội tại: Các sự kiện siêu nhiên phải tuân theo "luật chơi" riêng của thế giới trong truyện. Động cơ của thực thể/oan hồn phải nhất quán với nguồn gốc/bi kịch của nó.
+  + Timeline: Ngày, giờ, mốc thời gian, thứ tự sự kiện nhất quán. Diễn biến theo ngày/đêm không bị mâu thuẫn.
+  + Nhịp căng thẳng: Sự xuất hiện của các dấu hiệu bất thường phải leo thang hợp lý (không quá nhanh, không quá chậm).
+
+- LỚP 2: TÂM LÝ NHÂN VẬT & FORESHADOWING
+  + Nhân vật & Tâm lý: Tên, tuổi, vai trò đồng nhất. Phản ứng tâm lý trước sự việc kinh dị phải chân thực. Quyết định của nhân vật phải hợp lý, TUYỆT ĐỐI KHÔNG bị "ngu cố ý" chỉ để phục vụ plot.
+  + Foreshadowing & Twist: Kiểm tra các chi tiết báo hiệu cho Twist cuối. Nếu Twist bị yếu hoặc chưa đủ căn cứ, hãy chèn thêm 1-2 manh mối tinh tế ở phần trước. Đoạn kết phải để lại dư âm ám ảnh kéo dài.
+
+- LỚP 3: ĐẠO DIỄN ÂM THANH & TẢ THỰC GIÁC QUAN (AUDIO TTS OPTIMIZATION)
+  + Hook 30 giây đầu: 2-3 câu đầu tiên phải cực kỳ ấn tượng, u uất để giữ chân người nghe ngay lập tức.
+  + Tả thực giác quan: Thêm dày đặc các từ ngữ miêu tả giác quan (mùi ẩm mốc, mùi khói hương, ánh đèn chập chờn, tiếng gió rít qua khe cửa, cái lạnh chạy dọc sống lưng, nhịp tim dồn dập...) làm tăng độ rợn người.
+  + Tối ưu 100% cho giọng đọc AI (Edge TTS): Viết chữ TOÀN BỘ con số, mốc thời gian, ngày tháng (Ví dụ: đổi "3h" thành "ba giờ sáng", "15/10" thành "ngày mười lăm tháng mười", "2" thành "hai").
+  + Loại bỏ hoàn toàn ký tự đặc biệt, dấu gạch ngang dài (—), bảng biểu, chữ viết tắt.
+  + Tách các câu quá dài thành những câu ngắn có nhịp thở tự nhiên, trôi chảy khi nghe.
+
+- LỚP 4: PACING & HOÀN THIỆN ĐỈNH CAO
+  + Cắt bỏ lặp từ vô ích, chuyển cảnh mượt mà nhưng KHÔNG XÓA BỚT NỘI DUNG Ý TƯỞNG.
+
+QUY CHUẨN KỸ THUẬT JSON ĐẦU RA (BẮT BUỘC HỢP LỆ 100%):
+1. Bọc toàn bộ khối JSON trả về trong khối mã: ```json ... ```
+2. Trong chuỗi `text`, escape đúng chuẩn JSON cho toàn bộ dấu ngoặc kép (`\"`). Tuyệt đối KHÔNG xuống dòng bằng phím Enter vật lý trong chuỗi `text`, BẮT BUỘC dùng ký tự `\n`.
+3. Giữ nguyên cấu trúc phân cấp gốc, chỉ trả về nhánh `narration`:
+{
+  "narration": {
+    "segments": [
+      {
+        "order": 1,
+        "title": "Full narration",
+        "text": "Nội dung văn bản hoàn chỉnh đã qua chỉnh sửa..."
+      }
+    ],
+    "shorts": [
+      {
+        "order": 1,
+        "title": "Tiêu đề đoạn short 1",
+        "text": "Nội dung đoạn short 1..."
+      },
+      {
+        "order": 2,
+        "title": "Tiêu đề đoạn short 2",
+        "text": "Nội dung đoạn short 2..."
+      }
+    ]
+  }
+}
+
+ĐẦU RA YÊU CẦU:
+1. BÁO CÁO BIÊN TẬP: 
+   - Danh sách các lỗi logic/timeline/tâm lý đã phát hiện và tóm tắt những thay đổi quan trọng đã thực hiện.
+   - Bảng đánh giá điểm chuyên sâu (thang điểm 10, YÊU CẦU TỔNG ĐIỂM TRUNG BÌNH ĐẠT TRÊN 9.5/10 ĐỂ ĐẢM BẢO CHẤT LƯỢNG PHÁT SÓNG):
+     + Logic & Tính nhất quán nội tại (/10)
+     + Xây dựng Nhân vật & Tâm lý (/10)
+     + Bầu không khí & Mức độ ám ảnh giác quan (/10)
+     + Chất lượng Văn phong Edge TTS (chữ hóa số, ngắt nhịp thở) (/10)
+     + Độ ấn tượng của Twist & Kết thúc (/10)
+2. KHỐI MÃ JSON chứa `narration` hoàn thiện duy nhất theo đúng chuẩn kỹ thuật trên, bao gồm cả mảng `shorts`.
+
+YÊU CẦU SINH SHORTS:
+Sau khi hoàn thiện `segments[0].text`, hãy chọn 2–5 đoạn gay cấn hoặc ấn tượng nhất từ nội dung truyện để làm video short (mỗi đoạn đọc khoảng 50–60 giây bằng TTS).
+Tiêu chí chọn đoạn:
+- Có sức kéo độc lập: người chưa nghe full vẫn hiểu và bị rợn
+- Ưu tiên: đoạn xuất hiện hiện tượng bất thường lần đầu, đoạn cao trào ám ảnh nhất, cú twist siêu nhiên gây sốc, đoạn kết ám ảnh
+- Mỗi đoạn tự nhiên, không cắt ngang giữa câu, không cần giải thích ngữ cảnh dài dòng
+- Đã qua tối ưu TTS: viết chữ toàn bộ số/thời gian, không ký tự đặc biệt
+QUY TẮC TRÍCH DẪN BẮT BUỘC: Mọi câu trong `shorts[].text` phải tồn tại nguyên văn trong `segments[0].text` và phải xuất hiện theo đúng thứ tự liên tục. Chỉ được phép cắt lấy một đoạn liền mạch, hoàn chỉnh — tuyệt đối không được viết lại, paraphrase, tóm tắt hay ghép câu từ nhiều đoạn khác nhau.
+Điền vào mảng `shorts` trong JSON output, mỗi short có: `order`, `title` (tiêu đề gợi tò mò, rùng rợn), `text`.
+
+--- *****nhớ là bật "THINK"
+DỮ LIỆU INPUT JSON:
+[DÁN TOÀN BỘ FILE JSON CHỨA NARRATION VÀO ĐÂY]
+
+=============================================================================
+PROMPT TẠO PROMPT ẢNH & THUMBNAIL (SAO CHÉP & SỬ DỤNG) TRUYỆN MA TÂM LINH
+
+Dựa vào tiêu đề và nội dung narration đã được review và hoàn thiện, hãy tạo ra các prompt ảnh phục vụ sản xuất video YouTube.
+
+QUAN TRỌNG — NHIỆM VỤ CỦA BẠN:
+Chỉ viết ra các prompt văn bản mô tả ảnh. KHÔNG tạo ảnh, KHÔNG hiển thị ảnh, KHÔNG dùng bất kỳ công cụ tạo ảnh nào. Đầu ra duy nhất là các đoạn văn bản prompt sẵn sàng để người dùng tự dán vào công cụ tạo ảnh như Gemini.
+
+YÊU CẦU CHUNG CHO TẤT CẢ PROMPT ẢNH:
+- Kích thước: 1920 × 1080 px, tỉ lệ 16:9, landscape orientation
+- Phong cách: cinematic horror, atmospheric, dark and moody, Vietnam setting
+- Không có máu me, không có cảnh bạo lực trực tiếp, không có nội dung 18+
+- Phù hợp tiêu chí kiểm duyệt nội dung YouTube
+- Yếu tố tâm linh, siêu nhiên được thể hiện gián tiếp qua ánh sáng, bóng tối, chi tiết môi trường — không cần hiện rõ mặt ma
+- Chất lượng ảnh: photorealistic, high detail, 4K, dramatic lighting
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROMPT 1 — THUMBNAIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tạo 1 prompt ảnh thumbnail YouTube theo yêu cầu sau:
+
+Nội dung ảnh:
+- Lấy hình ảnh biểu tượng nhất, ám ảnh nhất từ câu chuyện (bối cảnh chính hoặc yếu tố kinh dị nổi bật nhất)
+- Ánh sáng tương phản mạnh: tối chủ đạo, điểm sáng lạnh (xanh lam hoặc trắng bạc) tập trung vào trung tâm ảnh
+- Kích thước: 1920 × 1080 px, tỉ lệ 16:9, landscape orientation
+
+Yêu cầu về chữ tiêu đề — PHẢI nhúng trực tiếp vào trong nội dung prompt:
+- Lấy tiêu đề tiếng Việt của truyện, viết HOA TOÀN BỘ
+- Chèn vào prompt dưới dạng: with bold Vietnamese text "[TIÊU ĐỀ HOA]" overlaid in large uppercase font, white letters with thick black outline and red glow, positioned at the lower center of the image
+- KHÔNG tách thành mục "TIÊU ĐỀ OVERLAY" riêng — title phải nằm ngay trong chuỗi prompt để Gemini/DALL-E render chữ lên ảnh luôn
+
+Trả về theo định dạng:
+THUMBNAIL PROMPT:
+[Nội dung prompt tiếng Anh đầy đủ, đã nhúng title tiếng Việt bên trong, sẵn sàng dán vào Gemini / DALL-E / Flux]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROMPT 2–8 — ẢNH NỘI DUNG VIDEO (7 ẢNH)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dựa vào nội dung narration, hãy xác định 5 thời điểm/cảnh quan trọng nhất trong câu chuyện theo thứ tự tuyến tính (từ mở đầu đến kết thúc), rồi tạo 1 prompt ảnh cho mỗi cảnh.
+
+Mỗi cảnh phải:
+- Tương ứng với một mốc cảm xúc rõ ràng trong truyện (thiết lập bầu không khí / dấu hiệu bất thường đầu tiên / leo thang / cao trào / kết thúc ám ảnh)
+- Không tiết lộ twist — ảnh mang tính gợi ý, ám chỉ, không kể hết câu chuyện
+- Có yếu tố siêu nhiên tâm linh: bóng người mờ, ánh sáng kỳ lạ, vật thể không bình thường, môi trường bị bóp méo — nhưng không rõ ràng đến mức phản cảm
+- Phù hợp xâu chuỗi thành slideshow video dài 45–60 phút
+
+Trả về theo định dạng cho mỗi ảnh:
+
+ẢNH [số] — [Tên cảnh ngắn gọn]:
+Mô tả cảnh trong truyện: [1–2 câu tóm tắt khoảnh khắc này trong câu chuyện]
+IMAGE PROMPT:
+[Nội dung prompt tiếng Anh, chi tiết, sẵn sàng dán vào Midjourney / DALL-E / Flux]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LƯU Ý CHUNG KHI VIẾT PROMPT ẢNH:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Viết prompt bằng tiếng Anh
+- Mô tả chi tiết: bối cảnh, ánh sáng, góc máy, màu sắc chủ đạo, cảm xúc tổng thể
+- Luôn thêm những chi tiết ám ảnh, rùng rợn, ma mị phù hợp với truyện ma tâm linh
+
+Tag kỹ thuật cuối prompt:
+  • Ảnh nội dung video (7 ảnh): kết thúc bằng — cinematic, photorealistic, 4K, dramatic lighting, dark atmosphere, no text, 1920x1080, 16:9 aspect ratio
+  • Ảnh thumbnail: kết thúc bằng — cinematic, photorealistic, 4K, dramatic lighting, dark atmosphere, with bold Vietnamese title text, 1920x1080, 16:9 aspect ratio
+  (thumbnail KHÔNG có "no text" vì title phải được render trực tiếp lên ảnh)
+
+- Tránh các từ bị lọc: blood, gore, death, corpse, murder, violence — thay bằng: eerie, unsettling, supernatural, ghostly presence, paranormal, haunted
+
+Ví dụ prompt ảnh nội dung video:
+  "An abandoned wooden house on a misty mountain at night, dim candlelight flickering through a cracked window, ghostly silhouette barely visible behind the curtain, fog rolling across the ground, Vietnamese rural architecture, cold blue moonlight, ominous and melancholic atmosphere, cinematic, photorealistic, 4K, dramatic lighting, dark atmosphere, no text, 1920x1080, 16:9 aspect ratio"
+
+Ví dụ prompt thumbnail (title nhúng trong prompt):
+  "A haunted antique mirror standing in a dark Vietnamese apartment hallway at night, ghostly reflection subtly misaligned, cold silver-blue moonlight, oppressive shadow, with bold Vietnamese text 'TẤM GƯƠNG KHÔNG PHẢN CHIẾU' overlaid in large uppercase font at the lower center, white letters with thick black outline and red glow, cinematic, photorealistic, 4K, dramatic lighting, dark atmosphere, with bold Vietnamese title text, 1920x1080, 16:9 aspect ratio"
+

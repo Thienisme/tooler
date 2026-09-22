@@ -1,0 +1,1380 @@
+{
+  "schema_version": "1.0",
+  "title": "Mystery Mechanism Library",
+  "description": "Thư viện cơ chế mystery dùng để tham chiếu khi tạo topic và blueprint. Mỗi mechanism là một nguyên lý trừu tượng; không dùng để sao chép cốt truyện, nhân vật, chuỗi tình tiết hoặc cách thể hiện cụ thể từ bất kỳ tác phẩm nào.",
+  "usage_rules": [
+    "Mỗi topic nên có 1 primary mechanism và từ 1 đến 3 secondary mechanisms.",
+    "Ưu tiên kết hợp các mechanism từ nhiều category khác nhau để tránh lặp mô-típ.",
+    "Mechanism chỉ là nguyên lý trừu tượng; premise, nhân vật, động cơ, bối cảnh và chuỗi manh mối phải được thiết kế độc lập.",
+    "Mọi mystery phải có fair-play clues xuất hiện trước reveal.",
+    "Không dùng coincidence như lời giải chính.",
+    "Không dùng supernatural elements để giải quyết mystery.",
+    "Không để lời giải phụ thuộc vào thông tin chưa từng có sẵn cho người điều tra hoặc người nghe."
+  ],
+  "categories": {
+    "timeline_deception": "Đánh lừa thời gian hoặc trình tự sự kiện",
+    "identity_deception": "Đánh lừa danh tính hoặc sự hiện diện",
+    "scene_deception": "Đánh lừa hiện trường hoặc địa điểm",
+    "evidence_deception": "Đánh lừa ý nghĩa hoặc nguồn gốc bằng chứng",
+    "witness_deception": "Đánh lừa qua giới hạn hoặc cách diễn giải lời khai",
+    "alibi_deception": "Đánh lừa giá trị hoặc thời điểm của alibi",
+    "absence_deception": "Đánh lừa giả định hung thủ phải có mặt",
+    "cause_deception": "Đánh lừa nguyên nhân hoặc bản chất cái chết",
+    "death_state_deception": "Đánh lừa trạng thái sống/chết hoặc thời điểm chết",
+    "psychological_misdirection": "Đánh lừa bằng thiên kiến, cảm xúc hoặc kỳ vọng",
+    "twist_structure": "Cơ chế cấu trúc để đảo ngược cách hiểu toàn bộ mystery"
+  },
+  "mechanisms": [
+    {
+      "id": "T01",
+      "name": "False Time of Death",
+      "name_vi": "Thời điểm tử vong giả",
+      "category": "timeline_deception",
+      "description": "Điều tra viên xác định sai thời điểm nạn nhân chết vì một sự kiện hoặc dấu hiệu được diễn giải như bằng chứng nạn nhân còn sống.",
+      "what_it_fools": "Thời điểm tử vong",
+      "typical_false_assumption": "Một sự kiện xảy ra vào lúc X chứng minh nạn nhân còn sống lúc X.",
+      "fair_play_clue_types": [
+        "mâu thuẫn giữa các mốc thời gian",
+        "dấu hiệu vật lý",
+        "dữ liệu độc lập",
+        "lời khai"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T03",
+        "T21",
+        "T26",
+        "T30",
+        "T37"
+      ],
+      "avoid_when": [
+        "không có ít nhất hai nguồn thời gian độc lập để kiểm tra lại"
+      ]
+    },
+    {
+      "id": "T02",
+      "name": "False Last Contact",
+      "name_vi": "Liên lạc cuối cùng giả",
+      "category": "timeline_deception",
+      "description": "Lần liên lạc cuối cùng tưởng như với nạn nhân thực ra không chứng minh nạn nhân trực tiếp tham gia hoặc còn sống.",
+      "what_it_fools": "Danh tính hoặc trạng thái của người liên lạc cuối",
+      "typical_false_assumption": "Liên lạc với thiết bị hoặc tài khoản của nạn nhân đồng nghĩa liên lạc với nạn nhân.",
+      "fair_play_clue_types": [
+        "nội dung giao tiếp bất thường",
+        "metadata",
+        "thói quen giao tiếp",
+        "lời khai"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T01",
+        "T08",
+        "T21",
+        "T38"
+      ],
+      "avoid_when": [
+        "lời giải phụ thuộc vào giả mạo kỹ thuật không được giải thích"
+      ]
+    },
+    {
+      "id": "T03",
+      "name": "False Sequence",
+      "name_vi": "Trình tự sự kiện giả",
+      "category": "timeline_deception",
+      "description": "Các sự kiện đều có thật nhưng thứ tự nhân quả hoặc thứ tự thời gian bị hiểu sai.",
+      "what_it_fools": "Trình tự sự kiện",
+      "typical_false_assumption": "A xảy ra trước B vì mọi người biết A trước hoặc vì A có vẻ là nguyên nhân của B.",
+      "fair_play_clue_types": [
+        "timestamp",
+        "lời khai chồng chéo",
+        "dữ liệu độc lập",
+        "thay đổi hiện trường"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T01",
+        "T04",
+        "T20",
+        "T28"
+      ],
+      "avoid_when": [
+        "đảo thứ tự chỉ dựa vào việc camera hoặc đồng hồ sai giờ vô lý"
+      ]
+    },
+    {
+      "id": "T04",
+      "name": "Delayed Evidence",
+      "name_vi": "Bằng chứng xuất hiện muộn",
+      "category": "timeline_deception",
+      "description": "Một dấu vết được phát hiện sau sự kiện nhưng bị mặc định là vừa được tạo ra hoặc thuộc về thời điểm phát hiện.",
+      "what_it_fools": "Thời điểm tạo ra bằng chứng",
+      "typical_false_assumption": "Bằng chứng được tìm thấy lúc X thì nó phải xuất hiện lúc gần X.",
+      "fair_play_clue_types": [
+        "quy trình phát hiện",
+        "điều kiện môi trường",
+        "lịch sử tiếp cận",
+        "lời khai"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "medium",
+      "combinable_with": [
+        "T03",
+        "T17",
+        "T18",
+        "T20"
+      ],
+      "avoid_when": [
+        "không giải thích hợp lý vì sao bằng chứng không được phát hiện sớm hơn"
+      ]
+    },
+    {
+      "id": "T05",
+      "name": "Misleading Timestamp",
+      "name_vi": "Dấu thời gian gây hiểu lầm",
+      "category": "timeline_deception",
+      "description": "Timestamp là thật nhưng mô tả thời điểm một hệ thống ghi nhận hành động, không nhất thiết là thời điểm sự kiện mà điều tra viên suy ra.",
+      "what_it_fools": "Ý nghĩa của mốc thời gian",
+      "typical_false_assumption": "Timestamp luôn đại diện trực tiếp cho thời điểm hành động quan trọng xảy ra.",
+      "fair_play_clue_types": [
+        "quy trình hệ thống",
+        "log độc lập",
+        "độ trễ",
+        "đối chiếu nguồn"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "medium",
+      "combinable_with": [
+        "T01",
+        "T03",
+        "T26"
+      ],
+      "avoid_when": [
+        "giải thích bằng lỗi kỹ thuật tùy tiện hoặc hack không có nền tảng"
+      ]
+    },
+    {
+      "id": "T06",
+      "name": "Wrong Identity",
+      "name_vi": "Nhận dạng nhầm",
+      "category": "identity_deception",
+      "description": "Người hoặc thi thể được xác định là X nhưng giả định danh tính ban đầu sai.",
+      "what_it_fools": "Danh tính",
+      "typical_false_assumption": "Ngoại hình, hoàn cảnh hoặc vật dụng đủ để xác nhận chắc chắn danh tính.",
+      "fair_play_clue_types": [
+        "thói quen cá nhân",
+        "lịch sử di chuyển",
+        "mâu thuẫn lời khai",
+        "dấu hiệu nhận dạng"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "high",
+      "physical_plausibility": "medium",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T07",
+        "T08",
+        "T39"
+      ],
+      "avoid_when": [
+        "đòi hỏi thay thế danh tính phi thực tế hoặc không có cơ chế kiểm chứng hợp lý"
+      ]
+    },
+    {
+      "id": "T07",
+      "name": "Witness Identity Error",
+      "name_vi": "Nhân chứng nhận nhầm danh tính",
+      "category": "identity_deception",
+      "description": "Nhân chứng nhìn thấy một người nhưng kết luận sai người đó là ai mà không cố ý nói dối.",
+      "what_it_fools": "Danh tính người được quan sát",
+      "typical_false_assumption": "Nhân chứng quen mặt hoặc nhìn thoáng qua thì nhận dạng chính xác.",
+      "fair_play_clue_types": [
+        "điều kiện quan sát",
+        "góc nhìn",
+        "thời gian quan sát",
+        "chi tiết mô tả"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T21",
+        "T22",
+        "T25"
+      ],
+      "avoid_when": [
+        "nhân chứng được mô tả có điều kiện quan sát hoàn hảo nhưng vẫn nhầm vô lý"
+      ]
+    },
+    {
+      "id": "T08",
+      "name": "Identity by Assumption",
+      "name_vi": "Danh tính được mặc định",
+      "category": "identity_deception",
+      "description": "Không ai thực sự xác minh danh tính; mọi người tự suy luận từ bối cảnh và các dấu hiệu quen thuộc.",
+      "what_it_fools": "Quy trình nhận dạng",
+      "typical_false_assumption": "Ai cũng gọi người đó là X nên chắc chắn đó là X.",
+      "fair_play_clue_types": [
+        "ngôn ngữ lời khai",
+        "khoảng trống xác minh",
+        "vật dụng",
+        "thói quen"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T02",
+        "T06",
+        "T20",
+        "T39"
+      ],
+      "avoid_when": [
+        "không có lý do hợp lý cho việc không xác minh danh tính"
+      ]
+    },
+    {
+      "id": "T09",
+      "name": "Borrowed Identity",
+      "name_vi": "Mượn danh tính",
+      "category": "identity_deception",
+      "description": "Một người tạm thời bị nhận là người khác trong một bối cảnh có giới hạn.",
+      "what_it_fools": "Người đang hiện diện",
+      "typical_false_assumption": "Người mang dấu hiệu hoặc quyền truy cập của X chính là X.",
+      "fair_play_clue_types": [
+        "hành vi bất thường",
+        "lịch sử tiếp cận",
+        "lỗ hổng xác thực",
+        "lời khai"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "medium",
+      "audio_effectiveness": "medium",
+      "combinable_with": [
+        "T07",
+        "T08",
+        "T27"
+      ],
+      "avoid_when": [
+        "phụ thuộc vào giả trang hoàn hảo kéo dài hoặc công nghệ giả mạo quá mức"
+      ]
+    },
+    {
+      "id": "T10",
+      "name": "False Absence",
+      "name_vi": "Sự vắng mặt giả",
+      "category": "identity_deception",
+      "description": "Một người tưởng như không có mặt tại hiện trường nhưng thực ra đã có mặt theo cách không bị nhận ra.",
+      "what_it_fools": "Sự hiện diện",
+      "typical_false_assumption": "Không ai nhận ra người đó nên người đó không thể có mặt.",
+      "fair_play_clue_types": [
+        "dấu vết phụ",
+        "khoảng trống quan sát",
+        "lời khai",
+        "lịch sử ra vào"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T11",
+        "T12",
+        "T22",
+        "T27"
+      ],
+      "avoid_when": [
+        "lời giải chỉ là nhân vật trốn ở nơi phi thực tế"
+      ]
+    },
+    {
+      "id": "T11",
+      "name": "False Locked Room",
+      "name_vi": "Phòng kín giả",
+      "category": "scene_deception",
+      "description": "Hiện trường trông như không thể tiếp cận nhưng giả định về trạng thái khóa kín là sai hoặc không liên quan đến cách gây án.",
+      "what_it_fools": "Khả năng tiếp cận hiện trường",
+      "typical_false_assumption": "Hung thủ phải vào hoặc rời khỏi phòng sau khi nạn nhân chết.",
+      "fair_play_clue_types": [
+        "cấu trúc phòng",
+        "quy trình khóa",
+        "timeline",
+        "dấu vết tiếp cận"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "high",
+      "physical_plausibility": "medium",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T01",
+        "T13",
+        "T30",
+        "T31"
+      ],
+      "avoid_when": [
+        "cửa bí mật hoặc cơ cấu cơ khí phi thực tế"
+      ]
+    },
+    {
+      "id": "T12",
+      "name": "Wrong Entrance Assumption",
+      "name_vi": "Giả định sai về lối tiếp cận",
+      "category": "scene_deception",
+      "description": "Điều tra viên chỉ kiểm tra các lối vào quen thuộc trong khi giả định về cách tiếp cận không đúng.",
+      "what_it_fools": "Đường tiếp cận",
+      "typical_false_assumption": "Nếu không qua cửa chính hoặc cửa sổ thì không thể tiếp cận.",
+      "fair_play_clue_types": [
+        "kiến trúc",
+        "lịch sử bảo trì",
+        "góc quan sát",
+        "dấu vết vật lý"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "high",
+      "physical_plausibility": "medium",
+      "audio_effectiveness": "medium",
+      "combinable_with": [
+        "T10",
+        "T11",
+        "T15"
+      ],
+      "avoid_when": [
+        "cần một lối đi bí mật vô lý hoặc không được gợi ý trước"
+      ]
+    },
+    {
+      "id": "T13",
+      "name": "Crime Happened Elsewhere",
+      "name_vi": "Vụ án xảy ra ở nơi khác",
+      "category": "scene_deception",
+      "description": "Thi thể hoặc hậu quả được phát hiện ở A nhưng hành vi gây chết người thực sự xảy ra ở B.",
+      "what_it_fools": "Địa điểm gây án",
+      "typical_false_assumption": "Nơi tìm thấy thi thể là nơi nạn nhân chết.",
+      "fair_play_clue_types": [
+        "dấu vết môi trường",
+        "mâu thuẫn hiện trường",
+        "timeline",
+        "dữ liệu di chuyển"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T14",
+        "T15",
+        "T20"
+      ],
+      "avoid_when": [
+        "việc di chuyển thi thể không khả thi hoặc bỏ qua hậu quả vật lý"
+      ]
+    },
+    {
+      "id": "T14",
+      "name": "Scene Was Rearranged",
+      "name_vi": "Hiện trường đã bị sắp đặt lại",
+      "category": "scene_deception",
+      "description": "Hiện trường chứa nhiều dấu vết thật nhưng trạng thái hiện tại không phản ánh trạng thái ngay sau sự kiện.",
+      "what_it_fools": "Diễn biến tại hiện trường",
+      "typical_false_assumption": "Mọi vật đang ở đúng vị trí khi vụ án xảy ra.",
+      "fair_play_clue_types": [
+        "dấu vết di chuyển",
+        "thứ tự dấu vết",
+        "lời khai",
+        "vật dụng lệch ngữ cảnh"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "medium",
+      "combinable_with": [
+        "T13",
+        "T17",
+        "T19",
+        "T20"
+      ],
+      "avoid_when": [
+        "chỉ dùng để che giấu mà không tạo clue ngược lại"
+      ]
+    },
+    {
+      "id": "T15",
+      "name": "Wrong Center of the Crime",
+      "name_vi": "Sai trung tâm của vụ án",
+      "category": "scene_deception",
+      "description": "Điều tra viên tập trung vào nơi hung thủ muốn họ tập trung, trong khi điểm quyết định của vụ án nằm ở nơi hoặc thời điểm khác.",
+      "what_it_fools": "Trọng tâm điều tra",
+      "typical_false_assumption": "Nơi đáng chú ý nhất chính là nơi chứa câu trả lời.",
+      "fair_play_clue_types": [
+        "dữ liệu ngoại vi",
+        "hành vi nhân vật",
+        "đường đi",
+        "vật chứng bị bỏ qua"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T13",
+        "T41",
+        "T42"
+      ],
+      "avoid_when": [
+        "trọng tâm thật hoàn toàn không được giới thiệu trước"
+      ]
+    },
+    {
+      "id": "T16",
+      "name": "Innocent Object as Key",
+      "name_vi": "Vật bình thường là chìa khóa",
+      "category": "evidence_deception",
+      "description": "Một vật tưởng không quan trọng chứa thông tin giải quyết mystery.",
+      "what_it_fools": "Mức độ liên quan của vật chứng",
+      "typical_false_assumption": "Chỉ vật bất thường hoặc đáng ngờ mới quan trọng.",
+      "fair_play_clue_types": [
+        "thói quen",
+        "vị trí vật",
+        "cách sử dụng",
+        "sự thiếu phù hợp"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T17",
+        "T18",
+        "T42"
+      ],
+      "avoid_when": [
+        "vật chỉ trở nên quan trọng vì thông tin mới xuất hiện cuối truyện"
+      ]
+    },
+    {
+      "id": "T17",
+      "name": "Evidence With Wrong Meaning",
+      "name_vi": "Vật chứng bị hiểu sai",
+      "category": "evidence_deception",
+      "description": "Bằng chứng là thật nhưng kết luận rút ra từ nó sai.",
+      "what_it_fools": "Ý nghĩa của bằng chứng",
+      "typical_false_assumption": "Nếu vật chứng thật thì cách diễn giải đầu tiên cũng đúng.",
+      "fair_play_clue_types": [
+        "diễn giải thay thế",
+        "ngữ cảnh",
+        "đối chiếu độc lập",
+        "mâu thuẫn"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T03",
+        "T20",
+        "T21",
+        "T42"
+      ],
+      "avoid_when": [
+        "có thể giải thích bằng nhiều cách nhưng truyện không cho người nghe cơ sở chọn cách đúng"
+      ]
+    },
+    {
+      "id": "T18",
+      "name": "Missing Evidence Is the Clue",
+      "name_vi": "Sự thiếu vắng là manh mối",
+      "category": "evidence_deception",
+      "description": "Điều quan trọng là một dấu vết hoặc vật đáng lẽ phải tồn tại nhưng lại không có.",
+      "what_it_fools": "Cách tìm kiếm bằng chứng",
+      "typical_false_assumption": "Không có bằng chứng thì không có thông tin.",
+      "fair_play_clue_types": [
+        "quy trình thông thường",
+        "thói quen",
+        "dấu vết kỳ vọng",
+        "đối chiếu hiện trường"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T16",
+        "T17",
+        "T41"
+      ],
+      "avoid_when": [
+        "người nghe không được biết tại sao vật đó đáng lẽ phải có"
+      ]
+    },
+    {
+      "id": "T19",
+      "name": "Evidence Created by an Innocent Person",
+      "name_vi": "Bằng chứng do người vô tội tạo ra",
+      "category": "evidence_deception",
+      "description": "Một người vô tội tạo dấu vết khiến mình hoặc người khác bị nghi mà không biết hậu quả.",
+      "what_it_fools": "Nguồn gốc bằng chứng",
+      "typical_false_assumption": "Ai tạo dấu vết đều có liên quan trực tiếp tới tội ác.",
+      "fair_play_clue_types": [
+        "động cơ vô hại",
+        "lịch sử hành động",
+        "lời khai",
+        "timeline"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T14",
+        "T27",
+        "T45"
+      ],
+      "avoid_when": [
+        "hành động vô tội quá trùng hợp hoặc không hợp lý"
+      ]
+    },
+    {
+      "id": "T20",
+      "name": "Genuine Evidence, False Narrative",
+      "name_vi": "Bằng chứng thật, câu chuyện giả",
+      "category": "evidence_deception",
+      "description": "Nhiều bằng chứng đều đúng nhưng khi ghép lại theo một giả định chung sẽ tạo ra một câu chuyện sai.",
+      "what_it_fools": "Câu chuyện tổng thể",
+      "typical_false_assumption": "Các bằng chứng cùng chỉ về một lời giải hiển nhiên.",
+      "fair_play_clue_types": [
+        "mâu thuẫn nhỏ",
+        "thiếu mắt xích",
+        "diễn giải thay thế",
+        "timeline"
+      ],
+      "difficulty": "very_hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T03",
+        "T17",
+        "T42",
+        "T50"
+      ],
+      "avoid_when": [
+        "lời giải đúng không thể tái dựng từ các bằng chứng đã cho"
+      ]
+    },
+    {
+      "id": "T21",
+      "name": "Truthful Witness, Wrong Interpretation",
+      "name_vi": "Nhân chứng nói thật nhưng bị hiểu sai",
+      "category": "witness_deception",
+      "description": "Nhân chứng mô tả đúng điều họ thấy hoặc nghe, nhưng điều tra viên suy luận vượt quá lời khai.",
+      "what_it_fools": "Ý nghĩa lời khai",
+      "typical_false_assumption": "Lời khai đúng đồng nghĩa kết luận từ lời khai cũng đúng.",
+      "fair_play_clue_types": [
+        "ngôn ngữ chính xác",
+        "giới hạn quan sát",
+        "câu hỏi điều tra",
+        "chi tiết bị bỏ qua"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T01",
+        "T17",
+        "T22",
+        "T23",
+        "T25"
+      ],
+      "avoid_when": [
+        "nhân chứng thay đổi lời khai chỉ để phục vụ twist"
+      ]
+    },
+    {
+      "id": "T22",
+      "name": "Partial Observation",
+      "name_vi": "Quan sát một phần",
+      "category": "witness_deception",
+      "description": "Nhân chứng chỉ quan sát được một phần nhưng tự hoặc bị người khác hoàn thiện phần còn lại.",
+      "what_it_fools": "Mức độ chắc chắn của quan sát",
+      "typical_false_assumption": "Người thấy một phần hiểu được toàn bộ sự kiện.",
+      "fair_play_clue_types": [
+        "góc nhìn",
+        "ánh sáng",
+        "vật cản",
+        "thời lượng"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T07",
+        "T21",
+        "T24"
+      ],
+      "avoid_when": [
+        "điều kiện quan sát không thực sự hạn chế"
+      ]
+    },
+    {
+      "id": "T23",
+      "name": "Sound Without Source",
+      "name_vi": "Âm thanh không chứng minh nguồn",
+      "category": "witness_deception",
+      "description": "Âm thanh được nghe rõ nhưng nguồn tạo ra nó bị mặc định sai.",
+      "what_it_fools": "Nguồn gốc âm thanh",
+      "typical_false_assumption": "Nghe tiếng X đồng nghĩa người hoặc vật X tạo ra nó.",
+      "fair_play_clue_types": [
+        "đặc điểm âm thanh",
+        "không gian",
+        "thời gian",
+        "lời khai"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T01",
+        "T21",
+        "T37"
+      ],
+      "avoid_when": [
+        "dùng ghi âm hoặc thiết bị tự động mà không có cơ sở hợp lý"
+      ]
+    },
+    {
+      "id": "T24",
+      "name": "Witness Saw the Result, Not the Cause",
+      "name_vi": "Nhân chứng thấy hậu quả chứ không thấy nguyên nhân",
+      "category": "witness_deception",
+      "description": "Nhân chứng nhìn thấy kết quả cuối cùng và vô thức gán cho một nguyên nhân mà họ không trực tiếp chứng kiến.",
+      "what_it_fools": "Quan hệ nguyên nhân-kết quả",
+      "typical_false_assumption": "Thấy hậu quả ngay sau hành động đồng nghĩa đã thấy nguyên nhân.",
+      "fair_play_clue_types": [
+        "khoảng trống thời gian",
+        "góc nhìn",
+        "ngôn ngữ lời khai"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T03",
+        "T21",
+        "T22"
+      ],
+      "avoid_when": [
+        "nhân chứng được mô tả là thấy trực tiếp nguyên nhân"
+      ]
+    },
+    {
+      "id": "T25",
+      "name": "Collective Misinterpretation",
+      "name_vi": "Nhiều nhân chứng cùng hiểu sai",
+      "category": "witness_deception",
+      "description": "Nhiều lời khai độc lập đều đúng một phần nhưng khi ghép lại mọi người cùng đi tới kết luận sai.",
+      "what_it_fools": "Sự đồng thuận",
+      "typical_false_assumption": "Nhiều người cùng xác nhận thì cách hiểu chắc chắn đúng.",
+      "fair_play_clue_types": [
+        "giới hạn riêng của từng nhân chứng",
+        "timeline chồng chéo",
+        "chi tiết chung bị mặc định"
+      ],
+      "difficulty": "very_hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T21",
+        "T22",
+        "T43"
+      ],
+      "avoid_when": [
+        "các nhân chứng phải cùng mắc một sai lầm quá phi lý"
+      ]
+    },
+    {
+      "id": "T26",
+      "name": "False Alibi Based on a True Event",
+      "name_vi": "Alibi giả dựa trên sự kiện thật",
+      "category": "alibi_deception",
+      "description": "Alibi dựa trên một sự kiện có thật nhưng sự kiện đó không chứng minh điều mà mọi người nghĩ.",
+      "what_it_fools": "Ý nghĩa của alibi",
+      "typical_false_assumption": "Được xác nhận ở nơi X lúc Y thì không thể liên quan vụ án.",
+      "fair_play_clue_types": [
+        "mốc thời gian",
+        "khoảng cách",
+        "thời lượng",
+        "nguồn xác nhận"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T01",
+        "T28",
+        "T30"
+      ],
+      "avoid_when": [
+        "đòi hỏi di chuyển bất khả thi"
+      ]
+    },
+    {
+      "id": "T27",
+      "name": "Alibi by Third Person",
+      "name_vi": "Alibi do người khác vô tình tạo",
+      "category": "alibi_deception",
+      "description": "Một người vô tình xác nhận alibi cho hung thủ mà không biết mình đang làm vậy.",
+      "what_it_fools": "Độ tin cậy của người xác nhận",
+      "typical_false_assumption": "Người xác nhận vô tư thì alibi chắc chắn toàn diện.",
+      "fair_play_clue_types": [
+        "giới hạn quan sát",
+        "thời lượng",
+        "ngôn ngữ xác nhận"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T19",
+        "T26",
+        "T29"
+      ],
+      "avoid_when": [
+        "người xác nhận phải cư xử phi lý để alibi tồn tại"
+      ]
+    },
+    {
+      "id": "T28",
+      "name": "Alibi Time Shift",
+      "name_vi": "Alibi lệch thời điểm",
+      "category": "alibi_deception",
+      "description": "Hung thủ có alibi thật vào thời điểm mọi người cho là thời điểm gây án, nhưng thời điểm gây án thực tế khác.",
+      "what_it_fools": "Mốc thời gian của alibi",
+      "typical_false_assumption": "Thời điểm tử vong và thời điểm mọi người tin là gây án trùng nhau.",
+      "fair_play_clue_types": [
+        "thời gian tử vong",
+        "dữ liệu độc lập",
+        "timeline"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T01",
+        "T03",
+        "T30"
+      ],
+      "avoid_when": [
+        "thời điểm thật không có clue hỗ trợ"
+      ]
+    },
+    {
+      "id": "T29",
+      "name": "Everyone Has the Same Alibi",
+      "name_vi": "Tất cả đều có alibi",
+      "category": "alibi_deception",
+      "description": "Không có nghi phạm nào thiếu alibi theo cách thông thường; vấn đề nằm ở giả định về thời điểm, địa điểm hoặc phạm vi alibi.",
+      "what_it_fools": "Phương pháp loại trừ nghi phạm",
+      "typical_false_assumption": "Người có alibi thì không thể là hung thủ.",
+      "fair_play_clue_types": [
+        "điểm chung giữa alibi",
+        "giới hạn xác nhận",
+        "timeline"
+      ],
+      "difficulty": "very_hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T01",
+        "T26",
+        "T28",
+        "T30"
+      ],
+      "avoid_when": [
+        "alibi của tất cả quá hoàn hảo mà không có lý do"
+      ]
+    },
+    {
+      "id": "T30",
+      "name": "Alibi Is True but Irrelevant",
+      "name_vi": "Alibi thật nhưng không liên quan",
+      "category": "alibi_deception",
+      "description": "Hung thủ thực sự ở nơi khác vào thời điểm được kiểm tra, nhưng điều đó không loại trừ họ vì giả định nền tảng sai.",
+      "what_it_fools": "Giá trị loại trừ của alibi",
+      "typical_false_assumption": "Nếu alibi đúng thì nghi phạm vô tội.",
+      "fair_play_clue_types": [
+        "timeline",
+        "phạm vi hành động",
+        "nguyên nhân trì hoãn"
+      ],
+      "difficulty": "very_hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T01",
+        "T26",
+        "T28",
+        "T31",
+        "T32"
+      ],
+      "avoid_when": [
+        "lời giải chỉ đơn giản là 'hung thủ giết từ xa' mà không có cơ chế hợp lý"
+      ]
+    },
+    {
+      "id": "T31",
+      "name": "Remote Cause",
+      "name_vi": "Nguyên nhân được tạo từ xa",
+      "category": "absence_deception",
+      "description": "Hành động quyết định dẫn tới cái chết được thiết lập trước hoặc từ nơi khác; hung thủ không cần hiện diện vào thời điểm hậu quả xảy ra.",
+      "what_it_fools": "Sự cần thiết của sự hiện diện",
+      "typical_false_assumption": "Hung thủ phải ở cạnh nạn nhân khi nạn nhân chết.",
+      "fair_play_clue_types": [
+        "chuỗi nguyên nhân",
+        "timeline",
+        "điều kiện kích hoạt"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "high",
+      "physical_plausibility": "medium",
+      "audio_effectiveness": "medium",
+      "combinable_with": [
+        "T11",
+        "T30",
+        "T32"
+      ],
+      "avoid_when": [
+        "mô tả cơ chế gây hại chi tiết có thể sao chép hoặc cơ chế phi thực tế"
+      ]
+    },
+    {
+      "id": "T32",
+      "name": "Delayed Consequence",
+      "name_vi": "Hậu quả xảy ra muộn",
+      "category": "absence_deception",
+      "description": "Hành động và hậu quả bị tách rời theo thời gian khiến điều tra viên gắn sai thời điểm với hung thủ.",
+      "what_it_fools": "Quan hệ thời gian giữa hành động và hậu quả",
+      "typical_false_assumption": "Nguyên nhân phải xảy ra ngay trước hậu quả.",
+      "fair_play_clue_types": [
+        "dấu hiệu trì hoãn",
+        "timeline",
+        "hành vi trước đó"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T01",
+        "T30",
+        "T33"
+      ],
+      "avoid_when": [
+        "độ trễ không thể giải thích hoặc phụ thuộc hoàn toàn vào may rủi"
+      ]
+    },
+    {
+      "id": "T33",
+      "name": "Pre-Existing Hazard",
+      "name_vi": "Nguy cơ có sẵn",
+      "category": "absence_deception",
+      "description": "Hung thủ lợi dụng hoặc sắp đặt một nguy cơ tồn tại trước khi nạn nhân gặp hậu quả.",
+      "what_it_fools": "Thời điểm can thiệp",
+      "typical_false_assumption": "Ai gây hậu quả phải có mặt khi hậu quả xảy ra.",
+      "fair_play_clue_types": [
+        "lịch sử địa điểm",
+        "dấu hiệu cảnh báo",
+        "hành vi nạn nhân"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "medium",
+      "combinable_with": [
+        "T30",
+        "T32",
+        "T34"
+      ],
+      "avoid_when": [
+        "mô tả chi tiết cách tạo nguy cơ gây hại"
+      ]
+    },
+    {
+      "id": "T34",
+      "name": "Apparent Murder Is Accident",
+      "name_vi": "Án mạng tưởng tượng thực ra là tai nạn",
+      "category": "cause_deception",
+      "description": "Cái chết trông như một vụ giết người nhưng nguyên nhân thực sự là tai nạn.",
+      "what_it_fools": "Bản chất vụ án",
+      "typical_false_assumption": "Dấu hiệu đáng ngờ chắc chắn có chủ ý giết người.",
+      "fair_play_clue_types": [
+        "cơ chế tai nạn",
+        "hành vi nạn nhân",
+        "dấu vết không phù hợp với hung thủ"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "high",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "medium",
+      "combinable_with": [
+        "T17",
+        "T20",
+        "T42"
+      ],
+      "avoid_when": [
+        "dùng như twist duy nhất sau khi truyện hứa hẹn một hung thủ cụ thể"
+      ]
+    },
+    {
+      "id": "T35",
+      "name": "Apparent Suicide Is Murder",
+      "name_vi": "Tự sát giả",
+      "category": "cause_deception",
+      "description": "Hiện trường khiến mọi người nghĩ nạn nhân tự sát nhưng một hoặc nhiều chi tiết mâu thuẫn buộc điều tra viên xem lại.",
+      "what_it_fools": "Nguyên nhân và chủ thể gây chết",
+      "typical_false_assumption": "Hiện trường phù hợp bề ngoài là đủ để kết luận tự sát.",
+      "fair_play_clue_types": [
+        "hành vi trước đó",
+        "dữ liệu độc lập",
+        "mâu thuẫn hiện trường"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "high",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T14",
+        "T17",
+        "T20"
+      ],
+      "avoid_when": [
+        "dùng thủ pháp mô tả chi tiết cách dàn dựng tự sát"
+      ]
+    },
+    {
+      "id": "T36",
+      "name": "Already Dead",
+      "name_vi": "Nạn nhân đã chết từ trước",
+      "category": "death_state_deception",
+      "description": "Một sự kiện sau đó khiến mọi người tin nạn nhân còn sống hoặc vụ án vừa xảy ra, trong khi nạn nhân đã chết trước đó.",
+      "what_it_fools": "Trạng thái sống và thời điểm chết",
+      "typical_false_assumption": "Sự kiện sau đó chỉ có thể xảy ra khi nạn nhân còn sống.",
+      "fair_play_clue_types": [
+        "timeline",
+        "dấu hiệu vật lý",
+        "nguồn sự kiện"
+      ],
+      "difficulty": "very_hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T01",
+        "T02",
+        "T37",
+        "T38"
+      ],
+      "avoid_when": [
+        "dựa vào giả mạo quá tiện lợi hoặc thông tin độc quyền xuất hiện cuối truyện"
+      ]
+    },
+    {
+      "id": "T37",
+      "name": "False Living Evidence",
+      "name_vi": "Bằng chứng giả về việc còn sống",
+      "category": "death_state_deception",
+      "description": "Một dấu hiệu khiến mọi người tin nạn nhân còn sống nhưng dấu hiệu đó chỉ chứng minh một sự kiện khác.",
+      "what_it_fools": "Trạng thái của nạn nhân",
+      "typical_false_assumption": "Có tín hiệu từ nơi hoặc thiết bị của nạn nhân nghĩa nạn nhân còn sống.",
+      "fair_play_clue_types": [
+        "nguồn tín hiệu",
+        "nội dung",
+        "timeline",
+        "thói quen"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T01",
+        "T02",
+        "T23",
+        "T36"
+      ],
+      "avoid_when": [
+        "cơ chế tín hiệu không được giới thiệu tự nhiên"
+      ]
+    },
+    {
+      "id": "T38",
+      "name": "Post-Death Communication",
+      "name_vi": "Thông điệp xuất hiện sau cái chết",
+      "category": "death_state_deception",
+      "description": "Tin nhắn, ghi âm hoặc liên lạc xuất hiện sau khi nạn nhân chết và mystery nằm ở giả định về thời điểm tạo ra thông điệp.",
+      "what_it_fools": "Thời điểm và tác giả thông điệp",
+      "typical_false_assumption": "Thời điểm nhận hoặc xuất hiện bằng thời điểm tạo.",
+      "fair_play_clue_types": [
+        "metadata",
+        "nội dung",
+        "thói quen giao tiếp",
+        "timeline"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "high",
+      "physical_plausibility": "medium",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T01",
+        "T02",
+        "T36",
+        "T37"
+      ],
+      "avoid_when": [
+        "phụ thuộc vào hack hoặc giả mạo kỹ thuật không giải thích"
+      ]
+    },
+    {
+      "id": "T39",
+      "name": "Wrong Person Is Dead",
+      "name_vi": "Người chết không phải người mọi người nghĩ",
+      "category": "death_state_deception",
+      "description": "Vụ án được xây trên giả định sai về người đã chết hoặc người đang bị đe dọa.",
+      "what_it_fools": "Danh tính nạn nhân",
+      "typical_false_assumption": "Các dấu hiệu bề mặt đủ để xác định nạn nhân.",
+      "fair_play_clue_types": [
+        "danh tính",
+        "lịch sử tiếp xúc",
+        "lời khai",
+        "dấu hiệu cá nhân"
+      ],
+      "difficulty": "very_hard",
+      "cliche_risk": "high",
+      "physical_plausibility": "medium",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T06",
+        "T08",
+        "T20"
+      ],
+      "avoid_when": [
+        "đòi hỏi thay thế thi thể hoặc nhận dạng phi thực tế"
+      ]
+    },
+    {
+      "id": "T40",
+      "name": "Death Occurred Earlier Than the Story Suggests",
+      "name_vi": "Cái chết xảy ra sớm hơn tưởng tượng",
+      "category": "death_state_deception",
+      "description": "Câu chuyện tạo cảm giác vụ án mới xảy ra nhưng timeline thực tế cho thấy cái chết đã xảy ra từ trước.",
+      "what_it_fools": "Điểm bắt đầu thực sự của vụ án",
+      "typical_false_assumption": "Thời điểm phát hiện gần với thời điểm xảy ra.",
+      "fair_play_clue_types": [
+        "mốc độc lập",
+        "hành vi còn lại",
+        "dấu vết môi trường"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T01",
+        "T03",
+        "T36"
+      ],
+      "avoid_when": [
+        "chỉ dựa vào một chi tiết pháp y bí mật không được người nghe biết"
+      ]
+    },
+    {
+      "id": "T41",
+      "name": "Expectation Trap",
+      "name_vi": "Bẫy kỳ vọng",
+      "category": "psychological_misdirection",
+      "description": "Hung thủ hoặc cấu trúc mystery tận dụng việc điều tra viên chắc chắn sẽ tìm một loại bằng chứng nhất định.",
+      "what_it_fools": "Chiến lược tìm kiếm",
+      "typical_false_assumption": "Điều mình được đào tạo để tìm chắc chắn là điều quan trọng nhất.",
+      "fair_play_clue_types": [
+        "quy trình điều tra",
+        "khoảng trống bất thường",
+        "hành vi hung thủ"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T15",
+        "T18",
+        "T42",
+        "T50"
+      ],
+      "avoid_when": [
+        "biến điều tra viên thành người bất cẩn hoặc thiếu năng lực vô lý"
+      ]
+    },
+    {
+      "id": "T42",
+      "name": "Confirmation Bias",
+      "name_vi": "Thiên kiến xác nhận",
+      "category": "psychological_misdirection",
+      "description": "Một giả thuyết ban đầu khiến các clue tiếp theo bị diễn giải để củng cố chính giả thuyết đó.",
+      "what_it_fools": "Quá trình suy luận",
+      "typical_false_assumption": "Nhiều clue phù hợp với giả thuyết nghĩa là giả thuyết đã được chứng minh.",
+      "fair_play_clue_types": [
+        "clue mơ hồ",
+        "diễn giải thay thế",
+        "mâu thuẫn nhỏ"
+      ],
+      "difficulty": "very_hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T17",
+        "T20",
+        "T41",
+        "T50"
+      ],
+      "avoid_when": [
+        "điều tra viên bỏ qua bằng chứng rõ ràng chỉ để giữ twist"
+      ]
+    },
+    {
+      "id": "T43",
+      "name": "False Pattern",
+      "name_vi": "Mẫu hình giả",
+      "category": "psychological_misdirection",
+      "description": "Các sự kiện có vẻ tạo thành một mẫu rõ ràng khiến điều tra viên tìm động cơ hoặc hung thủ sai.",
+      "what_it_fools": "Sự liên hệ giữa các sự kiện",
+      "typical_false_assumption": "Nếu các sự kiện giống nhau thì chúng có cùng nguyên nhân.",
+      "fair_play_clue_types": [
+        "điểm chung bề mặt",
+        "mâu thuẫn nền",
+        "liên hệ bị bỏ qua"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T25",
+        "T42",
+        "T48"
+      ],
+      "avoid_when": [
+        "mẫu hình hoàn toàn ngẫu nhiên mà không có lý do nhân vật tin vào nó"
+      ]
+    },
+    {
+      "id": "T44",
+      "name": "Emotional Misdirection",
+      "name_vi": "Đánh lạc bằng cảm xúc",
+      "category": "psychological_misdirection",
+      "description": "Một động cơ cảm xúc hiển nhiên khiến mọi người dừng điều tra quá sớm.",
+      "what_it_fools": "Động cơ bề mặt",
+      "typical_false_assumption": "Động cơ dễ hiểu nhất là động cơ thật.",
+      "fair_play_clue_types": [
+        "xung đột công khai",
+        "hành vi cảm xúc",
+        "chi tiết không phù hợp"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T45",
+        "T48",
+        "T42"
+      ],
+      "avoid_when": [
+        "twist chỉ phủ nhận hoàn toàn mọi động cơ mà không đưa ra động cơ thay thế hợp lý"
+      ]
+    },
+    {
+      "id": "T45",
+      "name": "Moral Misdirection",
+      "name_vi": "Đánh lạc bằng đạo đức",
+      "category": "psychological_misdirection",
+      "description": "Một người có hành vi đáng ghét hoặc bí mật khiến họ bị coi là hung thủ dù bằng chứng về tội ác không đủ.",
+      "what_it_fools": "Đánh giá nhân vật",
+      "typical_false_assumption": "Người xấu hoặc đáng ghét nhất là người giết người.",
+      "fair_play_clue_types": [
+        "bí mật riêng",
+        "hành vi đáng ngờ nhưng hợp pháp",
+        "động cơ không liên quan"
+      ],
+      "difficulty": "medium",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T19",
+        "T44",
+        "T46"
+      ],
+      "avoid_when": [
+        "dùng nhân vật caricature chỉ để làm nghi phạm giả"
+      ]
+    },
+    {
+      "id": "T46",
+      "name": "Obvious Suspect Is Innocent for the Wrong Reason",
+      "name_vi": "Nghi phạm hiển nhiên vô tội nhưng lý do không như tưởng",
+      "category": "twist_structure",
+      "description": "Nghi phạm chính vô tội, nhưng bằng chứng giải oan ban đầu hoặc cách mọi người hiểu về sự vô tội của họ lại sai.",
+      "what_it_fools": "Cách loại trừ nghi phạm",
+      "typical_false_assumption": "Nếu nghi phạm không phạm tội theo cách A thì họ vô tội hoàn toàn vì lý do B.",
+      "fair_play_clue_types": [
+        "alibi",
+        "mâu thuẫn động cơ",
+        "timeline"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "high",
+      "combinable_with": [
+        "T26",
+        "T30",
+        "T45"
+      ],
+      "avoid_when": [
+        "tạo quá nhiều tầng phủ định khiến lời giải khó theo dõi"
+      ]
+    },
+    {
+      "id": "T47",
+      "name": "Witness Tells Truth for the Wrong Person",
+      "name_vi": "Nhân chứng nói thật nhưng đang bảo vệ nhầm người",
+      "category": "twist_structure",
+      "description": "Nhân chứng che giấu hoặc xác nhận một chi tiết vì muốn bảo vệ một người, nhưng hành động đó vô tình bảo vệ hoặc gây lợi cho hung thủ khác.",
+      "what_it_fools": "Động cơ của lời nói dối hoặc sự che giấu",
+      "typical_false_assumption": "Ai che giấu điều gì đó đều đang che giấu hung thủ.",
+      "fair_play_clue_types": [
+        "động cơ nhân chứng",
+        "mâu thuẫn nhỏ",
+        "quan hệ nhân vật"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T21",
+        "T27",
+        "T45"
+      ],
+      "avoid_when": [
+        "nhân chứng che giấu vô lý hoặc không có động cơ cá nhân rõ"
+      ]
+    },
+    {
+      "id": "T48",
+      "name": "Victim's Secret Is Not the Motive",
+      "name_vi": "Bí mật của nạn nhân không phải động cơ",
+      "category": "twist_structure",
+      "description": "Bí mật lớn của nạn nhân thu hút toàn bộ điều tra nhưng chỉ là lớp đánh lạc khỏi động cơ thực sự.",
+      "what_it_fools": "Mối liên hệ giữa bí mật và tội ác",
+      "typical_false_assumption": "Bí mật lớn nhất phải là nguyên nhân của cái chết.",
+      "fair_play_clue_types": [
+        "động cơ thay thế",
+        "chi tiết không khớp",
+        "hành vi hung thủ"
+      ],
+      "difficulty": "hard",
+      "cliche_risk": "medium",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T43",
+        "T44",
+        "T45"
+      ],
+      "avoid_when": [
+        "bí mật hoàn toàn không có vai trò gì ngoài đánh lạc"
+      ]
+    },
+    {
+      "id": "T49",
+      "name": "Detective's Interpretation Is the Missing Clue",
+      "name_vi": "Cách hiểu của điều tra viên chính là manh mối thiếu",
+      "category": "twist_structure",
+      "description": "Một nhận định hoặc cách đặt câu hỏi sớm của điều tra viên trở thành điểm sai khiến vụ án đi chệch hướng.",
+      "what_it_fools": "Khung suy luận",
+      "typical_false_assumption": "Câu hỏi ban đầu đã xác định đúng vấn đề cần giải.",
+      "fair_play_clue_types": [
+        "phát biểu đầu truyện",
+        "giả định điều tra",
+        "câu hỏi lặp lại"
+      ],
+      "difficulty": "very_hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T41",
+        "T42",
+        "T50"
+      ],
+      "avoid_when": [
+        "cần retcon lời kể hoặc giấu thông tin nội tâm không công bằng"
+      ]
+    },
+    {
+      "id": "T50",
+      "name": "Everything Was True, Except the Question",
+      "name_vi": "Mọi thứ đều đúng, chỉ có câu hỏi là sai",
+      "category": "twist_structure",
+      "description": "Các dữ kiện đều có thật và không cần bằng chứng giả; mystery tồn tại vì điều tra viên đang cố trả lời một câu hỏi sai.",
+      "what_it_fools": "Câu hỏi trung tâm",
+      "typical_false_assumption": "Cách đặt vấn đề ban đầu chắc chắn đúng.",
+      "fair_play_clue_types": [
+        "dữ kiện nhất quán",
+        "giả định nền",
+        "câu hỏi điều tra",
+        "diễn giải thay thế"
+      ],
+      "difficulty": "very_hard",
+      "cliche_risk": "low",
+      "physical_plausibility": "high",
+      "audio_effectiveness": "very_high",
+      "combinable_with": [
+        "T17",
+        "T20",
+        "T41",
+        "T42",
+        "T49"
+      ],
+      "avoid_when": [
+        "câu hỏi đúng không được gợi mở trước khi reveal"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+DANH SÁCH NGHE THỬ GIỌNG (thứ tự trong all_voices.mp3)
+Nội dung mẫu: 215 ký tự, speed 1.0
+
+01* Adam              20.5 chars/s   -19.9 LUFS  01_Adam.mp3
+      Adam — Nam · Nam · Giọng đọc tự nhiên
+02  Kim Thanh         13.4 chars/s   -20.1 LUFS  02_Kim-Thanh.mp3
+      Kim Thanh — Nữ · Nam · Phong cách đọc truyện
+03* Minh Triết        19.8 chars/s   -20.6 LUFS  03_Minh-Triet.mp3
+      Minh Triết — Nam · Nam · Phong cách tin tức
+04* Minh Đức          15.3 chars/s   -19.7 LUFS  04_Minh-Duc.mp3
+      Minh Đức — Nam · Bắc · Phong cách tin tức
+05* Mạnh Dũng         18.8 chars/s   -20.0 LUFS  05_Manh-Dung.mp3
+      Mạnh Dũng — Nam · Bắc · Phong cách tự nhiên
+06  Mỹ Duyên          14.7 chars/s   -19.6 LUFS  06_My-Duyen.mp3
+      Mỹ Duyên — Nữ · Nam · Phong cách đọc truyện
+07  Ngọc Linh         19.1 chars/s   -18.9 LUFS  07_Ngoc-Linh.mp3
+      Ngọc Linh — Nữ · Bắc · Phong cách kể chuyện
+08* Phạm Tuyên        18.7 chars/s   -20.4 LUFS  08_Pham-Tuyen.mp3
+      Phạm Tuyên — Nam · Bắc · Phong cách tự nhiên
+09  Quỳnh Anh         17.1 chars/s   -20.2 LUFS  09_Quynh-Anh.mp3
+      Quỳnh Anh — Nữ · Bắc · Phong cách đọc truyện
+10  Thanh Bình        19.2 chars/s   -19.9 LUFS  10_Thanh-Binh.mp3
+      Thanh Bình — Nam · Bắc · Phong cách kể chuyện
+11  Thái Sơn          16.4 chars/s   -20.1 LUFS  11_Thai-Son.mp3
+      Thái Sơn — Nam · Nam · Phong cách kể chuyện
+12  Thục Đoan         17.0 chars/s   -19.7 LUFS  12_Thuc-Doan.mp3
+      Thục Đoan — Nữ · Nam · Phong cách kể chuyện
+13* Xuân Vĩnh         19.8 chars/s   -19.7 LUFS  13_Xuan-Vinh.mp3
+      Xuân Vĩnh — Nam · Bắc · Phong cách tự nhiên
+14* Đoan Trang        17.2 chars/s   -19.2 LUFS  14_Doan-Trang.mp3
+      Đoan Trang — Nữ · Bắc · Phong cách tự nhiên
+15  Đức Trí           13.2 chars/s   -20.5 LUFS  15_Duc-Tri.mp3
+      Đức Trí — Nam · Nam · Phong cách đọc truyện
+16* Adam bựa          17.9 chars/s   -19.4 LUFS  16_Adam-bua.mp3
+      ⭐ Adam bựa — Nam · Bắc · Phong cách tự nhiên
+17  Anh Khôi          19.8 chars/s   -19.7 LUFS  17_Anh-Khoi.mp3
+      ⭐ Anh Khôi — Nam · Bắc · Phong cách kể chuyện
+18* Mai Anh           17.0 chars/s   -19.9 LUFS  18_Mai-Anh.mp3
+      ⭐ Mai Anh — Nữ · Bắc · Phong cách tin tức
+19* Minh Quân Pro     21.0 chars/s   -19.7 LUFS  19_Minh-Quan-Pro.mp3
+      ⭐ Minh Quân Pro — Nam · Bắc · Phong cách tự nhiên
+20* Ngọc Huyền        19.6 chars/s   -19.8 LUFS  20_Ngoc-Huyen.mp3
+      ⭐ Ngọc Huyền — Nữ · Bắc · Giọng đọc tự nhiên
+21* Ngọc Trân         15.9 chars/s   -20.4 LUFS  21_Ngoc-Tran.mp3
+      ⭐ Ngọc Trân — Nữ · Trung · Phong cách tự nhiên
+22* Quang Sơn         16.6 chars/s   -19.7 LUFS  22_Quang-Son.mp3
+      ⭐ Quang Sơn — Nam · Trung · Phong cách tự nhiên
+23  Thiền Tâm Đức     14.1 chars/s   -18.8 LUFS  23_Thien-Tam-Duc.mp3
+      ⭐ Thiền Tâm Đức — Nam · Bắc · Phong cách kể chuyện
+24* Thùy Dung         20.7 chars/s   -20.0 LUFS  24_Thuy-Dung.mp3
+      ⭐ Thùy Dung — Nữ · Nam · Phong cách tin tức
+25* Trúc Ly           20.8 chars/s   -18.9 LUFS  25_Truc-Ly.mp3
+      ⭐ Trúc Ly — Nữ · Bắc · Phong cách tự nhiên
+
+* = phong cách tin tức/tự nhiên (hợp thuyết minh hơn kể chuyện)

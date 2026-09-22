@@ -1,0 +1,6 @@
+python autovid.py validate projects/topics-001/script.json
+python autovid.py tts projects/topics-001/script.json
+python autovid.py images projects/topics-001/script.json
+python autovid.py assembly projects/topics-001/script.json
+python autovid.py mix projects/topics-001/script.json --skip-music
+python autovid.py render projects/topics-001/script.json
