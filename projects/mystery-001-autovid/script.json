@@ -1,0 +1,438 @@
+{
+  "video_metadata": {
+    "title": "Khu chung cư Hoa Mai",
+    "author": "autovid",
+    "resolution": "1920x1080",
+    "fps": 30,
+    "language": "vi"
+  },
+  "tts_config": {
+    "engine": "vieneu",
+    "voice": "Minh Quân Pro",
+    "speed": 0.92,
+    "pitch": 0.0,
+    "emotion": "neutral",
+    "granularity": "sentence",
+    "max_chars_per_chunk": 1000
+  },
+  "audio_config": {
+    "background_music": "assets/audio/bg.mp3",
+    "background_volume": 0.12,
+    "master_volume": -14.0,
+    "fade_in_seconds": 2.0,
+    "fade_out_seconds": 3.0
+  },
+  "pacing": {
+    "auto_pause": {
+      "enabled": true,
+      "per_sentence": true,
+      "min_pause_ms": 300,
+      "max_pause_ms": 5000,
+      "respect_tts_natural_pause": true
+    },
+    "section_breaks": [],
+    "custom_pauses": {}
+  },
+  "scenes": [
+    {
+      "id": 1,
+      "text": "Khu chung cư cũ Hoa Mai nằm im lìm dưới màn sương đêm nhạt nhòa của Hà Nội, nép mình bên những con phố tấp nập của quận Hai Bà Trưng.",
+      "image_file": "images/scene_001.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.0,
+        "end_scale": 1.08
+      },
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/host_idle.png",
+          "preset": "boing",
+          "x": 0.2,
+          "y": 0.97,
+          "height": 0.52,
+          "at_sentence": 1,
+          "for_sentences": 2
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "Được xây dựng từ những thập niên cuối thế kỷ trước, tòa nhà mang trên mình lớp sơn vàng ố đã bong tróc, những mảng tường rêu phong ẩm mốc và một mê lộ những đường dây điện, dây cáp chằng chịt như mạng nhện. Trong không gian chật hẹp ấy, âm thanh dường như không bao giờ tắt.",
+      "image_file": "images/scene_002.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_right",
+        "start_scale": 1.1,
+        "end_scale": 1.1
+      },
+      "transition_in": {
+        "type": "slide_left",
+        "duration": 0.4
+      }
+    },
+    {
+      "id": 3,
+      "text": "Tiếng còi xe inh ỏi từ đường lớn vọng vào, tiếng động cơ xe máy lạch cạch của những người đi làm muộn, và cả tiếng sinh hoạt rì rầm của các hộ dân sống san sát nhau tạo nên một bản nhạc nền hỗn độn, đặc trưng của cuộc sống đô thị đất chật người đông.",
+      "image_file": "images/scene_003.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_out",
+        "start_scale": 1.12,
+        "end_scale": 1.0
+      },
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/host_idle.png",
+          "preset": "whoosh",
+          "x": 0.2,
+          "y": 0.97,
+          "height": 0.52,
+          "at_sentence": 1,
+          "for_sentences": 2
+        }
+      ],
+      "sfx": [
+        {
+          "file": "data/sfx/thud.mp3",
+          "time_offset_ms": 1200,
+          "volume": 0.5
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "text": "Đêm muộn ngày mười lăm tháng mười, tại trung tâm chỉ huy của lực lượng cảnh sát phản ứng nhanh 113, bầu không khí đang trôi đi trong sự tĩnh lặng tương đối của ca trực đêm. Đúng 23 giờ 47 phút, hệ thống tiếp nhận cuộc gọi đổ chuông.",
+      "image_file": "images/scene_004.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_left",
+        "start_scale": 1.1,
+        "end_scale": 1.1
+      },
+      "transition_in": {
+        "type": "pixelize",
+        "duration": 0.4
+      }
+    },
+    {
+      "id": 5,
+      "text": "Viên sĩ quan trực máy nhanh chóng nhấc điện thoại. Đầu dây bên kia là một giọng nam thều thào, đứt quãng nhưng lộ rõ sự hoảng loạn tột độ. Giọng nói vang lên giữa những tiếng thở dốc nặng nề: \"Cứu tôi với... Có người đột nhập... Căn hộ năm không hai, chung cư Hoa Mai...",
+      "image_file": "images/scene_005.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_down",
+        "start_scale": 1.1,
+        "end_scale": 1.1
+      },
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/host_idle.png",
+          "preset": "pop",
+          "x": 0.2,
+          "y": 0.97,
+          "height": 0.52,
+          "at_sentence": 2,
+          "for_sentences": 2
+        },
+        {
+          "image_file": "assets/characters/host_point.png",
+          "x": 0.82,
+          "y": 0.97,
+          "height": 0.48,
+          "flip": true,
+          "at_sentence": 1,
+          "for_sentences": 1,
+          "enter": {
+            "type": "fly_in",
+            "from": "right",
+            "duration_ms": 700
+          },
+          "exit": {
+            "type": "fly_out",
+            "to": "right",
+            "duration_ms": 600
+          },
+          "idle": {
+            "type": "talk",
+            "amplitude_px": 8,
+            "period_s": 0.4
+          },
+          "sfx": {
+            "file": "data/sfx/whoosh.mp3",
+            "volume": 0.45
+          }
+        }
+      ],
+      "impact": {
+        "at_sentence": 2,
+        "intensity": 0.09,
+        "shake_px": 12,
+        "duration_ms": 500,
+        "flash": "white"
+      }
+    },
+    {
+      "id": 6,
+      "text": "Hắn muốn giết... Á!\". Một tiếng động mạnh như vật thể đổ vỡ vang lên, theo sau đó là tiếng tút dài lạnh lẽo. Cuộc gọi bị ngắt hoàn toàn.",
+      "image_file": "images/scene_006.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.04,
+        "end_scale": 1.14
+      },
+      "transition_in": {
+        "type": "circle_open",
+        "duration": 0.4
+      }
+    },
+    {
+      "id": 7,
+      "text": "Ngay lập tức, thông tin được chuyển tới Đội Cảnh sát hình sự Công an quận Hai Bà Trưng. Đại úy Nguyễn Đức Anh, một điều tra viên dày dặn kinh nghiệm với ba mươi tám tuổi đời và hơn mười lăm năm tuổi nghề, được giao nhiệm vụ tiếp cận hiện trường.",
+      "image_file": "images/scene_007.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.0,
+        "end_scale": 1.08
+      },
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/host_idle.png",
+          "preset": "sneak",
+          "x": 0.2,
+          "y": 0.97,
+          "height": 0.52,
+          "at_sentence": 1,
+          "for_sentences": 2
+        }
+      ],
+      "sfx": [
+        {
+          "file": "data/sfx/thud.mp3",
+          "time_offset_ms": 1200,
+          "volume": 0.5
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "text": "Đức Anh là người có vẻ ngoài trầm ngâm, cặp mắt sắc sảo luôn ẩn sau gọng kính cận mỏng. Anh nổi tiếng trong giới hình sự nhờ biệt tài phân tích các chi tiết âm thanh và sự nhạy bén đặc biệt trước những điểm bất thường dù là nhỏ nhất trong lời khai của các đối tượng.",
+      "image_file": "images/scene_008.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_right",
+        "start_scale": 1.1,
+        "end_scale": 1.1
+      },
+      "transition_in": {
+        "type": "whip_pan",
+        "duration": 0.4
+      }
+    },
+    {
+      "id": 9,
+      "text": "Nhận định đây là một vụ việc có tính chất đặc biệt nghiêm trọng, Đức Anh cùng tổ công tác lập tức lên đường.",
+      "image_file": "images/scene_009.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_out",
+        "start_scale": 1.12,
+        "end_scale": 1.0
+      },
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/host_idle.png",
+          "preset": "ninja",
+          "x": 0.2,
+          "y": 0.97,
+          "height": 0.52,
+          "at_sentence": 1,
+          "for_sentences": 2
+        }
+      ],
+      "impact": {
+        "at_sentence": 2,
+        "intensity": 0.09,
+        "shake_px": 12,
+        "duration_ms": 500,
+        "flash": "white"
+      },
+      "sfx": [
+        {
+          "file": "data/sfx/thud.mp3",
+          "time_offset_ms": 1200,
+          "volume": 0.5
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "text": "Chiếc xe chuyên dụng rú còi xé tan màn đêm, lao nhanh qua những con phố vắng lặng để hướng về khu chung cư Hoa Mai. Đồng hồ trên táp-lô xe chỉ đúng 00 giờ 05 phút khi tổ công tác dừng chân trước lối vào tòa nhà.",
+      "image_file": "images/scene_010.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_left",
+        "start_scale": 1.1,
+        "end_scale": 1.1
+      },
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      }
+    },
+    {
+      "id": 11,
+      "text": "Đức Anh cùng ba trinh sát khẩn trương chạy lên tầng năm theo lối cầu thang bộ hẹp và dốc, thoang thoảng mùi ẩm mốc của những mảng tường thấm nước mưa. Khi đứng trước cánh cửa gỗ sơn xanh của căn hộ 502, mọi thứ xung quanh im lặng đến đáng sợ.",
+      "image_file": "images/scene_011.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_down",
+        "start_scale": 1.1,
+        "end_scale": 1.1
+      },
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/host_idle.png",
+          "preset": "ta_da",
+          "x": 0.2,
+          "y": 0.97,
+          "height": 0.52,
+          "at_sentence": 1,
+          "for_sentences": 2
+        },
+        {
+          "image_file": "assets/characters/host_point.png",
+          "x": 0.82,
+          "y": 0.97,
+          "height": 0.48,
+          "flip": true,
+          "at_sentence": 1,
+          "for_sentences": 1,
+          "enter": {
+            "type": "fly_in",
+            "from": "right",
+            "duration_ms": 700
+          },
+          "exit": {
+            "type": "fly_out",
+            "to": "right",
+            "duration_ms": 600
+          },
+          "idle": {
+            "type": "talk",
+            "amplitude_px": 8,
+            "period_s": 0.4
+          },
+          "sfx": {
+            "file": "data/sfx/whoosh.mp3",
+            "volume": 0.45
+          }
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "text": "Cánh cửa được khóa bằng một ổ khóa thông minh hiện đại, tương phản hoàn toàn với vẻ xập xệ của hành lang chung cư. Gõ cửa nhiều lần không có phản hồi, Đức Anh ra lệnh cho lực lượng cứu hộ hỗ trợ mở cửa khẩn cấp.",
+      "image_file": "images/scene_012.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.04,
+        "end_scale": 1.14
+      },
+      "transition_in": {
+        "type": "flash_white",
+        "duration": 0.4
+      }
+    },
+    {
+      "id": 13,
+      "text": "Khi cánh cửa vừa mở ra, đập vào mắt tổ công tác là một không gian căn hộ nhỏ hẹp, ngổn ngang sách vở và các thiết bị điện tử. Trên sàn nhà của phòng làm việc, một người đàn ông trẻ tuổi nằm sấp gục bên cạnh chiếc bàn máy tính vẫn còn sáng đèn.",
+      "image_file": "images/scene_013.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.0,
+        "end_scale": 1.08
+      },
+      "transition_in": {
+        "type": "fade",
+        "duration": 0.4
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/host_idle.png",
+          "preset": "boing",
+          "x": 0.2,
+          "y": 0.97,
+          "height": 0.52,
+          "at_sentence": 2,
+          "for_sentences": 2
+        }
+      ],
+      "impact": {
+        "at_sentence": 1,
+        "intensity": 0.09,
+        "shake_px": 12,
+        "duration_ms": 500,
+        "flash": "white"
+      }
+    },
+    {
+      "id": 14,
+      "text": "Đức Anh nhanh chóng tiếp cận, đặt hai ngón tay lên động mạch cảnh của nạn nhân. Không có mạch đập. Người đàn ông đã tử vong.",
+      "image_file": "images/scene_014.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_right",
+        "start_scale": 1.1,
+        "end_scale": 1.1
+      },
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      }
+    },
+    {
+      "id": 15,
+      "text": "Nạn nhân mặc bộ đồ thun mặc ở nhà, cổ bị siết chặt bởi một sợi dây cáp mạng Cat6 màu xanh lục – loại dây cáp thường dùng để kết nối internet tốc độ cao, vẫn còn cắm một đầu vào ổ chia mạng trên bàn làm việc.",
+      "image_file": "images/scene_015.png",
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_out",
+        "start_scale": 1.12,
+        "end_scale": 1.0
+      },
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+cache/
+tmp/
+test_*/
+*.pyc
+.env
+projects/*/output/
+projects/*/audio/
+projects/*/captions.srt
+projects/*/captions_report.json
+projects/*/quality_report.json
+projects/*/timeline.json
+projects/*/preview_video.mp4
+projects/*/final_video*.mp4

@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: ai-mystery-story
+Version: 0.1.0
+Summary: AI-generated mystery story video generator
+Requires-Python: >=3.12
+Requires-Dist: edge-tts
+Requires-Dist: google-genai
+Requires-Dist: mutagen
+Requires-Dist: python-dotenv

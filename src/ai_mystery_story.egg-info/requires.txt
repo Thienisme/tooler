@@ -1,0 +1,4 @@
+edge-tts
+google-genai
+mutagen
+python-dotenv
