@@ -88,6 +88,13 @@ MOTIONS = (
 FADE_EVERY = 12
 FADE_SECONDS = 0.4
 
+# A transition is drawn inside the *preceding* scene's pause, and that pause
+# is measured after the voice model's own trailing silence is subtracted --
+# which can leave a 0.4s fade clamped to two or three frames and therefore
+# invisible.  Scenes that carry a transition get an explicit pause floor so
+# the fade has room to play.
+TRANSITION_PAUSE_MS = int(FADE_SECONDS * 1000) + 300
+
 # Punchy joins, used when the caller asks for a livelier cut than a fade.
 # All of these are real xfade transitions (the validator maps them).
 LIVELY_TRANSITIONS = (
@@ -330,14 +337,19 @@ def build_script(
     music_volume: float,
     character: str | None = None,
     character_every: int = 2,
+    character_x: float = 0.2,
+    character_y: float = 0.97,
+    character_height: float = 0.52,
     lively: bool = False,
     punches: bool = False,
+    resolution: tuple[int, int] = (WIDTH, HEIGHT),
+    motions: tuple[tuple[str, float, float], ...] = MOTIONS,
 ) -> dict:
     section_breaks = sorted(index + 1 for index in overlays if index > 0)
 
     scene_payload = []
     for index, text in enumerate(scenes):
-        motion_type, start_scale, end_scale = MOTIONS[index % len(MOTIONS)]
+        motion_type, start_scale, end_scale = motions[index % len(motions)]
         image = images[index % len(images)]
 
         payload: dict = {
@@ -364,19 +376,21 @@ def build_script(
         payload["transition_in"] = transition
 
         if character and index % max(character_every, 1) == 0:
+            # A host that walks on at the very first frame of every scene is
+            # wallpaper; from the second sentence it reads as a reaction.
+            # A one-sentence scene has no second sentence, so the cue is
+            # clamped rather than left waiting for a beat that never comes.
+            available = max(1, len(split_sentences(text)))
             payload["characters"] = [
                 {
                     "image_file": character,
                     "preset": CHARACTER_PRESETS[
                         (index // max(character_every, 1)) % len(CHARACTER_PRESETS)
                     ],
-                    "x": 0.2,
-                    "y": 0.97,
-                    "height": 0.52,
-                    # A host that walks on at the very first frame of every
-                    # scene is wallpaper; from the second sentence it reads
-                    # as a reaction.
-                    "at_sentence": CHARACTER_SENTENCE,
+                    "x": character_x,
+                    "y": character_y,
+                    "height": character_height,
+                    "at_sentence": min(CHARACTER_SENTENCE, available),
                     "for_sentences": 3,
                 }
             ]
@@ -410,11 +424,22 @@ def build_script(
 
         scene_payload.append(payload)
 
+    # Give every scene that hands off with a transition the pause the fade
+    # needs, so the cut is seen rather than squeezed into noise.
+    for index in range(1, len(scene_payload)):
+        transition = scene_payload[index].get("transition_in") or {}
+        if transition.get("type", "cut") == "cut":
+            continue
+        previous = scene_payload[index - 1]
+        previous["pause_after_ms"] = max(
+            previous.get("pause_after_ms") or 0, TRANSITION_PAUSE_MS
+        )
+
     return {
         "video_metadata": {
             "title": title,
             "author": author,
-            "resolution": f"{WIDTH}x{HEIGHT}",
+            "resolution": f"{resolution[0]}x{resolution[1]}",
             "fps": FPS,
             "language": "vi",
         },

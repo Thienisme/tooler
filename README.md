@@ -167,8 +167,8 @@ python autovid.py --help
 | 1 | `validate` | kiểm schema, ảnh, font, SFX, ffmpeg, dung lượng đĩa, thời lượng dự kiến | `output/validation_report.json` |
 | 2 | `tts` | synth từng câu, đo thời lượng thật + khoảng lặng, tính pause, dựng timeline | `audio/voiceover_full.wav`, `output/timeline.json`, `output/tts_report.json`, `output/pacing_report.json` |
 | 3 | `images` | scale frame 1 lần (đủ headroom cho Ken Burns) + đo độ nét/khối/màu | `output/prepared_images/`, `output/image_report.json` |
-| 4 | `assembly` | render từng scene (Ken Burns + overlay chữ) rồi nối lại | `output/preview_video.mp4` (im lặng), `output/assembly_report.json` |
-| 5 | `mix` | loop + fade nhạc nền theo độ dài video, đặt từng SFX đúng mốc thời gian, cộng 3 stem | `audio/stem_music.wav`, `audio/stem_sfx.wav`, `audio/mix.wav`, `output/mix_report.json` |
+| 4 | `assembly` | render từng scene (Ken Burns + overlay chữ, tự thu nhỏ chữ tràn khung) rồi nối lại | `output/preview_video.mp4` (im lặng), `output/assembly_report.json` |
+| 5 | `mix` | loop + fade nhạc nền, **ducking nhạc theo giọng đọc**, đặt từng SFX đúng mốc thời gian, cộng 3 stem | `audio/stem_music.wav`, `audio/stem_sfx.wav`, `audio/mix.wav`, `output/mix_report.json` |
 | 6 | `render` | mux hình + tiếng thành file giao (video **copy**, chỉ encode audio AAC) | `output/final_video.mp4`, `output/render_report.json`, `output/quality_report.json` |
 | 7 | `captions` | dựng phụ đề từ chính số đo của stage 2 (hoặc `--asr` bằng faster-whisper) rồi gắn vào video | `output/captions.srt`, `output/final_video_subtitled.mp4`, `output/captions_report.json` |
 
@@ -220,13 +220,54 @@ Quy ước đầu vào:
 Công cụ tự dựng scene, Ken Burns, transition, pacing rồi **chạy luôn validator** để báo ngay nếu nội dung
 chưa đạt (ví dụ `runtime_short` khi ước tính < 8 phút).
 
+### Tạo ảnh tự động theo script (tools/generate_images.py)
+
+Không cần tạo ảnh bằng tay nữa: tool đọc `script.json`, sinh prompt cho **từng scene** (lấy đúng lời kể
+của scene + style 2D cartoon), gọi Gemini image API (Nano Banana) rồi lưu vào đúng `image_file` để
+pipeline `images → assembly → …` chạy tiếp bình thường. Cần `GEMINI_API_KEY` trong `.env`.
+
+```bash
+# Xem trước prompt (không gọi API, không tốn tiền)
+python tools/generate_images.py projects/topics-001/script.json --dry-run
+
+# Xuất toàn bộ prompt ra image_prompts.md để review / dán tay vào web
+python tools/generate_images.py projects/topics-001/script.json --prompts-only
+
+# Tạo ảnh (bỏ qua ảnh đã có; tạo lại hết thì thêm --force)
+python tools/generate_images.py projects/topics-001/script.json
+
+# Giữ style bằng ảnh mẫu (1 file hoặc thư mục, tối đa 3 ảnh) + mô tả nhân vật lặp lại
+python tools/generate_images.py projects/topics-001/script.json \
+    --ref-image projects/topics-001/style_ref.png \
+    --chars "Chí Phèo: đầu trọc, xăm trổ; Bá Kiến: bụng phệ, nón quái thao"
+
+# Style riêng (file chứa prompt, có chỗ {text} để chèn lời kể scene)
+python tools/generate_images.py projects/topics-001/script.json \
+    --style-file notes/autovid-scene-style.txt
+
+# Chỉ tạo vài scene: --only 1,5,7-9
+```
+
+| Option | Ý nghĩa |
+|---|---|
+| `--style` / `--style-file` | Style prompt thay mặc định (mặc định: 2D cartoon hài trong `notes/autovid-scene-style.txt`) |
+| `--ref-image` | Ảnh mẫu để giữ style/nhân vật (gửi kèm vào API làm reference) |
+| `--chars` | Mô tả nhân vật lặp lại, chèn vào mọi prompt để giữ nguyên dáng vẻ |
+| `--only` | Chỉ tạo scene chỉ định, vd `1,5,7-9` |
+| `--force` | Tạo lại cả ảnh đã có |
+| `--model` | Mặc định `gemini-2.5-flash-image` |
+| `--dry-run` / `--prompts-only` | Xem prompt trước khi đốt tiền |
+
+Ảnh dọc (shorts 9:16) tự dùng composition dọc theo `video_metadata.resolution`. Prompt mặc định
+yêu cầu chừa lề trên cho overlay chữ và **không render chữ** vào ảnh.
+
 **Cách 2: tự viết `script.json`** — các khối và giới hạn cứng:
 
 | Khối | Field | Ghi chú |
 |---|---|---|
-| `video_metadata` | `title`, `author`, `resolution` (`"1920x1080"`), `fps`, `language` | fps ∈ {24,25,30,50,60} |
+| `video_metadata` | `title`, `author`, `resolution` (`"1920x1080"` hoặc `"1080x1920"` cho short dọc), `fps`, `language`, `target_minutes` (tùy chọn, mặc định `[8, 20]`) | fps ∈ {24,25,30,50,60} |
 | `tts_config` | `engine` (`vieneu`), `voice`, `speed` (0.5–2.0), `granularity` (`sentence`/`scene`), `max_chars_per_chunk` | `sentence` = mỗi câu 1 lần đọc → pause engine điều khiển nhịp |
-| `audio_config` | `background_music`, `background_volume` (≤ 0.3, khuyến nghị 0.12), `master_volume` (LUFS, vd −14), `fade_in_seconds`, `fade_out_seconds` | nhạc là đường dẫn tính từ workspace rồi tới repo root |
+| `audio_config` | `background_music`, `background_volume` (≤ 0.3, khuyến nghị 0.12), `master_volume` (LUFS, vd −14), `fade_in_seconds`, `fade_out_seconds`, `ducking` (mặc định `true`: tự hạ nhạc khi giọng đọc lên) | nhạc là đường dẫn tính từ workspace rồi tới repo root |
 | `pacing` | `auto_pause{enabled, per_sentence, min_pause_ms, max_pause_ms, respect_tts_natural_pause}`, `section_breaks` (id scene), `custom_pauses` (`{"6": 2500}`) | ngắt nhịp dài ở section break |
 | `scenes[]` | `id`, `text`, `image_file` **hoặc** `image_prompt`, `pause_after_ms` (≤ 10000), `transition_in{type,duration}`, `ken_burns{enabled,type,start_scale,end_scale}`, `text_overlays[]`, `sfx[]` | xem dưới |
 
@@ -288,6 +329,34 @@ python tools/make_demo_project.py --scenes 8 --out tmp/autovid_e2e --force   # -
 python autovid.py validate tmp/autovid_e2e/script.json --skip-engine-check
 # ... chạy tiếp như trên với tmp/autovid_e2e/script.json
 ```
+
+### Shorts dọc 9:16 (make_shorts.py)
+
+Nếu bước review truyện đã sinh sẵn mảng `narration.shorts` (2–5 đoạn gay cấn,
+50–60 giây, xem `notes/note.txt`), công cụ này biến từng đoạn thành một video
+dọc 1080×1920:
+
+```bash
+python tools/make_shorts.py projects/mystery-001/story.json \
+    --out projects/mystery-001-shorts --run
+```
+
+- Mỗi short = 1 workspace `short-01/`, `short-02/`… (pipeline render 1 script/1 video).
+- Khung dọc dùng bộ chuyển động Ken Burns **mạnh hơn** (zoom 1.16/1.22) vì zoom nhỏ
+trên khung 1080px sẽ trông như ảnh đứng yên.
+- Mỗi `script.json` tự khai `video_metadata.target_minutes` (mặc định `[0.1, 3]`)
+nên không bị cảnh báo `runtime_short` oan.
+- `--run` chạy luôn 7 stage (thêm `--fake-tts` để test không cần model,
+`--no-captions` để bỏ phụ đề, `--character` để có host).
+- Ảnh lấy từ `--images` hoặc thư mục `images/` cạnh file JSON.
+
+```bash
+# Chỉ dựng workspace, tự chạy stage sau
+python tools/make_shorts.py projects/mystery-001/story.json --out projects/mystery-001-shorts
+```
+
+> Khai báo `target_minutes` cũng dùng được cho script thường (video ngắn không còn bị
+> cảnh báo `runtime_short`): `"video_metadata": {"target_minutes": [0.1, 3]}`.
 
 ### Nghe thử và chọn giọng (audition_voices.py)
 

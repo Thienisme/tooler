@@ -1,0 +1,664 @@
+{
+  "video_metadata": {
+    "title": "Cuộc Đời Chí Phèo: Bản Speedrun Fast & Furious (Full Version)",
+    "author": "Kịch Bản Hài Hước",
+    "resolution": "1920x1080",
+    "fps": 30,
+    "language": "vi"
+  },
+  "tts_config": {
+    "engine": "vieneu",
+    "voice": "Minh Quân Pro",
+    "speed": 1.05,
+    "pitch": 0.0,
+    "emotion": "expressive",
+    "granularity": "sentence",
+    "max_chars_per_chunk": 1000
+  },
+  "audio_config": {
+    "background_music": "data/music/mystery_biggest_discovery.mp3",
+    "background_volume": 0.15,
+    "master_volume": -14.0,
+    "fade_in_seconds": 1.0,
+    "fade_out_seconds": 2.0
+  },
+  "pacing": {
+    "auto_pause": {
+      "enabled": true,
+      "per_sentence": true,
+      "min_pause_ms": 200,
+      "max_pause_ms": 1500,
+      "respect_tts_natural_pause": true
+    },
+    "section_breaks": [],
+    "custom_pauses": {}
+  },
+  "scenes": [
+    {
+      "id": 1,
+      "text": "Chào mừng các đồng chí đã đến với bản speedrun nhanh nhất lịch sử làng Vũ Đại! Hôm nay chúng ta sẽ cùng nhau hóng siêu phẩm drama Chí Phèo – phiên bản Fast & Furious, nơi mọi thứ diễn ra chỉ trong vài phút. Buckle up, không có phanh đâu nhé!",
+      "image_file": "projects/topics-001/images/01.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.3 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
+      "text_overlays": [{ "text": "CHÍ PHÈO SPEEDRUN!", "position": "top", "animation": "pop" }],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_03.png",
+          "preset": "boing",
+          "x": 0.8, "y": 0.94, "height": 0.62,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 8, "period_s": 0.3 },
+          "exit": { "type": "shrink_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "Nhưng trước khi vào drama chính, hãy cùng điểm qua cái background của nhân vật chính chúng ta – anh Chí. Nghe xong mà muốn khóc luôn á!",
+      "image_file": "projects/background/image01.png",
+      "pause_after_ms": 250,
+      "transition_in": { "type": "slide_left", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_out", "start_scale": 1.15, "end_scale": 1.0 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "x": 0.75, "y": 0.5, "height": 0.7,
+          "at_sentence": 1, "for_sentences": 2,
+          "enter": { "type": "slide_in", "from": "right", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.32 },
+          "exit": { "type": "slide_out", "to": "right", "duration_ms": 400 }
+        },
+        {
+          "image_file": "projects/topics-002/Figure/chi_lon.png",
+          "x": 0.35, "y": 0.93, "height": 0.7,
+          "flip": true,
+          "at_sentence": 2, "for_sentences": 2,
+          "enter": { "type": "slide_in", "from": "left", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.3 },
+          "exit": { "type": "slide_out", "to": "left", "duration_ms": 400 }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Mở màn là 'Baby Chí' – một sinh linh bé nhỏ bị bỏ rơi ngay tại lò gạch cũ huyền thoại. Không cha, không mẹ, không giấy khai sinh, nhưng bù lại có nguyên một cái lò gạch làm 'căn hộ view triệu đô'. Xuất phát điểm đúng chuẩn nhân vật chính drama!",
+      "image_file": "projects/topics-001/images/02.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_03.png",
+          "preset": "boing",
+          "x": 0.78, "y": 0.93, "height": 0.58,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 8, "period_s": 0.3 },
+          "exit": { "type": "shrink_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "text": "Dân làng Vũ Đại lúc đó bàn tán xôn xao, Kiểu: 'Ủa, đứa nào đây? Ai bỏ con vậy trời?' 'Thôi kệ, cho nó vào làng, lớn lên làm canh điền cũng được!' Và thế là Baby Chí chính thức được làng nhận nuôi – theo kiểu 'nuôi cho có người làm'!",
+      "image_file": "projects/topics-001/images/03.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_right", "start_scale": 1.05, "end_scale": 1.05 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "x": 0.8, "y": 0.9, "height": 0.7,
+          "at_sentence": 1, "for_sentences": 2,
+          "enter": { "type": "slide_in", "from": "right", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.32 },
+          "exit": { "type": "slide_out", "to": "right", "duration_ms": 400 }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "text": "Lớn lên trong sự cưu mang của làng, Chí làm canh điền cho nhà Bá Kiến. Đẹp trai, thật thà, chăm chỉ, lại còn hiền như cục bột – chuẩn mực của một thanh niên nghiêm túc, khiến bao cô gái làng Vũ Đại phải thầm thương trộm nhớ!",
+      "image_file": "projects/topics-001/images/04.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_right", "start_scale": 1.05, "end_scale": 1.05 },
+      "text_overlays": [{ "text": "Trai Ngoan Làng Vũ Đại", "position": "top_left", "animation": "pop" }],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "preset": "boing",
+          "x": 0.8, "y": 0.9, "height": 0.6,
+          "enter": { "type": "fade_in", "duration_ms": 300 },
+          "idle": { "type": "bob", "amplitude_px": 5, "period_s": 0.4 },
+          "exit": { "type": "fade_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "text": "Chí tâm sự với mấy anh em trong làng: 'Tao chỉ mong ngày ngày được cày cuốc, tối về ngủ ngon, lấy vợ sinh con, sống bình yên hết kiếp!' Mấy ổng nghe xong gật gù: 'Mày đúng là thánh sống rồi Chí ơi!'",
+      "image_file": "projects/topics-001/images/05.png",
+      "pause_after_ms": 250,
+      "transition_in": { "type": "slide_left", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_03.png",
+          "preset": "boing",
+          "x": 0.8, "y": 0.9, "height": 0.6,
+          "enter": { "type": "fade_in", "duration_ms": 300 },
+          "idle": { "type": "bob", "amplitude_px": 5, "period_s": 0.4 },
+          "exit": { "type": "fade_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "text": "Nhưng cuộc đời đâu như mơ! Bà Bá Kiến – vợ của ông chủ – lại có sở thích đặc biệt: bắt Chí vào 'massage bóp chân' mỗi đêm. Nghe thì có vẻ nhẹ nhàng, nhưng đằng sau đó là cả một âm mưu đen tối của kẻ có quyền!",
+      "image_file": "projects/background/image01.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_03.png",
+          "preset": "boing",
+          "x": 0.5, "y": 0.5, "height": 0.7,
+          "enter": { "type": "fade_in", "duration_ms": 300 },
+          "idle": { "type": "bob", "amplitude_px": 5, "period_s": 0.4 },
+          "exit": { "type": "fade_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "text": "Bà Bá Kiến ngọt ngào: 'Chí ơi, vào đây bóp chân cho chị chút nào, chị mỏi quá!' Chí ngây thơ: 'Dạ, để con làm cho ạ!' Nhưng ôi thôi, càng bóp càng thấy sai sai...",
+      "image_file": "projects/topics-001/images/06.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_left", "start_scale": 1.05, "end_scale": 1.05 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_03.png",
+          "preset": "boing",
+          "x": 0.8, "y": 0.9, "height": 0.6,
+          "enter": { "type": "fade_in", "duration_ms": 300 },
+          "idle": { "type": "bob", "amplitude_px": 5, "period_s": 0.4 },
+          "exit": { "type": "fade_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "text": "Nhưng Chí ta đây là ai? Nam nhi chi chí, đầu đội trời chân đạp đất! Một lời từ chối thẳng thừng: 'Con không làm mấy chuyện nhơ nhuốc đó đâu!' Cốt cách ấy, phải nói là ngời ngời khí phách!",
+      "image_file": "projects/background/image01.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "slide_left", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_left", "start_scale": 1.05, "end_scale": 1.05 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_04.png",
+          "preset": "ninja",
+          "x": 0.5, "y": 0.5, "height": 0.7,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 400 },
+          "idle": { "type": "shake", "amplitude_px": 6, "period_s": 0.4 },
+          "exit": { "type": "fade_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "text": "Bà Bá Kiến tức xanh mặt: 'Thằng này láo! Dám từ chối tao à?' Rồi quay sang chồng: 'Ông ơi, thằng Chí nó hỗn với em!' Thế là drama chính thức nổ ra!",
+      "image_file": "projects/topics-001/images/07.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.12 },
+      "text_overlays": [{ "text": "Drama Nổ Ra!", "position": "center", "animation": "pop" }],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "preset": "boing",
+          "x": 0.8, "y": 0.9, "height": 0.6,
+          "enter": { "type": "fade_in", "duration_ms": 300 },
+          "idle": { "type": "bob", "amplitude_px": 5, "period_s": 0.4 },
+          "exit": { "type": "fade_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "text": "Sếp Bá Kiến biết chuyện, máu ghen nổi lên như núi lửa phun trào! Một kế hoạch 'thanh toán' được dựng lên: tống ngay Chí vào tù, không cho cơ hội thanh minh. Đúng là 'Sếp ghen – muôn đời vẫn thế'!",
+      "image_file": "projects/topics-001/images/08.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_out", "start_scale": 1.2, "end_scale": 1.0 },
+      "characters": []
+    },
+    {
+      "id": 12,
+      "text": "Bá Kiến gọi Chí lên: 'Chí à, mày có tội với tao, tao cho mày vào tù bảy năm!' Chí ngơ ngác: 'Dạ con có làm gì đâu ạ?' Bá Kiến: 'Tội mày là... đẹp trai quá, tao ghen!' Xong, Méo hiểu kiểu gì (Chỉ tội Chí ta ngơ ngác!). Đúng là:.... Cuộc đời bất công nên cái lông không bao giờ ló thẳng",
+      "image_file": "projects/topics-001/images/07.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "slide_up", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "preset": "boing",
+          "x": 0.8, "y": 0.9, "height": 0.6,
+          "enter": { "type": "fade_in", "duration_ms": 300 },
+          "idle": { "type": "bob", "amplitude_px": 5, "period_s": 0.4 },
+          "exit": { "type": "fade_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "text": "Bảy năm sau, Chí tái xuất giang hồ! Đầu trọc lốc, mặt mày xăm trổ, dáng vẻ ngầu đét – chuẩn 'Bad Boy' chính hiệu! Từ một thanh niên ngoan hiền năm nào, giờ đây Chí đã lột xác thành trùm của làng Vũ Đại, style Underground cực chất!",
+      "image_file": "projects/topics-001/images/09.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "slide_up", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.15 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_03.png",
+          "preset": "boing",
+          "x": 0.3, "y": 0.94, "height": 0.7,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 12, "period_s": 0.25 },
+          "exit": { "type": "shrink_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "text": "Dân làng thấy Chí về thì hết hồn: 'Ủa, thằng Chí về rồi kìa! Nhìn nó kìa, giờ nó ngầu quá!' Chí cười khẩy: 'Bảy năm tao đi tu, giờ tao về dạy đời tụi mày!' Và thế là Chí mở màn bằng câu chửi huyền thoại...",
+      "image_file": "projects/background/image01.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_left", "start_scale": 1.05, "end_scale": 1.05 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "preset": "boing",
+          "x": 0.3, "y": 0.94, "height": 0.7,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 12, "period_s": 0.25 },
+          "exit": { "type": "shrink_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "text": "Chí chửi: 'Mẹ kiếp! Cái làng Vũ Đại này toàn lũ khốn nạn!' Dân làng: 'Ơ...' Chí: 'Tao chửi cả làng này! Chửi cả lũ chúng mày!' Dân làng: 'Ơ...' Chí: 'Tao chửi con mẹ nào đẻ ra tao!' Dân làng kiểu: 'Tội nghiệp vê lờ '",
+      "image_file": "projects/topics-001/images/10.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
+      "characters": []
+    },
+    {
+      "id": 16,
+      "text": "Chí mở luôn công ty riêng: 'Rạch mặt ăn xin – Bao uy tín toàn làng'! Dịch vụ đa dạng: từ chửi thuê, rạch mặt đến ăn vạ. Khách hàng chỉ cần trả tiền là có ngay màn biểu diễn cực kỳ chân thực. CEO ngành ăn xin chính hiệu!",
+      "image_file": "projects/topics-001/images/11.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_left", "start_scale": 1.08, "end_scale": 1.08 },
+      "characters": []
+    },
+    {
+      "id": 17,
+      "text": "Menu dịch vụ của Chí: Combo 1 – Chửi cả làng, giá 1 chai rượu. Combo 2 – Rạch mặt ăn vạ, giá 2 chai. Combo 3 – Đập đầu vào cột điện, giá 3 chai + tiền thuốc. Bảo hành trọn đời, không hài lòng hoàn tiền!",
+      "image_file": "projects/topics-001/images/12.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "slide_left", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "preset": "boing",
+          "x": 0.3, "y": 0.94, "height": 0.7,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 12, "period_s": 0.25 },
+          "exit": { "type": "shrink_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "text": "Công thức khởi nghiệp của Chí cực kỳ đơn giản: Uống say mèm, Chửi cả làng Vũ Đại, Rạch mặt ăn tạ. Ba bước, không cần vốn, không cần bằng cấp, chỉ cần một chút liều lĩnh và một cái mặt dày. Bí kíp 0 đồng mà hiệu quả bất ngờ!",
+      "image_file": "projects/background/image01.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "x": 0.75, "y": 0.5, "height": 0.7,
+          "at_sentence": 1, "for_sentences": 2,
+          "enter": { "type": "slide_in", "from": "right", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.32 },
+          "exit": { "type": "slide_out", "to": "right", "duration_ms": 400 }
+        },
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "x": 0.35, "y": 0.93, "height": 0.7,
+          "flip": true,
+          "at_sentence": 2, "for_sentences": 2,
+          "enter": { "type": "slide_in", "from": "left", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.3 },
+          "exit": { "type": "slide_out", "to": "left", "duration_ms": 400 }
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "text": "Bá Kiến sợ phiền phức, đành phải xì tiền ra cho yên chuyện. Chí nhận tiền mà lòng đầy ngỡ ngàng: 'Ơ, kiếm tiền dễ thế này à? Vậy sao ngày xưa mình phải khổ?' Từ đây, ATM Cụ Bá chính thức kích hoạt!",
+      "image_file": "projects/topics-001/images/13.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "slide_left", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_right", "start_scale": 1.05, "end_scale": 1.05 },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "x": 0.35, "y": 0.93, "height": 0.7,
+          "flip": true,
+          "at_sentence": 2, "for_sentences": 2,
+          "enter": { "type": "slide_in", "from": "left", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.3 },
+          "exit": { "type": "slide_out", "to": "left", "duration_ms": 400 }
+        }]
+    },
+    {
+      "id": 20,
+      "text": "Chí về nhà đếm tiền: 'Một, hai, ba... ối giời ơi, nhiều thế này!' Rồi Chí quyết định mở sổ tiết kiệm: 'Gửi ngân hàng làng Vũ Đại, lãi suất 200% một tháng, rủi ro cao nhưng lợi nhuận cao!'",
+      "image_file": "projects/topics-001/images/20.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
+      "characters": []
+    },
+    {
+      "id": 21,
+      "text": "Đang trên đỉnh cao sự nghiệp thì Chí gặp Thị Nở – người phụ nữ được mệnh danh 'ma chê quỷ khóc' – ngay tại vườn chuối. Không hẹn mà gặp, không hò mà đến, định mệnh đã gọi tên cả hai!",
+      "image_file": "projects/background/image01.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.3 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
+      "text_overlays": [{ "text": "Định Mệnh Vườn Chuối", "position": "center", "animation": "fade_in" }],
+      "characters": [
+        {
+          "image_file": "projects/topics-002/Figure/thi_no.png",
+          "x": 0.75, "y": 0.5, "height": 0.7,
+          "enter": { "type": "slide_in", "from": "right", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.32 },
+          "exit": { "type": "slide_out", "to": "right", "duration_ms": 400 }
+        },
+        {
+          "image_file": "projects/topics-002/Figure/chi_lon.png",
+          "x": 0.35, "y": 0.93, "height": 0.7,
+          "flip": true,
+          "enter": { "type": "slide_in", "from": "left", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.3 },
+          "exit": { "type": "slide_out", "to": "left", "duration_ms": 400 }
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "text": "Thị Nở nhìn Chí: 'Anh gì ơi, anh say à?' Chí: 'Tôi không say, tôi chỉ... hơi quá chén thôi!' Thị Nở: 'Anh ơi, mặt anh dính gì kìa!' Chí: 'Đâu? À, máu đấy, tôi vừa rạch mặt ăn vạ xong!'",
+      "image_file": "projects/topics-001/images/22.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
+      "text_overlays": [{ "text": "Cuộc Gặp Định Mệnh", "position": "center", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 23,
+      "text": "Nhan sắc thì khỏi bàn – 'ma chê quỷ khóc' là còn nhẹ! Nhưng hai tâm hồn cô đơn, đói khát tình thương lại va vào nhau như xe tải mất phanh. Không phải tình yêu sét đánh, mà là một tình yêu thuần khiết, Hai trái tim vàng một túp lều tranh!",
+      "image_file": "projects/topics-001/images/23.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_out", "start_scale": 1.1, "end_scale": 1.0 },
+      "text_overlays": [{ "text": "Va Vào Nhau Như Xe Tải Mất Phanh", "position": "bottom", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 24,
+      "text": "Thị Nở tâm sự: 'Em cũng cô đơn lắm, cả làng không ai thèm để ý em!' Chí: 'Tôi cũng thế, cả làng chỉ thấy tôi là thằng điên!' Hai người nhìn nhau, và rồi... tiếng sét ái tình nổ ra! (Thật ra là tiếng .....đóng.......đóng cửa, mặc dù không phải. Không như các bạn đang nghĩ đâu nhé!)",
+      "image_file": "projects/topics-001/images/24.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_right", "start_scale": 1.05, "end_scale": 1.05 },
+      "text_overlays": [{ "text": "Tiếng Sét Ái Tình", "position": "top", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 25,
+      "text": "Sáng hôm sau, Thị Nở mang ngay một bát cháo hành nóng hổi sang cho Chí. Đơn giản chỉ là bát cháo, nhưng lại chứa đựng cả một tấm lòng. Michelin Làng Vũ Đại chính thức có tên trong danh sách!",
+      "image_file": "projects/topics-001/images/25.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "slide_down", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
+      "text_overlays": [{ "text": "Michelin Làng Vũ Đại", "position": "top", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 26,
+      "text": "Thị Nở: 'Anh Chí ơi, em nấu cháo hành cho anh nè, ăn đi cho ấm bụng!' Chí: 'Ơ... lần đầu tiên có người nấu cho tôi ăn...' Thị Nở: 'Sao anh khóc?' Chí: 'Không, tại hành nó cay mắt thôi!'",
+      "image_file": "projects/topics-001/images/26.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
+      "text_overlays": [{ "text": "Hành Cay Mắt", "position": "center", "animation": "fade_in" }],
+      "characters": []
+    },
+    {
+      "id": 27,
+      "text": "Chí húp một hơi hết sạch bát cháo, nước mắt lăn dài trên má: 'Ngon quá mẹ ơi! Đây mới chính là hương vị của tình thương!' Bát cháo hành – sức mạnh của nó không ai ngờ tới!",
+      "image_file": "projects/topics-001/images/27.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_left", "start_scale": 1.05, "end_scale": 1.05 },
+      "text_overlays": [{ "text": "Sức Mạnh Bát Cháo Hành", "position": "center", "animation": "fade_in" }],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "preset": "boing",
+          "x": 0.7, "y": 0.94, "height": 0.65,
+          "enter": { "type": "fade_in", "duration_ms": 300 },
+          "idle": { "type": "talk", "amplitude_px": 6, "period_s": 0.4 },
+          "exit": { "type": "shrink_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "text": "Chí ước: 'Mình muốn làm người tốt! Muốn lập kênh TikTok cùng Nở, chia sẻ cuộc sống lương thiện!' Ước mơ hoàn lương giản dị mà cảm động, nhưng đời nào dễ cho ai!",
+      "image_file": "projects/topics-001/images/28.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
+      "text_overlays": [{ "text": "Ước Mơ Hoàn Lương", "position": "top_right", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 29,
+      "text": "Chí lên kế hoạch: 'Nở à, mình sẽ mở kênh TikTok tên là Chí Phèo Official, nội dung về nấu ăn, làm vườn, và chia sẻ cuộc sống lương thiện! Mình sẽ nổi tiếng, mình sẽ có tiền, mình sẽ...' Thị Nở: 'Anh ơi, anh mơ nhiều quá!'",
+      "image_file": "projects/topics-001/images/29.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "slide_left", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
+      "text_overlays": [{ "text": "Kênh TikTok Mới", "position": "top", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 30,
+      "text": "Đúng lúc đó, Bà Cô Thị Nở xuất hiện như một cơn ác mộng, giội ngay một gáo nước lạnh vào ước mơ bé nhỏ của Chí. Trùm Anti-Fan chính thức lên tiếng!",
+      "image_file": "projects/topics-001/images/30.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "slide_left", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_right", "start_scale": 1.05, "end_scale": 1.05 },
+      "text_overlays": [{ "text": "Trùm Anti-Fan Xuất Hiện!", "position": "top", "animation": "pop" }],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "preset": "sneak",
+          "x": 0.8, "y": 0.9, "height": 0.65,
+          "enter": { "type": "slide_in", "from": "right", "duration_ms": 400 },
+          "idle": { "type": "shake", "amplitude_px": 6, "period_s": 0.4 },
+          "exit": { "type": "fade_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "text": "Bà Cô gào lên: 'Cấm cửa! Cháu tao không bao giờ lấy một thằng rạch mặt! Một thằng ăn xin! Một thằng vô công rồi nghề!' Từng lời như dao cắt vào tim. Ước mơ hoàn lương của Chí chính thức tan vỡ!",
+      "image_file": "projects/topics-001/images/31.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_out", "start_scale": 1.15, "end_scale": 1.0 },
+      "text_overlays": [{ "text": "Ước Mơ Tan Vỡ!", "position": "center", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 32,
+      "text": "Chí van xin: 'Bà ơi, con xin bà, con sẽ làm người tốt mà!' Bà Cô: 'Người tốt cái con khỉ! Mày là thằng Chí Phèo, cả làng này biết mày là ai rồi!' Chí: 'Nhưng con đã thay đổi...' Bà Cô: 'Thay đổi cái gì? Mày vẫn là đồ bỏ đi!'",
+      "image_file": "projects/topics-001/images/32.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.12 },
+      "text_overlays": [{ "text": "Lời Chửi Cay Đắng", "position": "center", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 33,
+      "text": "Thị Nở đứng giữa, khóc lóc: 'Mẹ ơi, con yêu anh Chí mà!' Bà Cô: 'Yêu cái gì mà yêu! Mày mà lấy nó, tao từ mày!' Thị Nở: 'Nhưng con đã trót...' Bà Cô: 'Trót cái gì?' Thị Nở: 'Con... con có bầu rồi!' Cả làng: 'WHAT?!'",
+      "image_file": "projects/topics-001/images/33.png",
+      "pause_after_ms": 500,
+      "transition_in": { "type": "slide_up", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.15 },
+      "text_overlays": [{ "text": "TWIST: CÓ BẦU!", "position": "center", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 34,
+      "text": "Uất hận dâng trào, tuyệt vọng bao trùm, Chí ôm con dao đi đòi lại công lý. Không còn là kẻ say, không còn là thằng hề – lúc này Chí Phèo đã hóa thành đồ sát, sẵn sàng làm mọi thứ!",
+      "image_file": "projects/topics-001/images/34.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "slide_up", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.12 },
+      "text_overlays": [{ "text": "Chí Phèo Hóa Đồ Sát", "position": "top_left", "animation": "pop" }],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "preset": "ninja",
+          "x": 0.3, "y": 0.94, "height": 0.7,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 400 },
+          "idle": { "type": "talk", "amplitude_px": 14, "period_s": 0.2 },
+          "exit": { "type": "shrink_out", "duration_ms": 200 }
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "text": "Chí lẩm bẩm: 'Bà Cô... tao sẽ cho mày biết thế nào là lễ độ!' Nhưng chân say lại quen đường mò tới nhà Bá Kiến. Đúng là định mệnh gọi tên Bá Kiến – kẻ đã gieo bao oan nghiệt cho cuộc đời Chí!",
+      "image_file": "projects/topics-001/images/35.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "pan_left", "start_scale": 1.05, "end_scale": 1.05 },
+      "text_overlays": [{ "text": "Định Mệnh Gọi Tên Bá Kiến", "position": "bottom_right", "animation": "fade_in" }],
+      "characters": []
+    },
+    {
+      "id": 36,
+      "text": "Bá Kiến thấy Chí thì hét lên: 'Chí! Mày làm gì ở đây?' Chí: 'Tao đến để... nói chuyện phải quấy!' Bá Kiến: 'Nói chuyện gì?' Chí: 'Tại sao mày lại hủy hoại cuộc đời tao?!' Bá Kiến: 'Tao... tao...' Chí: 'Im mồm! Hôm nay tao sẽ cho mày biết thế nào là công lý!'",
+      "image_file": "projects/topics-001/images/36.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.15 },
+      "text_overlays": [{ "text": "Đối Chất Căng Thẳng", "position": "center", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 37,
+      "text": "Chí hét lớn câu thoại đi vào lịch sử văn học Việt Nam: 'Ai cho tao lương thiện?!' Một câu hỏi xé lòng, một bi kịch của cả một kiếp người bị xã hội vùi dập!",
+      "image_file": "projects/topics-001/images/37.png",
+      "pause_after_ms": 500,
+      "transition_in": { "type": "zoom", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.2 },
+      "text_overlays": [{ "text": "AI CHO TAO LƯƠNG THIỆN?!", "position": "center", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 38,
+      "text": "Bá Kiến run sợ: 'Chí ơi, bình tĩnh, tao sẽ cho mày tiền, tao sẽ cho mày đất, tao sẽ...' Chí: 'Tao không cần tiền! Tao không cần đất! Tao chỉ cần một câu trả lời: TẠI SAO?!' Và rồi... nhát dao định mệnh giáng xuống!",
+      "image_file": "projects/topics-001/images/38.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "fade", "duration": 0.2 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.2 },
+      "text_overlays": [{ "text": "Nhát Dao Định Mệnh", "position": "center", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 39,
+      "text": "Xong! Xiên Bá Kiến rụng tại chỗ, Chí cũng tự end-game luôn. Một màn kết đẫm máu nhưng đầy tính nhân văn – Double Kill! Không ai thắng, không ai thua, chỉ có bi kịch!",
+      "image_file": "projects/topics-001/images/39.png",
+      "pause_after_ms": 400,
+      "transition_in": { "type": "fade", "duration": 0.3 },
+      "ken_burns": { "enabled": true, "type": "zoom_out", "start_scale": 1.1, "end_scale": 1.0 },
+      "text_overlays": [{ "text": "DOUBLE KILL!", "position": "center", "animation": "pop" }],
+      "characters": []
+    },
+    {
+      "id": 40,
+      "text": "Thị Nở nghe tin chạy đến, nhìn thấy cảnh tượng thì ngất xỉu. Tỉnh dậy, cô nhìn xuống bụng mình... Và rồi cô hiểu ra: cuộc đời này, không ai cho ai lương thiện cả. Chỉ có chính mình phải tự giành lấy mà thôi!",
+      "image_file": "projects/topics-001/images/40.png",
+      "pause_after_ms": 500,
+      "transition_in": { "type": "fade", "duration": 0.3 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
+      "text_overlays": [{ "text": "Bài Học Nhân Văn", "position": "center", "animation": "fade_in" }],
+      "characters": []
+    },
+    {
+      "id": 41,
+      "text": "Thị Nở nhìn xuống bụng... Hẹn gặp lại các bạn ở 'Chí Phèo Season 2: Baby Chí Đi Tìm Cha'! Cảm ơn đã theo dõi, nhớ like, share và subscribe nhé!",
+      "image_file": "projects/topics-001/images/41.png",
+      "pause_after_ms": 1500,
+      "transition_in": { "type": "fade", "duration": 0.5 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.05 },
+      "text_overlays": [{ "text": "HẸN GẶP LẠI Ở SEASON 2!", "position": "center", "animation": "pop" }],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "preset": "boing",
+          "x": 0.7, "y": 0.94, "height": 0.62,
+          "enter": { "type": "fade_in", "duration_ms": 300 },
+          "idle": { "type": "talk", "amplitude_px": 8, "period_s": 0.3 },
+          "exit": { "type": "shrink_out", "duration_ms": 400 }
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "text": "Và đó là toàn bộ cuộc đời Chí Phèo – phiên bản speedrun! Từ một đứa bé bị bỏ rơi, thành thanh niên ngoan hiền, thành tù nhân, thành trùm làng, thành kẻ sát nhân, và cuối cùng là một bi kịch bất tử. Cảm ơn các bạn đã xem hết! Đừng quên bấm like và subscribe để đón xem Season 2 nhé!",
+      "image_file": "projects/topics-001/images/42.png",
+      "pause_after_ms": 2000,
+      "transition_in": { "type": "fade", "duration": 0.5 },
+      "ken_burns": { "enabled": true, "type": "zoom_out", "start_scale": 1.1, "end_scale": 1.0 },
+      "text_overlays": [{ "text": "CẢM ƠN ĐÃ XEM!", "position": "center", "animation": "pop" }],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "preset": "boing",
+          "x": 0.5, "y": 0.94, "height": 0.65,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 8, "period_s": 0.3 },
+          "exit": { "type": "shrink_out", "duration_ms": 400 }
+        }
+      ]
+    }
+  ]
+}

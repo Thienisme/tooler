@@ -1,0 +1,148 @@
+{
+  "video_metadata": {
+    "title": "Test 3 Nhân Vật Trong 1 Khung Hình",
+    "author": "Buffy",
+    "resolution": "1920x1080",
+    "fps": 30,
+    "language": "vi",
+    "target_minutes": [0.1, 3]
+  },
+  "tts_config": {
+    "engine": "vieneu",
+    "voice": "Minh Quân Pro",
+    "speed": 1.05,
+    "granularity": "sentence",
+    "max_chars_per_chunk": 1000
+  },
+  "audio_config": {
+    "background_music": "data/music/mystery_biggest_discovery.mp3",
+    "background_volume": 0.12,
+    "master_volume": -14.0,
+    "fade_in_seconds": 1.0,
+    "fade_out_seconds": 2.0
+  },
+  "pacing": {
+    "auto_pause": {
+      "enabled": true,
+      "per_sentence": true,
+      "min_pause_ms": 200,
+      "max_pause_ms": 1500,
+      "respect_tts_natural_pause": true
+    },
+    "section_breaks": [],
+    "custom_pauses": {}
+  },
+  "scenes": [
+    {
+      "id": 1,
+      "text": "Chào mừng các đồng chí đến với buổi thử nghiệm lịch sử! Hôm nay lần đầu tiên cả ba anh em họp đủ mặt tại một khung hình. Ai nhanh trí hơn ai, xem ngay bây giờ!",
+      "image_file": "projects/topics-002/images/01.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "fade", "duration": 0.3 },
+      "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
+      "text_overlays": [
+        { "text": "3 NHÂN VẬT – 1 KHUNG HÌNH!", "position": "top", "animation": "pop" }
+      ],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "preset": "ta_da",
+          "sfx": { "file": "data/sfx/ta_da.mp3", "volume": 0.5 },
+          "x": 0.22, "y": 0.93, "height": 0.6,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 700 },
+          "idle": { "type": "talk", "amplitude_px": 8, "period_s": 0.35 },
+          "exit": { "type": "none", "duration_ms": 0 }
+        },
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "x": 0.5, "y": 0.93, "height": 0.66,
+          "enter": { "type": "pop", "duration_ms": 600 },
+          "idle": { "type": "bob_sway", "amplitude_px": 10, "period_s": 2.0 },
+          "exit": { "type": "none", "duration_ms": 0 }
+        },
+        {
+          "image_file": "assets/characters/my_host_03.png",
+          "x": 0.78, "y": 0.93, "height": 0.6,
+          "flip": true,
+          "enter": { "type": "spin_in", "duration_ms": 800 },
+          "idle": { "type": "shake", "amplitude_px": 6, "period_s": 0.5 },
+          "exit": { "type": "none", "duration_ms": 0 }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "Anh cả ra mặt trước, giọng đầy tự tin: chuyện gì cũng phải có trật tự! Anh hai gật gù liền, bảo rằng cứ yên tâm mà giao việc. Đến lượt anh ba, mắt láo liên như đang tính chuyện gì đó. Cả ba nhìn nhau rồi cười ồ lên một tiếng!",
+      "image_file": "projects/topics-002/images/02.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "slide_left", "duration": 0.25 },
+      "ken_burns": { "enabled": true, "type": "pan_right", "start_scale": 1.06, "end_scale": 1.06 },
+      "text_overlays": [
+        { "text": "Ai Nói Là Hiện!", "position": "top_right", "animation": "fade_in" }
+      ],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "x": 0.24, "y": 0.93, "height": 0.58,
+          "at_sentence": 1, "for_sentences": 2,
+          "enter": { "type": "slide_in", "from": "left", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.32 },
+          "exit": { "type": "slide_out", "to": "left", "duration_ms": 400 }
+        },
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "x": 0.78, "y": 0.93, "height": 0.58,
+          "flip": true,
+          "at_sentence": 2, "for_sentences": 2,
+          "enter": { "type": "slide_in", "from": "right", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.3 },
+          "exit": { "type": "slide_out", "to": "right", "duration_ms": 400 }
+        },
+        {
+          "image_file": "assets/characters/my_host_03.png",
+          "x": 0.5, "y": 0.4, "height": 0.26,
+          "at_sentence": 3, "for_sentences": 2,
+          "enter": { "type": "fade_in", "duration_ms": 300 },
+          "idle": { "type": "bob", "amplitude_px": 8, "period_s": 0.4 },
+          "exit": { "type": "shrink_out", "duration_ms": 300 }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Thử nghiệm hoàn hảo, không ai văng khỏi khung hình. Ba anh em đá nhau một cái thật kịch rồi đứng nghiêm trông thật oai vệ. Hẹn gặp lại các đồng chí ở tập sau, nhớ đón xem nhé!",
+      "image_file": "projects/topics-002/images/03.png",
+      "pause_after_ms": 300,
+      "transition_in": { "type": "circle_open", "duration": 0.4 },
+      "ken_burns": { "enabled": true, "type": "zoom_out", "start_scale": 1.15, "end_scale": 1.0 },
+      "text_overlays": [
+        { "text": "TEST THÀNH CÔNG!", "position": "top", "animation": "pop" },
+        { "text": "3 characters, 1 frame", "position": "bottom", "animation": "fade_in", "start_offset_ms": 2500 }
+      ],
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "x": 0.24, "y": 0.93, "height": 0.58,
+          "enter": { "type": "fly_in", "from": "bottom_left", "duration_ms": 700 },
+          "idle": { "type": "sway", "amplitude_px": 8, "period_s": 1.8 },
+          "exit": { "type": "fly_out", "to": "bottom_left", "duration_ms": 500 }
+        },
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "x": 0.5, "y": 0.93, "height": 0.64,
+          "enter": { "type": "zoom_in", "from": "center", "duration_ms": 600 },
+          "idle": { "type": "talk", "amplitude_px": 8, "period_s": 0.35 },
+          "exit": { "type": "zoom_out", "to": "center", "duration_ms": 500 }
+        },
+        {
+          "image_file": "assets/characters/my_host_03.png",
+          "x": 0.76, "y": 0.93, "height": 0.58,
+          "flip": true,
+          "enter": { "type": "fly_in", "from": "bottom_right", "duration_ms": 700 },
+          "idle": { "type": "bob_sway", "amplitude_px": 10, "period_s": 2.2 },
+          "exit": { "type": "fly_out", "to": "bottom_right", "duration_ms": 500 }
+        }
+      ]
+    }
+  ]
+}

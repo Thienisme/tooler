@@ -221,7 +221,7 @@ def overlay_dict(
 ) -> dict:
     return {
         "text": text,
-        "font": "assets/fonts/handwriting.ttf",
+        "font": "assets/fonts/autovid-fixture-font.ttf",
         "font_size": size,
         "color": "#000000",
         "stroke_color": "#000000",
@@ -262,13 +262,20 @@ class WorkspaceFixture(unittest.TestCase):
         paths.create()
 
         # A workspace whose scripted font exists is the normal case; tests
-        # that want the fallback path pass provide_font=False.
+        # that want the fallback path pass provide_font=False.  The scripted
+        # name is deliberately unusual so it cannot be satisfied by the
+        # shared `assets/fonts/` at the repository root.
         if provide_font:
             source = find_system_font()
             if source is None and any(scene.get("text_overlays") for scene in scenes):
                 self.skipTest("no system font available to stand in for the asset")
             if source is not None:
-                target = self.workspace / "assets" / "fonts" / "handwriting.ttf"
+                target = (
+                    self.workspace
+                    / "assets"
+                    / "fonts"
+                    / "autovid-fixture-font.ttf"
+                )
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, target)
 
@@ -1169,6 +1176,30 @@ class TestRenderedContent(WorkspaceFixture):
         self.assertEqual(result.status, "pass", result.issues)
         self.assertIn("overlay_font_fallback", {i.code for i in result.issues})
         self.assertFalse(result.report["scenes"][0]["overlays"][0].get("dropped", False))
+
+    def test_an_overlay_too_wide_is_shrunk_to_fit(self):
+        """A single line wider than its placement area runs off the frame
+        edge; the render shrinks it and says so rather than clipping it."""
+        overlays = [
+            overlay_dict(
+                text="MỘT DÒNG CHỮ RẤT DÀI ĐỂ CHẮC CHẮN TRÀN KHUNG HÌNH",
+                size=48,
+                start_ms=100,
+                end_ms=1500,
+            )
+        ]
+        scenes = [
+            scene_dict(1, narration_s=2.0, pause_s=0.0, overlays=overlays)
+        ]
+        script, paths = self.build(scenes)
+
+        result = AssemblyStage(script, paths, preset="ultrafast", crf=30).run()
+
+        self.assertEqual(result.status, "pass", result.issues)
+        self.assertIn("overlay_font_shrunk", {i.code for i in result.issues})
+        entry = result.report["scenes"][0]["overlays"][0]
+        self.assertLess(entry["font_size"], 48)
+        self.assertFalse(entry.get("dropped", False))
 
     def test_overlay_outside_the_clip_is_dropped_and_reported(self):
         """

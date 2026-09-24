@@ -4,3 +4,25 @@ python autovid.py images projects/topics-001/script.json
 python autovid.py assembly projects/topics-001/script.json
 python autovid.py mix projects/topics-001/script.json --skip-music
 python autovid.py render projects/topics-001/script.json
+
+// json
+"characters": [
+  { "image_file": "assets/characters/chi_pheo.png", "x": 0.28, "y": 0.92, "height": 0.5,
+    "flip": true, "at_sentence": 1, "for_sentences": 2 },
+  { "image_file": "assets/characters/ba_kien.png", "x": 0.72, "y": 0.92, "height": 0.5,
+    "at_sentence": 3, "for_sentences": 2 },
+  { "image_file": "assets/characters/host.png", "x": 0.88, "y": 0.35, "height": 0.25,
+    "preset": "sneak" }
+]
+
+## Tạo hình nhân vật cực khoai!
+
+A 2D cartoon illustration in a minimalist, humorous, and highly expressive animation style, featuring a funny and goofy version of [TÊN NHÂN VẬT VÀ MÔ TẢ NGOẠI HÌNH] in an incredibly comical, simplified 2D aesthetic.
+
+The character has a rounded, slightly chunky, and slouching body with noodle-like arms and tiny, simplified legs. The pose is highly expressive, goofy, and awkward, showing them [HÀNH ĐỘNG/DÁNG VẺ CỦA NHÂN VẬT].
+
+Their face is hilarious and expressive: giant mismatched eyes with tiny pupils (or dotted eyes), funny eyebrows, a big bulbous nose, and a goofy, gaping mouth showing comic emotions (like shouting, being confused, or laughing). Their messy hair and simple, exaggerated features add to the comedic look.
+
+They are wearing simplified, flat-colored [TRANG PHỤC ĐẶC TRƯNG] with visible stitching and messy details, holding [ĐỒ VẬT ĐẶC TRƯNG] in a clumsy, comical way.
+
+The artwork features thick, rough black outlines and vibrant, flat coloring with no complex shading. Clean, solid white background to emphasize the character design. Humorous, playful, and hand-drawn comic animation style.

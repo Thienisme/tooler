@@ -56,7 +56,10 @@ from autovid.infrastructure.ffmpeg import (
     probe_streams,
     run,
 )
-from autovid.infrastructure.image.fonts import resolve_font
+from autovid.infrastructure.image.fonts import (
+    fit_overlay_font_size,
+    resolve_font,
+)
 from autovid.infrastructure.video.filters import (
     ImpactPunch,
     OverlayLayer,
@@ -904,6 +907,29 @@ class AssemblyStage:
                     unit_index=index,
                 )
 
+            # A single line of text wider than its placement area runs off
+            # the frame edge mid-word.  The images stage reports the size
+            # that would fit; shrinking here is what makes that report true
+            # on screen instead of only on paper.
+            fitted = fit_overlay_font_size(
+                overlay.text,
+                font.path,
+                requested_size=overlay.font_size,
+                position=overlay.position,
+                frame_size=self.frame_size,
+                stroke_width=overlay.stroke_width,
+            )
+            if fitted < overlay.font_size:
+                self.issues.warn(
+                    "overlay_font_shrunk",
+                    f"overlay {index} '{overlay.text}' does not fit at "
+                    f"{overlay.font_size}px in the {overlay.position} area; "
+                    f"rendered at {fitted}px instead",
+                    scene_id=scene.id,
+                    unit_index=index,
+                )
+                plan.font_size = fitted
+
             # An overlay cannot outlive its scene, and a negative offset is
             # the same as starting at zero.
             plan.start_s = max(0.0, plan.start_s)
@@ -927,7 +953,9 @@ class AssemblyStage:
                 plans.append(plan)
                 continue
 
-            key = _overlay_key(scene, index, font.path, self.frame_size)
+            key = _overlay_key(
+                scene, index, font.path, self.frame_size, plan.font_size
+            )
             requested_window = min(
                 overlay.animation_duration_ms / 1000.0, visible_s / 2
             )
@@ -947,7 +975,7 @@ class AssemblyStage:
             layer = render_text_layer(
                 text=overlay.text,
                 font_path=font.path,
-                font_size=overlay.font_size,
+                font_size=plan.font_size,
                 colour=overlay.color,
                 stroke_colour=overlay.stroke_color,
                 stroke_width=overlay.stroke_width,
@@ -993,7 +1021,7 @@ class AssemblyStage:
         layers = render_typewriter_layers(
             text=overlay.text,
             font_path=font_path,
-            font_size=overlay.font_size,
+            font_size=plan.font_size,
             colour=overlay.color,
             stroke_colour=overlay.stroke_color,
             stroke_width=overlay.stroke_width,
@@ -1403,16 +1431,20 @@ def _motion_dict(scene: Scene) -> dict:
 
 
 def _overlay_key(
-    scene: Scene, index: int, font_path: Path, frame_size: tuple[int, int]
+    scene: Scene,
+    index: int,
+    font_path: Path,
+    frame_size: tuple[int, int],
+    font_size: int,
 ) -> str:
-    """Cache identity of a rendered text layer."""
+    """Cache identity of a rendered text layer, at the size it was drawn."""
     overlay = scene.text_overlays[index]
     payload = json.dumps(
         {
             "version": CLIP_VERSION,
             "text": overlay.text,
             "font": str(font_path),
-            "font_size": overlay.font_size,
+            "font_size": font_size,
             "colour": overlay.color,
             "stroke_colour": overlay.stroke_color,
             "stroke_width": overlay.stroke_width,

@@ -41,6 +41,29 @@ FALLBACK_FONT_DIRS = (
     "C:/Windows/Fonts",
 )
 
+# How much of the frame an overlay may occupy.  Shared by the images stage
+# (which reports "size N would fit") and the assembly stage (which now
+# actually renders at that size), so the promise and the picture agree.
+OVERLAY_WIDTH_FRACTION = 0.9
+OVERLAY_HEIGHT_FRACTION = 0.9
+
+# Height budget by position: a banner at the top or bottom should not run
+# through the middle of the artwork.
+POSITION_HEIGHT_FRACTION: dict[str, float] = {
+    "center": OVERLAY_HEIGHT_FRACTION,
+    "top": 0.4,
+    "bottom": 0.4,
+    "top_left": 0.4,
+    "top_right": 0.4,
+    "bottom_left": 0.4,
+    "bottom_right": 0.4,
+}
+
+# Corner placements share the width with the other half of the frame.
+CORNER_POSITIONS = frozenset(
+    {"top_left", "top_right", "bottom_left", "bottom_right"}
+)
+
 
 @dataclass(frozen=True)
 class FontResolution:
@@ -117,6 +140,58 @@ def measure_text(
 
     # A stroke is drawn on both sides of every glyph.
     return width + 2 * stroke_width, height + 2 * stroke_width
+
+
+def overlay_allowed_area(
+    position: str, frame_size: tuple[int, int]
+) -> tuple[int, int]:
+    """Pixels an overlay may use at a given placement."""
+    frame_width, frame_height = frame_size
+    allowed_width = int(frame_width * OVERLAY_WIDTH_FRACTION)
+    if position in CORNER_POSITIONS:
+        allowed_width //= 2
+    allowed_height = int(
+        frame_height
+        * POSITION_HEIGHT_FRACTION.get(position, OVERLAY_HEIGHT_FRACTION)
+    )
+    return allowed_width, allowed_height
+
+
+def fit_overlay_font_size(
+    text: str,
+    font_path: Path | None,
+    *,
+    requested_size: int,
+    position: str,
+    frame_size: tuple[int, int],
+    stroke_width: int = 0,
+    min_size: int = 12,
+) -> int:
+    """
+    The size an overlay must be rendered at to stay inside its placement.
+
+    Returns `requested_size` when the text already fits, so callers can
+    compare and only report when the render had to shrink it.
+    """
+    if font_path is None:
+        return requested_size
+
+    allowed_width, allowed_height = overlay_allowed_area(position, frame_size)
+    width, height = measure_text(
+        text, font_path, requested_size, stroke_width=stroke_width
+    )
+    if width <= allowed_width and height <= allowed_height:
+        return requested_size
+
+    return largest_fitting_size(
+        text,
+        font_path,
+        max_width=allowed_width,
+        max_height=allowed_height,
+        start_size=requested_size,
+        stroke_width=stroke_width,
+        min_size=min_size,
+    )
 
 
 def largest_fitting_size(

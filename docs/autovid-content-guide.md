@@ -175,6 +175,8 @@ Nếu chưa muốn nhân vật, thêm `--no-characters` khi chạy `assembly` đ
 
 - **Nhạc**: 1 file, nên dài ≥ video. Nhạc ngắn hơn sẽ bị loop và **có thể nghe thấy mối nối**
   (cảnh báo `background_music_looped`). Mức mặc định 0.12 (≈ 1/8 giọng đọc); > 0.3 là bị cảnh báo.
+- **Ducking**: nhạc tự hạ xuống khi giọng đọc lên rồi trồi lại ở khoảng lặng (≈ 10 dB), giúp
+  nghe rõ lời mà nhạc vẫn sống. Tắt bằng `"ducking": false` trong `audio_config`.
 - **SFX**: `{"file": "assets/sfx/whoosh.mp3", "time_offset_ms": 400, "volume": 0.6}` trong scene.
   Mốc tính **từ đầu scene**; hai SFX cách nhau < 5s sẽ bị cảnh báo là quá dày.
 - Nhạc/SFX được trộn ở stage `mix`; mix tự đo loudness và chỉ chỉnh khi lệch quá 0.5 LUFS,

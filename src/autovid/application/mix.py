@@ -69,6 +69,17 @@ MIX_DURATION_TOLERANCE_S = 0.05
 
 STEM_VERSION = 1
 
+# Ducking: the music bed is compressed against the narration, so it steps
+# back while the voice speaks and returns in the gaps.  These are the
+# compressor's own parameters: the voice is the sidechain, so a loud
+# syllable pushes the music down by roughly 10 dB and it recovers over
+# ~0.4s when the sentence ends.  Attack is fast enough to catch a word, not
+# so fast that it clicks.
+DUCK_THRESHOLD = 0.15
+DUCK_RATIO = 4.0
+DUCK_ATTACK_MS = 20.0
+DUCK_RELEASE_MS = 400.0
+
 
 @dataclass
 class SfxPlacement:
@@ -192,12 +203,23 @@ class MixStage:
         sfx_stem = self._build_sfx_stem(target_s, placements)
 
         sources = [voice]
+        music_index: int | None = None
         if music is not None:
+            music_index = len(sources)
             sources.append(music)
         if sfx_stem is not None:
             sources.append(sfx_stem)
 
-        mixed = self._sum(target_s, sources)
+        duck = bool(self.script.audio_config.ducking) and music_index is not None
+        if duck:
+            self.progress(
+                "ducking    : music bed follows the voice "
+                f"(threshold {DUCK_THRESHOLD}, ratio {DUCK_RATIO})"
+            )
+
+        mixed = self._sum(
+            target_s, sources, music_index=music_index, duck=duck
+        )
         shaped, loudness, corrections = self._shape_level(mixed, target_s)
 
         mix = self.paths.mix_path
@@ -224,6 +246,7 @@ class MixStage:
             loudness=loudness,
             corrections=corrections,
             stem_count=len(sources),
+            ducked=duck,
         )
         write_json(self.paths.output_dir / "mix_report.json", report)
 
@@ -696,7 +719,14 @@ class MixStage:
 
     # -- summing ----------------------------------------------------------
 
-    def _sum(self, target_s: float, sources: list[Path]) -> Path:
+    def _sum(
+        self,
+        target_s: float,
+        sources: list[Path],
+        *,
+        music_index: int | None = None,
+        duck: bool = False,
+    ) -> Path:
         """
         Sum the stems into one raw mix.
 
@@ -704,19 +734,46 @@ class MixStage:
         every input by the count, which would drop the narration by 6-10 dB
         the moment a second layer exists.  Levels are the script's job, and
         they were already applied to each stem.
+
+        When `duck` is set the narration is split: one copy is mixed as
+        usual, the other drives `sidechaincompress` on the music so the bed
+        dips under the voice.  The compressor sits *before* the sum, so the
+        correction pass still measures one finished track.
         """
         raw = self.paths.audio_dir / "mix_raw.wav"
+        ducking = duck and music_index is not None
 
         # The narration is padded rather than the output trusted to be long
         # enough: whichever layer is longest, `-t` makes the mix exactly the
         # video's length, so nothing downstream has to reconcile the two.
-        statements = [
-            f"[0:a]aresample={self.sample_rate},apad[voice]",
-        ]
+        statements: list[str] = []
+        if ducking:
+            statements.append(
+                f"[0:a]aresample={self.sample_rate},apad,"
+                "asplit=2[voice][voice_sidechain]"
+            )
+        else:
+            statements.append(
+                f"[0:a]aresample={self.sample_rate},apad[voice]"
+            )
         labels = ["[voice]"]
         for position in range(1, len(sources)):
-            statements.append(f"[{position}:a]aresample={self.sample_rate}[s{position}]")
-            labels.append(f"[s{position}]")
+            label = f"[s{position}]"
+            if ducking and position == music_index:
+                statements.append(
+                    f"[{position}:a]aresample={self.sample_rate}[music_raw]"
+                )
+                statements.append(
+                    f"[music_raw][voice_sidechain]sidechaincompress="
+                    f"threshold={DUCK_THRESHOLD}:ratio={DUCK_RATIO}:"
+                    f"attack={DUCK_ATTACK_MS}:release={DUCK_RELEASE_MS}:"
+                    f"makeup=1{label}"
+                )
+            else:
+                statements.append(
+                    f"[{position}:a]aresample={self.sample_rate}{label}"
+                )
+            labels.append(label)
 
         if len(labels) == 1:
             statements = [f"[0:a]aresample={self.sample_rate},apad[out]"]
@@ -881,6 +938,7 @@ class MixStage:
         loudness: LoudnessInfo,
         corrections: list[dict],
         stem_count: int,
+        ducked: bool = False,
     ) -> dict:
         placed = [placement for placement in placements if placement.placed]
         config = self.script.audio_config
@@ -894,6 +952,10 @@ class MixStage:
                 "master_volume": config.master_volume,
                 "fade_in_seconds": config.fade_in_seconds,
                 "fade_out_seconds": config.fade_out_seconds,
+                "ducking": config.ducking,
+                "ducked": ducked,
+                "duck_threshold": DUCK_THRESHOLD if ducked else None,
+                "duck_ratio": DUCK_RATIO if ducked else None,
                 "skip_music": self.skip_music,
                 "sample_rate": self.sample_rate,
                 "channels": self.channels,
@@ -910,6 +972,7 @@ class MixStage:
                 "sfx_placed": len(placed),
                 "sfx_dropped": len(placements) - len(placed),
                 "music_used": music is not None,
+                "music_ducked": ducked,
                 "sfx_used": sfx_stem is not None,
                 "loudness": loudness.to_dict(),
                 "loudness_target_lufs": config.master_volume,

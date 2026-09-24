@@ -42,6 +42,7 @@ from autovid.infrastructure.image.fonts import (
     FontResolution,
     largest_fitting_size,
     measure_text,
+    overlay_allowed_area,
     resolve_font,
 )
 from autovid.infrastructure.image.prepare import (
@@ -65,27 +66,6 @@ from autovid.infrastructure.image.quality import (
     mean_colour,
 )
 from autovid.paths import Paths, read_json, resolve_asset, write_json
-
-# Fraction of the frame an overlay is allowed to occupy.
-OVERLAY_WIDTH_FRACTION = 0.9
-OVERLAY_HEIGHT_FRACTION = 0.9
-
-# Height budget by position: a banner at the top or bottom should not run
-# through the middle of the artwork.
-POSITION_HEIGHT_FRACTION = {
-    "center": OVERLAY_HEIGHT_FRACTION,
-    "top": 0.4,
-    "bottom": 0.4,
-    "top_left": 0.4,
-    "top_right": 0.4,
-    "bottom_left": 0.4,
-    "bottom_right": 0.4,
-}
-
-# Corner placements share the width with the other half of the frame.
-CORNER_POSITIONS = frozenset(
-    {"top_left", "top_right", "bottom_left", "bottom_right"}
-)
 
 # Overlay timing is only flagged past this much overshoot.
 OVERLAY_TIMING_TOLERANCE_MS = 250
@@ -267,8 +247,24 @@ class ImagesStage:
         )
         save_image(prepared_image, destination)
 
+        # Compare the prepared frame against the part of the source that was
+        # actually mapped onto it.  In `cover` mode only the centre survives,
+        # so the whole artwork's mean colour is the wrong reference and every
+        # crop would look like a colour-space accident.
+        reference = image
+        if geometry.crop_box is not None:
+            scale = geometry.scale or 1.0
+            left, top, right, bottom = geometry.crop_box
+            reference = image.crop(
+                (
+                    int(round(left / scale)),
+                    int(round(top / scale)),
+                    int(round(right / scale)),
+                    int(round(bottom / scale)),
+                )
+            )
         shift = colour_shift(
-            mean_colour(image),
+            mean_colour(reference),
             mean_colour(prepared_image, geometry.content_box),
         )
         if max(shift) > MAX_COLOUR_SHIFT:
@@ -377,7 +373,6 @@ class ImagesStage:
         self, scene: Scene, frame_size: tuple[int, int]
     ) -> list[OverlayCheck]:
         checks: list[OverlayCheck] = []
-        frame_width, frame_height = frame_size
         narration_ms = self._narration_ms.get(scene.id)
 
         for position, overlay in enumerate(scene.text_overlays):
@@ -402,14 +397,8 @@ class ImagesStage:
                     unit_index=position,
                 )
 
-            allowed_width = int(frame_width * OVERLAY_WIDTH_FRACTION)
-            if overlay.position in CORNER_POSITIONS:
-                allowed_width //= 2
-            allowed_height = int(
-                frame_height
-                * POSITION_HEIGHT_FRACTION.get(
-                    overlay.position, OVERLAY_HEIGHT_FRACTION
-                )
+            allowed_width, allowed_height = overlay_allowed_area(
+                overlay.position, frame_size
             )
 
             width, height = measure_text(

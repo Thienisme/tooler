@@ -239,6 +239,10 @@ class VideoMetadata:
     resolution: str
     fps: int
     language: str
+    # Runtime envelope, in minutes, that the validator measures the
+    # estimate against.  Defaults to the 8-20 minute explainer format; a
+    # Short declares its own so a 60s video is not warned as "too short".
+    target_minutes: tuple[float, float] = (8.0, 20.0)
 
     @property
     def width(self) -> int:
@@ -267,6 +271,10 @@ class AudioConfig:
     master_volume: float
     fade_in_seconds: float
     fade_out_seconds: float
+    # Duck the bed under the narration.  A fixed volume has to be quiet
+    # enough for the loudest passage, which leaves the music inaudible
+    # everywhere else; ducking lets it sit higher between sentences.
+    ducking: bool
 
 
 @dataclass(frozen=True)
@@ -1049,6 +1057,8 @@ def _parse_video_metadata(
     if None in (resolution, title):
         return None
 
+    target_minutes = _parse_target_minutes(parser, raw, where)
+
     return VideoMetadata(
         title=title,
         author=parser.string(
@@ -1061,7 +1071,33 @@ def _parse_video_metadata(
         language=parser.string(
             raw.get("language", _MISSING), f"{where}.language", default="vi"
         ),
+        target_minutes=target_minutes,
     )
+
+
+def _parse_target_minutes(
+    parser: _Parser, raw: dict, where: str
+) -> tuple[float, float]:
+    """Optional [min, max] runtime envelope, in minutes."""
+    value = raw.get("target_minutes", _MISSING)
+    if value is _MISSING or value is None:
+        return (8.0, 20.0)
+
+    ok = (
+        isinstance(value, (list, tuple))
+        and len(value) == 2
+        and all(isinstance(item, (int, float)) and not isinstance(item, bool)
+                for item in value)
+        and value[0] >= 0
+        and value[0] <= value[1]
+    )
+    if not ok:
+        parser.fail(
+            f"{where}.target_minutes",
+            "expected [min_minutes, max_minutes] with 0 <= min <= max",
+        )
+        return (8.0, 20.0)
+    return (float(value[0]), float(value[1]))
 
 
 def _parse_tts_config(parser: _Parser, data: Any) -> TTSConfig:
@@ -1138,6 +1174,11 @@ def _parse_audio_config(parser: _Parser, data: Any) -> AudioConfig:
             f"{where}.fade_out_seconds",
             default=3.0,
             minimum=0.0,
+        ),
+        ducking=bool(
+            parser.boolean(
+                raw.get("ducking", _MISSING), f"{where}.ducking", default=True
+            )
         ),
     )
 

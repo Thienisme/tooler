@@ -64,7 +64,7 @@ def valid_script_dict(scene_count: int = 2) -> dict:
                 "text_overlays": [
                     {
                         "text": "TIÊU ĐỀ",
-                        "font": "assets/fonts/handwriting.ttf",
+                        "font": "assets/fonts/autovid-fixture-font.ttf",
                         "font_size": 96,
                         "start_offset_ms": 500,
                         "end_offset_ms": 3500,
@@ -112,8 +112,14 @@ class WorkspaceFixture(unittest.TestCase):
         return path
 
     def materialise_assets(self, script: dict, *, skip: tuple[str, ...] = ()) -> None:
-        """Create every file the script references."""
-        self.write("assets/fonts/handwriting.ttf")
+        """
+        Create every file the script references.
+
+        The scripted font name is deliberately unusual so a test that deletes
+        it really produces a missing font, rather than being satisfied by the
+        shared `assets/fonts/` at the repository root.
+        """
+        self.write("assets/fonts/autovid-fixture-font.ttf")
         self.write("assets/audio/bg.mp3")
         for scene in script["scenes"]:
             image = scene.get("image_file")
@@ -325,6 +331,45 @@ class ValidatorTest(WorkspaceFixture):
         report = self.validate(script)
         self.assertIn("ken_burns_no_room_to_pan", self.codes(report))
 
+    def test_vertical_frame_is_not_flagged_as_low_resolution(self):
+        """1080x1920 is a delivery frame; the old width check rejected it."""
+        script = valid_script_dict()
+        script["video_metadata"]["resolution"] = "1080x1920"
+        self.materialise_assets(script)
+        report = self.validate(script)
+        self.assertNotIn("resolution_low", self.codes(report))
+
+    def test_small_frame_is_still_flagged(self):
+        script = valid_script_dict()
+        script["video_metadata"]["resolution"] = "854x480"
+        self.materialise_assets(script)
+        report = self.validate(script)
+        self.assertIn("resolution_low", self.codes(report))
+
+    def test_vertical_overlay_font_uses_the_short_side(self):
+        """A 40px floor at a 1080px shorter side; a height-based rule would
+        have demanded 71px and warned on every vertical frame."""
+        script = valid_script_dict()
+        script["video_metadata"]["resolution"] = "1080x1920"
+        script["scenes"][0]["text_overlays"][0]["font_size"] = 40
+        self.materialise_assets(script)
+        report = self.validate(script)
+        self.assertNotIn("overlay_font_small", self.codes(report))
+
+    def test_script_can_declare_its_own_runtime_target(self):
+        script = valid_script_dict()
+        script["video_metadata"]["target_minutes"] = [0.05, 3.0]
+        self.materialise_assets(script)
+        report = self.validate(script)
+        self.assertNotIn("runtime_short", self.codes(report))
+        self.assertEqual(report.stats["target_minutes"], [0.05, 3.0])
+
+    def test_malformed_runtime_target_is_a_schema_error(self):
+        script = valid_script_dict()
+        script["video_metadata"]["target_minutes"] = [5]
+        with self.assertRaises(ScriptSchemaError):
+            parse_script(script)
+
     def test_zoom_without_scale_change_warns(self):
         script = valid_script_dict()
         script["scenes"][0]["ken_burns"]["end_scale"] = 1.0
@@ -377,7 +422,7 @@ class ValidatorTest(WorkspaceFixture):
     def test_missing_font_warns_with_fallback(self):
         script = valid_script_dict()
         self.materialise_assets(script)
-        (self.workspace / "assets/fonts/handwriting.ttf").unlink()
+        (self.workspace / "assets/fonts/autovid-fixture-font.ttf").unlink()
         report = self.validate(script)
         self.assertIn("font_missing", self.codes(report))
         self.assertEqual(report.status, "pass")

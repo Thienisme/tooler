@@ -57,7 +57,18 @@ def script_dict(
     background_volume: float = 0.12,
     fade_in: float = 0.5,
     fade_out: float = 0.5,
+    ducking: bool | None = None,
 ) -> dict:
+    audio_config: dict = {
+        "background_music": background_music,
+        "background_volume": background_volume,
+        "master_volume": -14.0,
+        "fade_in_seconds": fade_in,
+        "fade_out_seconds": fade_out,
+    }
+    if ducking is not None:
+        audio_config["ducking"] = ducking
+
     return {
         "video_metadata": {
             "title": "Stage 5",
@@ -67,13 +78,7 @@ def script_dict(
             "language": "vi",
         },
         "tts_config": {"engine": "vieneu", "voice": "Thái Sơn", "speed": 1.0},
-        "audio_config": {
-            "background_music": background_music,
-            "background_volume": background_volume,
-            "master_volume": -14.0,
-            "fade_in_seconds": fade_in,
-            "fade_out_seconds": fade_out,
-        },
+        "audio_config": audio_config,
         "pacing": {"auto_pause": {"enabled": True}, "section_breaks": []},
         "scenes": scenes,
     }
@@ -203,6 +208,7 @@ class MixFixture(unittest.TestCase):
         music_volume: float = 0.12,
         fade_in: float = 0.5,
         fade_out: float = 0.5,
+        ducking: bool | None = None,
         write_timeline: bool = True,
     ) -> tuple:
         payload = script_dict(
@@ -211,6 +217,7 @@ class MixFixture(unittest.TestCase):
             background_volume=music_volume,
             fade_in=fade_in,
             fade_out=fade_out,
+            ducking=ducking,
         )
         script = parse_script(payload)
         (self.workspace / "script.json").write_text(
@@ -292,6 +299,28 @@ class TestMixStage(MixFixture):
         self.assertEqual(result.report["totals"]["stems"], 3)
         self.assertTrue(result.report["totals"]["music_used"])
         self.assertTrue(result.report["totals"]["sfx_used"])
+
+    def test_music_is_ducked_under_the_voice_by_default(self):
+        """The bed should step back under the narration, not sit at a fixed
+        level that has to be quiet enough for the loudest passage."""
+        script, paths = self.build([scene_dict(1), scene_dict(2)], music=True)
+
+        result = MixStage(script, paths).run()
+
+        self.assertEqual(result.status, "pass", result.issues)
+        self.assertTrue(result.report["settings"]["ducked"])
+        self.assertTrue(result.report["totals"]["music_ducked"])
+
+    def test_ducking_can_be_switched_off(self):
+        script, paths = self.build(
+            [scene_dict(1), scene_dict(2)], music=True, ducking=False
+        )
+
+        result = MixStage(script, paths).run()
+
+        self.assertEqual(result.status, "pass", result.issues)
+        self.assertFalse(result.report["settings"]["ducked"])
+        self.assertFalse(result.report["totals"]["music_ducked"])
 
     def test_sfx_lands_at_its_absolute_timeline_position(self):
         """

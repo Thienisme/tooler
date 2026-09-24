@@ -56,9 +56,10 @@ AUDIO_BITRATE_KBPS = 320
 # Final video plus per-scene temp segments, image cache and audio stems.
 DISK_HEADROOM_FACTOR = 2.5
 
-# Target runtime for the 10-15 minute explainer format.
-TARGET_MIN_SECONDS = 8 * 60
-TARGET_MAX_SECONDS = 20 * 60
+# Default runtime envelope for the long explainer format, in minutes.  A
+# script can override it with `video_metadata.target_minutes` (a Short does,
+# so it is not warned as "too short").
+DEFAULT_TARGET_MINUTES = (8.0, 20.0)
 
 # Design rules from the spec.
 MIN_OVERLAY_READABLE_MS = 2000
@@ -73,8 +74,12 @@ HEX_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 MIN_PAN_HEADROOM = 0.02
 
 ALLOWED_FPS = frozenset({24, 25, 30, 50, 60})
-MIN_WIDTH = 1280
-MIN_HEIGHT = 720
+# Delivery frames are at least 720p on the shorter side and carry at least
+# 720p worth of pixels.  Stated this way, 1920x1080 (landscape) and
+# 1080x1920 (vertical Shorts) both pass while a genuinely small frame does
+# not; the old width/height pair rejected every vertical frame.
+MIN_SHORT_SIDE = 720
+MIN_PIXELS = 1280 * 720
 
 # Characters: two on screen is a conversation, three is a crowd.
 MAX_CHARACTERS_PER_SCENE = 2
@@ -245,11 +250,15 @@ class ScriptValidator:
                 "requires even width and height",
             )
 
-        if metadata.width < MIN_WIDTH or metadata.height < MIN_HEIGHT:
+        short_side = min(metadata.width, metadata.height)
+        if short_side < MIN_SHORT_SIDE or (
+            metadata.width * metadata.height < MIN_PIXELS
+        ):
             self.report.warn(
                 "resolution_low",
-                f"resolution {metadata.resolution} is below "
-                f"{MIN_WIDTH}x{MIN_HEIGHT}; text overlays will be hard to read",
+                f"resolution {metadata.resolution} is below {MIN_SHORT_SIDE}p "
+                "on its shorter side (or too few pixels); text overlays will "
+                "be hard to read",
             )
 
         if metadata.fps not in ALLOWED_FPS:
@@ -412,7 +421,7 @@ class ScriptValidator:
         for scene in self.script.scenes:
             self._check_scene_image(scene)
             self._check_ken_burns(scene)
-            self._check_overlays(scene, metadata.height)
+            self._check_overlays(scene, metadata)
             self._check_characters(scene, metadata)
             self._check_impact(scene)
             self._check_sfx(scene, fonts)
@@ -477,7 +486,7 @@ class ScriptValidator:
                 scene_id=scene.id,
             )
 
-    def _check_overlays(self, scene: Scene, video_height: int) -> None:
+    def _check_overlays(self, scene: Scene, metadata) -> None:
         if len(scene.text_overlays) > MAX_CONCURRENT_OVERLAYS:
             self.report.warn(
                 "overlay_count",
@@ -529,14 +538,18 @@ class ScriptValidator:
                         scene_id=scene.id,
                     )
 
-            # Scale the minimum readable size with the actual frame height.
-            min_size = MIN_OVERLAY_FONT_SIZE_1080P * video_height / 1080
+            # Scale the minimum readable size with the shorter side, which
+            # is the text's binding constraint on both a wide and a tall
+            # frame.  Using the height made every vertical frame demand
+            # oversized text.
+            reference = min(metadata.width, metadata.height)
+            min_size = MIN_OVERLAY_FONT_SIZE_1080P * reference / 1080
             if overlay.font_size < min_size:
                 self.report.warn(
                     "overlay_font_small",
                     f"overlay {index} font_size={overlay.font_size} is below "
-                    f"{min_size:.0f}px for a {video_height}p frame; it will be "
-                    "hard to read on a phone",
+                    f"{min_size:.0f}px for a {metadata.resolution} frame; it "
+                    "will be hard to read on a phone",
                     scene_id=scene.id,
                 )
 
@@ -925,6 +938,7 @@ class ScriptValidator:
                 images_found += 1
 
         total_seconds = estimate_total_seconds(script)
+        target_min_minutes, target_max_minutes = self._target_minutes()
         self.report.stats = {
             "scene_count": len(scenes),
             "total_text_chars": sum(lengths),
@@ -963,23 +977,31 @@ class ScriptValidator:
             "estimated_disk_mb": round(
                 estimate_disk_mb(total_seconds, script), 1
             ),
-            "target_minutes": [
-                round(TARGET_MIN_SECONDS / 60, 1),
-                round(TARGET_MAX_SECONDS / 60, 1),
-            ],
+            "target_minutes": [target_min_minutes, target_max_minutes],
         }
 
         minutes = total_seconds / 60
-        if minutes < TARGET_MIN_SECONDS / 60:
+        if minutes < target_min_minutes:
             self.report.warn(
                 "runtime_short",
                 f"estimated runtime is {minutes:.1f} min, well under the "
-                f"{TARGET_MIN_SECONDS / 60:.0f}-{TARGET_MAX_SECONDS / 60:.0f} "
-                "min target for this format",
+                f"{target_min_minutes:g}-{target_max_minutes:g} min target "
+                "for this format",
             )
-        elif minutes > TARGET_MAX_SECONDS / 60:
+        elif minutes > target_max_minutes:
             self.report.warn(
                 "runtime_long",
                 f"estimated runtime is {minutes:.1f} min, above the "
-                f"{TARGET_MAX_SECONDS / 60:.0f} min target for this format",
+                f"{target_max_minutes:g} min target for this format",
             )
+
+    def _target_minutes(self) -> tuple[float, float]:
+        """Runtime envelope from the script, falling back to the format default."""
+        target = getattr(self.script.video_metadata, "target_minutes", None)
+        if (
+            isinstance(target, (tuple, list))
+            and len(target) == 2
+            and target[0] <= target[1]
+        ):
+            return (float(target[0]), float(target[1]))
+        return DEFAULT_TARGET_MINUTES
