@@ -364,7 +364,6 @@
           "image_file": "assets/characters/my_host_02.png",
           "x": 0.35, "y": 0.93, "height": 0.7,
           "flip": true,
-          "at_sentence": 2, "for_sentences": 2,
           "enter": { "type": "slide_in", "from": "left", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.3 },
           "exit": { "type": "slide_out", "to": "left", "duration_ms": 400 }
@@ -373,11 +372,19 @@
     {
       "id": 20,
       "text": "Chí về nhà đếm tiền: 'Một, hai, ba... ối giời ơi, nhiều thế này!' Rồi Chí quyết định mở sổ tiết kiệm: 'Gửi ngân hàng làng Vũ Đại, lãi suất 200% một tháng, rủi ro cao nhưng lợi nhuận cao!'",
-      "image_file": "projects/topics-001/images/20.png",
+      "image_file": "projects/topics-001/images/14.png",
       "pause_after_ms": 300,
       "transition_in": { "type": "fade", "duration": 0.2 },
       "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
-      "characters": []
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_02.png",
+          "x": 0.35, "y": 0.93, "height": 0.5,
+          "flip": true,
+          "enter": { "type": "slide_in", "from": "left", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.3 },
+          "exit": { "type": "slide_out", "to": "left", "duration_ms": 400 }
+        }]
     },
     {
       "id": 21,
@@ -386,7 +393,6 @@
       "pause_after_ms": 300,
       "transition_in": { "type": "fade", "duration": 0.3 },
       "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
-      "text_overlays": [{ "text": "Định Mệnh Vườn Chuối", "position": "center", "animation": "fade_in" }],
       "characters": [
         {
           "image_file": "projects/topics-002/Figure/thi_no.png",
@@ -408,57 +414,69 @@
     {
       "id": 22,
       "text": "Thị Nở nhìn Chí: 'Anh gì ơi, anh say à?' Chí: 'Tôi không say, tôi chỉ... hơi quá chén thôi!' Thị Nở: 'Anh ơi, mặt anh dính gì kìa!' Chí: 'Đâu? À, máu đấy, tôi vừa rạch mặt ăn vạ xong!'",
-      "image_file": "projects/topics-001/images/22.png",
+      "image_file": "projects/topics-001/images/16.png",
       "pause_after_ms": 300,
       "transition_in": { "type": "zoom", "duration": 0.2 },
       "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
-      "text_overlays": [{ "text": "Cuộc Gặp Định Mệnh", "position": "center", "animation": "pop" }],
       "characters": []
     },
     {
       "id": 23,
       "text": "Nhan sắc thì khỏi bàn – 'ma chê quỷ khóc' là còn nhẹ! Nhưng hai tâm hồn cô đơn, đói khát tình thương lại va vào nhau như xe tải mất phanh. Không phải tình yêu sét đánh, mà là một tình yêu thuần khiết, Hai trái tim vàng một túp lều tranh!",
-      "image_file": "projects/topics-001/images/23.png",
+      "image_file": "projects/background/image01.png",
       "pause_after_ms": 400,
       "transition_in": { "type": "zoom", "duration": 0.2 },
       "ken_burns": { "enabled": true, "type": "zoom_out", "start_scale": 1.1, "end_scale": 1.0 },
-      "text_overlays": [{ "text": "Va Vào Nhau Như Xe Tải Mất Phanh", "position": "bottom", "animation": "pop" }],
-      "characters": []
+      "characters": [
+        {
+          "image_file": "projects/topics-001/images/15.png",
+          "x": 0.35, "y": 0.93, "height": 0.5,
+          "flip": true,
+          "enter": { "type": "slide_in", "from": "left", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.3 },
+          "exit": { "type": "slide_out", "to": "left", "duration_ms": 400 }
+        }]
     },
     {
       "id": 24,
       "text": "Thị Nở tâm sự: 'Em cũng cô đơn lắm, cả làng không ai thèm để ý em!' Chí: 'Tôi cũng thế, cả làng chỉ thấy tôi là thằng điên!' Hai người nhìn nhau, và rồi... tiếng sét ái tình nổ ra! (Thật ra là tiếng .....đóng.......đóng cửa, mặc dù không phải. Không như các bạn đang nghĩ đâu nhé!)",
-      "image_file": "projects/topics-001/images/24.png",
+      "image_file": "projects/topics-001/images/17.png",
       "pause_after_ms": 300,
       "transition_in": { "type": "fade", "duration": 0.2 },
       "ken_burns": { "enabled": true, "type": "pan_right", "start_scale": 1.05, "end_scale": 1.05 },
-      "text_overlays": [{ "text": "Tiếng Sét Ái Tình", "position": "top", "animation": "pop" }],
       "characters": []
     },
     {
       "id": 25,
       "text": "Sáng hôm sau, Thị Nở mang ngay một bát cháo hành nóng hổi sang cho Chí. Đơn giản chỉ là bát cháo, nhưng lại chứa đựng cả một tấm lòng. Michelin Làng Vũ Đại chính thức có tên trong danh sách!",
-      "image_file": "projects/topics-001/images/25.png",
+      "image_file": "projects/background/image01.png",
       "pause_after_ms": 300,
       "transition_in": { "type": "slide_down", "duration": 0.2 },
       "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.1 },
-      "text_overlays": [{ "text": "Michelin Làng Vũ Đại", "position": "top", "animation": "pop" }],
-      "characters": []
+      "characters": [
+        {
+          "image_file": "projects/topics-002/Figure/chi_lon.png",
+          "preset": "boing",
+          "x": 0.5, "y": 0.5, "height": 0.7,
+          "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
+          "idle": { "type": "talk", "amplitude_px": 12, "period_s": 0.25 },
+          "exit": { "type": "shrink_out", "duration_ms": 200 }
+        }
+      ]
     },
     {
       "id": 26,
       "text": "Thị Nở: 'Anh Chí ơi, em nấu cháo hành cho anh nè, ăn đi cho ấm bụng!' Chí: 'Ơ... lần đầu tiên có người nấu cho tôi ăn...' Thị Nở: 'Sao anh khóc?' Chí: 'Không, tại hành nó cay mắt thôi!'",
-      "image_file": "projects/topics-001/images/26.png",
+      "image_file": "projects/topics-001/images/18.png",
       "pause_after_ms": 300,
       "transition_in": { "type": "fade", "duration": 0.2 },
       "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
-      "text_overlays": [{ "text": "Hành Cay Mắt", "position": "center", "animation": "fade_in" }],
       "characters": []
     },
     {
       "id": 27,
       "text": "Chí húp một hơi hết sạch bát cháo, nước mắt lăn dài trên má: 'Ngon quá mẹ ơi! Đây mới chính là hương vị của tình thương!' Bát cháo hành – sức mạnh của nó không ai ngờ tới!",
-      "image_file": "projects/topics-001/images/27.png",
+      "image_file": "projects/topics-001/images/19.png",
       "pause_after_ms": 300,
       "transition_in": { "type": "fade", "duration": 0.2 },
       "ken_burns": { "enabled": true, "type": "pan_left", "start_scale": 1.05, "end_scale": 1.05 },
@@ -477,7 +495,7 @@
     {
       "id": 28,
       "text": "Chí ước: 'Mình muốn làm người tốt! Muốn lập kênh TikTok cùng Nở, chia sẻ cuộc sống lương thiện!' Ước mơ hoàn lương giản dị mà cảm động, nhưng đời nào dễ cho ai!",
-      "image_file": "projects/topics-001/images/28.png",
+      "image_file": "projects/topics-001/images/20.png",
       "pause_after_ms": 400,
       "transition_in": { "type": "zoom", "duration": 0.2 },
       "ken_burns": { "enabled": true, "type": "zoom_in", "start_scale": 1.0, "end_scale": 1.08 },
