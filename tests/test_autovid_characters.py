@@ -33,6 +33,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import numpy as np  # noqa: E402
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
@@ -1189,6 +1191,498 @@ class TestCharacterRender(unittest.TestCase):
         )
         # ...and it is over by the end of the scene.
         self.assertLess(abs(brightness(flashed[-1]) - brightness(plain[-1])), 20)
+
+
+class TestVariants(unittest.TestCase):
+    """
+    Pose and talk swaps: the schema, the resolved windows, the baked stack.
+
+    The window maths is where this feature can quietly go wrong -- a pose
+    landing outside its cue, a swap composited while the sprite is still
+    mid-flight -- so those are the cases that are pinned here.
+    """
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="autovid-variants-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.cache = self.tmp / "cache"
+        self.source = make_sprite(self.tmp / "host.png")
+        self.talk_a = make_sprite(self.tmp / "talk_a.png", size=(60, 100))
+        self.talk_b = make_sprite(self.tmp / "talk_b.png", size=(52, 100))
+        self.pose = make_sprite(self.tmp / "pose.png", size=(60, 96))
+
+    def variants_for(self, **overrides):
+        character = character_dict(
+            talk=[str(self.talk_a), str(self.talk_b)],
+            auto_pose_s=1.0,
+            poses=[
+                {
+                    "image_file": str(self.pose),
+                    "from_sentence": 2,
+                    "to_sentence": 3,
+                }
+            ],
+            enter={"type": "none"},
+            exit={"type": "none"},
+        )
+        character.update(overrides)
+        script = script_dict([scene_dict(characters=[character])])
+        # Three sentences of 2s each: windows (0,2), (2.5,4.5), (5,7).
+        tts, pacing = reports_dict(
+            moments=[(0.0, 2.0), (2.5, 4.5), (5.0, 7.0)],
+        )
+        return resolve_character_cues(
+            script,
+            timeline=timeline_dict(duration_s=7.0),
+            tts_report=tts,
+            pacing_report=pacing,
+        )
+
+    def test_a_sentence_pose_fills_its_sentences(self):
+        plan = self.variants_for()
+        variants = plan.variants_for(1, 0)
+        poses = [v for v in variants if v.kind == "pose"]
+
+        self.assertEqual(len(poses), 1)
+        # Sentences 2..3 run 2.5 -> 7.0: the pose covers exactly that.
+        self.assertAlmostEqual(poses[0].start_s, 2.5, places=3)
+        self.assertAlmostEqual(poses[0].end_s, 7.0, places=3)
+
+    def test_auto_rotation_cycles_unanchored_poses(self):
+        pose_b = make_sprite(self.tmp / "pose_b.png", size=(60, 96))
+        plan = self.variants_for(
+            poses=[
+                {"image_file": str(self.pose)},
+                {"image_file": str(pose_b)},
+            ],
+        )
+        variants = plan.variants_for(1, 0)
+        rotated = [v for v in variants if v.kind == "pose"]
+
+        # Both unanchored poses appear, alternating, and never overlap.
+        images = {v.image_file for v in rotated}
+        self.assertEqual(len(images), 2)
+        self.assertEqual(
+            list(rotated), sorted(rotated, key=lambda v: v.start_s)
+        )
+        for first, second in zip(rotated, rotated[1:]):
+            self.assertGreaterEqual(second.start_s, first.end_s - 1e-6)
+
+    def test_talk_cycle_alternates_and_stays_inside_the_cue(self):
+        plan = self.variants_for(auto_pose_s=None, poses=[])
+        variants = plan.variants_for(1, 0)
+
+        self.assertTrue(variants)
+        self.assertTrue(all(v.kind == "talk" for v in variants))
+        self.assertEqual(
+            list(variants), sorted(variants, key=lambda v: v.start_s)
+        )
+        # One cadence step apart inside a sentence, never bunched...
+        for first, second in zip(variants, variants[1:]):
+            self.assertGreaterEqual(second.start_s, first.end_s - 1e-6)
+            if abs(second.start_s - first.end_s) < 1e-6:
+                self.assertAlmostEqual(
+                    second.start_s - first.start_s, 0.32, delta=0.01
+                )
+        # ...and no swap inside the pauses: the resting look holds while
+        # the narrator breathes.
+        for variant in variants:
+            self.assertGreaterEqual(variant.start_s, 0.0)
+            self.assertLessEqual(variant.end_s, 7.0 + 1e-6)
+            for pause_start, pause_end in ((2.0, 2.5), (4.5, 5.0)):
+                overlaps = (
+                    variant.start_s < pause_end - 1e-6
+                    and variant.end_s > pause_start + 1e-6
+                )
+                self.assertFalse(overlaps, f"swap inside a pause: {variant}")
+
+    def test_talk_cycle_keeps_flapping_without_reports(self):
+        """Nothing measured: the whole cue speaks, exactly as it used to."""
+        character = character_dict(
+            talk=[str(self.talk_a), str(self.talk_b)],
+            enter={"type": "none"},
+            exit={"type": "none"},
+        )
+        script = script_dict([scene_dict(characters=[character])])
+        plan = resolve_character_cues(
+            script, timeline=timeline_dict(duration_s=7.0)
+        )
+        variants = plan.variants_for(1, 0)
+
+        self.assertTrue(variants)
+        # Contiguous across the whole cue: there are no measured pauses to
+        # close on, so the cycle never stops.
+        for first, second in zip(variants, variants[1:]):
+            self.assertAlmostEqual(second.start_s, first.end_s, delta=1e-6)
+
+    def test_swaps_never_fire_during_the_entrance(self):
+        """A swap mid-flight would composite two characters at once."""
+        plan = self.variants_for(
+            enter={"type": "drop_bounce", "duration_ms": 900},
+        )
+        variants = plan.variants_for(1, 0)
+
+        self.assertTrue(variants)
+        for variant in variants:
+            self.assertGreaterEqual(variant.start_s, 0.9 - 1e-6)
+
+    def test_swaps_avoid_the_exit(self):
+        plan = self.variants_for(
+            exit={"type": "shrink_out", "duration_ms": 500},
+        )
+        variants = plan.variants_for(1, 0)
+
+        self.assertTrue(variants)
+        for variant in variants:
+            self.assertLessEqual(variant.end_s, 7.0 - 0.5 + 1e-6)
+
+    def test_a_pose_outside_its_cue_is_dropped(self):
+        plan = self.variants_for(
+            poses=[
+                {
+                    "image_file": str(self.pose),
+                    "start_offset_ms": 6950,
+                    "end_offset_ms": 6980,
+                }
+            ],
+            talk=[],
+            auto_pose_s=None,
+        )
+        variants = plan.variants_for(1, 0)
+        self.assertEqual(variants, ())
+        dropped = [
+            w for w in plan.warnings if w["code"] == "character_pose_dropped"
+        ]
+        self.assertTrue(dropped)
+
+    def test_the_parser_accepts_talk_and_poses(self):
+        character = character_dict(talk=["assets/characters/missing.png"])
+        script = script_dict([scene_dict(characters=[character])])
+        # Parse succeeds; the validator catches the missing file.  Here we
+        # pin that the parser itself accepts the structure.
+        self.assertEqual(
+            script.scenes[0].characters[0].talk_images,
+            ("assets/characters/missing.png",),
+        )
+
+    def test_variant_layers_share_the_resting_box(self):
+        plan = self.variants_for(auto_pose_s=None, poses=[])
+        cue = plan.for_scene(1)[0]
+        layers = SpritePlanner(self.cache).plan(
+            cue,
+            source=self.source,
+            frame_size=FRAME,
+            fps=FPS,
+            variants=plan.variants_for(1, 0),
+        )
+        boxes = {(layer.frame.box_w, layer.frame.box_h) for layer in layers}
+        self.assertEqual(len(boxes), 1, "a swap changed the composite geometry")
+
+        # And the swap layers genuinely differ from the resting sprite.
+        swap_files = {
+            layer.frame.path
+            for layer in layers
+            if layer.travel == "none"
+            and layer.fade_in_s == 0
+            and layer.fade_out_s == 0
+        }
+        self.assertGreaterEqual(len(swap_files), 2)
+
+
+class TestMouthPatch(unittest.TestCase):
+    """
+    The mouth flap: patches composited onto a still body.
+
+    The whole point of the feature is that the body never moves while the
+    mouth does, so the pinned property is that the baked mouth frames are
+    identical everywhere except the face -- plus the cycle timing, which is
+    the talk cycle's job taken over by a patch that cannot twitch a limb.
+    """
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="autovid-mouth-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.cache = self.tmp / "cache"
+        self.body = make_sprite(self.tmp / "host.png")
+        self.closed = self.tmp / "closed.png"
+        self.open = self.tmp / "open.png"
+        self.red = self.tmp / "red.png"
+        self.blue = self.tmp / "blue.png"
+        Image.new("RGB", (40, 20), (24, 24, 24)).save(self.closed)
+        Image.new("RGB", (40, 20), (200, 60, 60)).save(self.open)
+        Image.new("RGB", (40, 20), (200, 60, 60)).save(self.red)
+        Image.new("RGB", (40, 20), (60, 60, 200)).save(self.blue)
+
+    def mouth_character(self, **overrides):
+        character = character_dict(
+            mouth={
+                "images": [str(self.closed), str(self.open)],
+                "x": 0.5,
+                "y": 0.25,
+                "size": [0.3, 0.12],
+                "period_s": 0.3,
+            },
+            enter={"type": "none"},
+            exit={"type": "none"},
+        )
+        character.update(overrides)
+        return character
+
+    def resolved(self, character):
+        script = script_dict([scene_dict(characters=[character])])
+        tts, pacing = reports_dict(
+            moments=[(0.0, 2.0), (2.5, 4.5), (5.0, 7.0)]
+        )
+        return resolve_character_cues(
+            script,
+            timeline=timeline_dict(duration_s=7.0),
+            tts_report=tts,
+            pacing_report=pacing,
+        )
+
+    def test_the_parser_keeps_anchor_and_size(self):
+        script = script_dict(
+            [scene_dict(characters=[self.mouth_character()])]
+        )
+        mouth = script.scenes[0].characters[0].mouth
+        self.assertIsNotNone(mouth)
+        self.assertEqual(
+            mouth.images, (str(self.closed), str(self.open))
+        )
+        self.assertEqual(mouth.x, 0.5)
+        self.assertEqual(mouth.y, 0.25)
+        self.assertEqual(mouth.size, (0.3, 0.12))
+        self.assertAlmostEqual(mouth.period_s, 0.3)
+
+    def test_a_mouth_without_images_is_rejected(self):
+        with self.assertRaises(ScriptSchemaError):
+            script_dict(
+                [
+                    scene_dict(
+                        characters=[
+                            self.mouth_character(
+                                mouth={
+                                    "images": [],
+                                    "x": 0.5,
+                                    "y": 0.25,
+                                    "size": [0.3, 0.12],
+                                }
+                            )
+                        ]
+                    )
+                ]
+            )
+
+    def test_a_mouth_size_out_of_range_is_rejected(self):
+        with self.assertRaises(ScriptSchemaError):
+            script_dict(
+                [
+                    scene_dict(
+                        characters=[
+                            self.mouth_character(
+                                mouth={
+                                    "images": [str(self.closed)],
+                                    "x": 0.5,
+                                    "y": 0.25,
+                                    "size": [2.0, 0.1],
+                                }
+                            )
+                        ]
+                    )
+                ]
+            )
+
+    def test_mouth_windows_cycle_on_their_period(self):
+        plan = self.resolved(self.mouth_character())
+        variants = plan.variants_for(1, 0)
+        self.assertTrue(variants)
+        self.assertTrue(all(v.kind == "mouth" for v in variants))
+        self.assertEqual(
+            list(variants), sorted(variants, key=lambda v: v.start_s)
+        )
+        # Within one sentence the patches cycle on their period; across a
+        # pause the schedule closes the mouth instead, so only neighbours
+        # inside the same speech run are one period apart.
+        for first, second in zip(variants, variants[1:]):
+            if first.silence or second.silence:
+                continue
+            self.assertAlmostEqual(
+                second.start_s - first.start_s, 0.3, delta=0.01
+            )
+        # Both patches take a turn, and no body swap is scheduled at all.
+        self.assertEqual(
+            {v.mouth_file for v in variants},
+            {str(self.closed), str(self.open)},
+        )
+        self.assertTrue(all(v.image_file == "" for v in variants))
+
+    def test_the_mouth_closes_during_measured_pauses(self):
+        """The flap follows the voice: a pause holds the closed patch."""
+        plan = self.resolved(self.mouth_character())
+        variants = plan.variants_for(1, 0)
+        # Stage 2 measured the sentences (0,2), (2.5,4.5), (5,7), so the
+        # pauses are (2.0,2.5) and (4.5,5.0).
+        for pause_start, pause_end in ((2.0, 2.5), (4.5, 5.0)):
+            inside = [
+                variant
+                for variant in variants
+                if variant.start_s < pause_end - 1e-6
+                and variant.end_s > pause_start + 1e-6
+            ]
+            self.assertTrue(inside, f"nothing scheduled in {pause_start}")
+            for variant in inside:
+                self.assertTrue(variant.silence)
+                self.assertEqual(variant.mouth_file, str(self.closed))
+        # ...and the flap really moves while the narrator speaks.
+        self.assertTrue(any(not variant.silence for variant in variants))
+
+    def test_the_schedule_covers_the_whole_cue(self):
+        """A gap would let the resting artwork's own mouth show through."""
+        plan = self.resolved(self.mouth_character())
+        variants = plan.variants_for(1, 0)
+        cursor = variants[0].start_s
+        for variant in variants:
+            self.assertAlmostEqual(variant.start_s, cursor, delta=1e-6)
+            cursor = variant.end_s
+        self.assertAlmostEqual(cursor, variants[-1].end_s)
+
+    def test_a_micro_pause_does_not_close_the_mouth(self):
+        """A 100ms gap is the narrator breathing, not a stop."""
+        character = self.mouth_character()
+        script = script_dict([scene_dict(characters=[character])])
+        tts, pacing = reports_dict(
+            moments=[(0.0, 2.0), (2.1, 4.0), (5.0, 7.0)],
+            pauses=[100, 500],
+        )
+        plan = resolve_character_cues(
+            script,
+            timeline=timeline_dict(duration_s=7.0),
+            tts_report=tts,
+            pacing_report=pacing,
+        )
+        variants = plan.variants_for(1, 0)
+        self.assertTrue(variants)
+        for variant in variants:
+            overlaps_micro = (
+                variant.start_s < 2.1 - 1e-6 and variant.end_s > 2.0 + 1e-6
+            )
+            self.assertFalse(
+                overlaps_micro and variant.silence,
+                "the mouth closed for a 100ms breath",
+            )
+
+    def test_a_cue_parked_in_a_pause_keeps_its_mouth_shut(self):
+        """No measured speech overlaps the cue: closed, nothing flaps."""
+        plan = self.resolved(
+            self.mouth_character(
+                start_offset_ms=2000, end_offset_ms=2500
+            )
+        )
+        variants = plan.variants_for(1, 0)
+
+        self.assertEqual(len(variants), 1)
+        self.assertTrue(variants[0].silence)
+        self.assertEqual(variants[0].mouth_file, str(self.closed))
+
+    def test_a_single_patch_still_schedules_silence(self):
+        """One closed patch: the hold and the flap share the same image."""
+        plan = self.resolved(
+            self.mouth_character(mouth={
+                "images": [str(self.closed)],
+                "x": 0.5,
+                "y": 0.25,
+                "size": [0.3, 0.12],
+                "period_s": 0.3,
+            })
+        )
+        variants = plan.variants_for(1, 0)
+        self.assertTrue(variants)
+        self.assertTrue(
+            all(variant.mouth_file == str(self.closed) for variant in variants)
+        )
+        self.assertTrue(any(variant.silence for variant in variants))
+
+    def test_a_mouth_block_pushes_body_swaps_out_of_the_cue(self):
+        plan = self.resolved(
+            self.mouth_character(
+                talk=[str(self.body)],
+                poses=[str(self.body)],
+                auto_pose_s=1.0,
+            )
+        )
+        variants = plan.variants_for(1, 0)
+        self.assertTrue(variants)
+        self.assertTrue(all(v.kind == "mouth" for v in variants))
+
+    def test_mouth_layers_share_the_resting_geometry(self):
+        plan = self.resolved(self.mouth_character())
+        cue = plan.for_scene(1)[0]
+        layers = SpritePlanner(self.cache).plan(
+            cue,
+            source=self.body,
+            frame_size=FRAME,
+            fps=FPS,
+            variants=plan.variants_for(1, 0),
+        )
+        boxes = {
+            (layer.frame.box_w, layer.frame.box_h) for layer in layers
+        }
+        self.assertEqual(len(boxes), 1)
+
+    def test_the_patch_lands_on_its_anchor_and_nowhere_else(self):
+        """Two bakes differing only in patch colour diff only at the mouth."""
+        common = dict(
+            height_px=120,
+            flip=False,
+            spinning=False,
+            anchor="bottom",
+            destination_dir=self.cache,
+            mouth_anchor=(0.5, 0.25),
+            mouth_size=(0.4, 0.2),
+        )
+        frame_a = bake_sprite(source=self.body, mouth=self.red, **common)
+        frame_b = bake_sprite(source=self.body, mouth=self.blue, **common)
+        self.assertEqual(
+            (frame_a.box_w, frame_a.box_h), (frame_b.box_w, frame_b.box_h)
+        )
+
+        a = np.asarray(Image.open(frame_a.path).convert("RGB"), int)
+        b = np.asarray(Image.open(frame_b.path).convert("RGB"), int)
+        diff = np.abs(a - b).max(axis=2) > 10
+        self.assertTrue(diff.any())
+        ys, xs = np.where(diff)
+        content_x0 = (frame_a.box_w - frame_a.content_w) // 2
+        content_y0 = frame_a.box_h - frame_a.content_h
+        rel_x = (xs.mean() - content_x0) / frame_a.content_w
+        rel_y = (ys.mean() - content_y0) / frame_a.content_h
+        self.assertAlmostEqual(rel_x, 0.5, delta=0.05)
+        self.assertAlmostEqual(rel_y, 0.25, delta=0.05)
+
+    def test_a_flipped_sprite_mirrors_the_patch_anchor(self):
+        common = dict(
+            height_px=120,
+            spinning=False,
+            anchor="bottom",
+            destination_dir=self.cache,
+            mouth_anchor=(0.3, 0.3),
+            mouth_size=(0.4, 0.2),
+        )
+        frame_a = bake_sprite(
+            source=self.body, flip=False, mouth=self.red, **common
+        )
+        frame_b = bake_sprite(
+            source=self.body, flip=True, mouth=self.red, **common
+        )
+        a = np.asarray(Image.open(frame_a.path).convert("RGB"), int)
+        b = np.asarray(Image.open(frame_b.path).convert("RGB"), int)
+        # The patched bakes are horizontal mirrors of each other: the red
+        # footprint sits on the left in one and on the right in the other.
+        red_a = (a[..., 0] > 150) & (a[..., 1] < 110) & (a[..., 2] < 110)
+        red_b = (b[..., 0] > 150) & (b[..., 1] < 110) & (b[..., 2] < 110)
+        self.assertTrue(red_a.any())
+        self.assertTrue(red_b.any())
+        self.assertGreater(red_a[:, : a.shape[1] // 2].sum(), red_a[:, a.shape[1] // 2 :].sum())
+        self.assertLess(red_b[:, : b.shape[1] // 2].sum(), red_b[:, b.shape[1] // 2 :].sum())
 
 
 class TestTransitionRenderPlan(unittest.TestCase):

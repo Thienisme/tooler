@@ -1,9 +1,9 @@
-python autovid.py validate projects/topics-001/script.json
-python autovid.py tts projects/topics-001/script.json
-python autovid.py images projects/topics-001/script.json
-python autovid.py assembly projects/topics-001/script.json
-python autovid.py mix projects/topics-001/script.json --skip-music
-python autovid.py render projects/topics-001/script.json
+python autovid.py validate projects/topics-002/script.json
+python autovid.py tts projects/topics-002/script.json
+python autovid.py images projects/topics-002/script.json
+python autovid.py assembly projects/topics-002/script.json
+python autovid.py mix projects/topics-002/script.json --skip-music
+python autovid.py render projects/topics-002/script.json
 
 // json
 "characters": [
@@ -25,4 +25,4 @@ Their face is hilarious and expressive: giant mismatched eyes with tiny pupils (
 
 They are wearing simplified, flat-colored [TRANG PHỤC ĐẶC TRƯNG] with visible stitching and messy details, holding [ĐỒ VẬT ĐẶC TRƯNG] in a clumsy, comical way.
 
-The artwork features thick, rough black outlines and vibrant, flat coloring with no complex shading. Clean, solid white background to emphasize the character design. Humorous, playful, and hand-drawn comic animation style.
+The artwork features thick, rough black outlines and vibrant, flat coloring with no complex shading. Clean, solid white background to emphasize the character design. Humorous, playful, and hand-drawn comic animation style.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      

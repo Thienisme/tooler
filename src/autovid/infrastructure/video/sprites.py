@@ -33,7 +33,7 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from autovid.domain.characters import CharacterCue
 from autovid.domain.script import CharacterIdle
@@ -104,6 +104,9 @@ class SpriteFrame:
     content_h: int
     feet_inset_px: int
     centre_inset_px: int
+    # Where the artwork came from: a mouth variant re-bakes the resting
+    # sprite with a patch on, so it needs the original path again.
+    source_path: Path | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -164,7 +167,12 @@ class CharacterLayer:
             "travel_s": round(self.travel_s, 4),
             "travel_px": [self.travel_x, self.travel_y],
             "spin": self.spin,
+            # Amplitude and period change the position expression without
+            # changing the type, so they belong in the cache signature too:
+            # without them a retuned idle would silently reuse the old clip.
             "idle": self.idle.type if self.idle else "none",
+            "idle_amplitude_px": self.idle.amplitude_px if self.idle else 0,
+            "idle_period_s": self.idle.period_s if self.idle else 0.0,
             "position": [self.box_x, self.box_y],
             "box": [self.frame.box_w, self.frame.box_h],
         }
@@ -396,12 +404,21 @@ def bake_sprite(
     box: tuple[int, int] | None = None,
     anchor: str = "bottom",
     destination_dir: Path,
+    mouth: Path | None = None,
+    mouth_anchor: tuple[float, float] = (0.5, 0.5),
+    mouth_size: tuple[float, float] = (0.2, 0.1),
 ) -> SpriteFrame:
     """
     Scale a character to `height_px * scale` and paste it onto its box.
 
     `box` fixes the canvas so every step of a size animation shares the same
     overlay geometry; omitted, the box is derived from this step.
+
+    `mouth` composites a small opaque patch *onto* the artwork -- the mouth
+    flap.  `mouth_anchor` is the patch centre as a fraction of the trimmed
+    artwork's content box, `mouth_size` the patch size in the same units;
+    both come from tools/cut_mouth_from_frames.py.  A flipped sprite
+    mirrors the anchor and the patch, exactly like the body it belongs to.
     """
     sprite = _load_trimmed(source, flip=flip)
     content_w, content_h = _content_size(
@@ -419,6 +436,34 @@ def bake_sprite(
     top = (box_h - content_h) // 2 if anchor == "center" else box_h - content_h
     canvas.alpha_composite(resized, (left, top))
 
+    if mouth is not None:
+        patch = Image.open(mouth).convert("RGBA")
+        if flip:
+            patch = patch.transpose(Image.FLIP_LEFT_RIGHT)
+        patch_w = max(2, int(round(content_w * mouth_size[0])))
+        patch_h = max(2, int(round(content_h * mouth_size[1])))
+        patch = patch.resize((patch_w, patch_h), Image.LANCZOS)
+        # A feathered edge melts the rectangular patch into the artwork
+        # instead of drawing a visible seam around the mouth.
+        feather = max(2, min(patch_w, patch_h) // 10)
+        alpha = Image.new("L", (patch_w, patch_h), 255)
+        alpha_draw = ImageDraw.Draw(alpha)
+        for step in range(feather):
+            value = int(255 * (step + 1) / feather)
+            alpha_draw.rectangle(
+                (step, step, patch_w - 1 - step, patch_h - 1 - step),
+                outline=value,
+            )
+        patch.putalpha(alpha)
+        anchor_x, anchor_y = mouth_anchor
+        if flip:
+            anchor_x = 1.0 - anchor_x
+        patch_x = left + int(round(content_w * anchor_x)) - patch_w // 2
+        patch_y = top + int(round(content_h * anchor_y)) - patch_h // 2
+        patch_x = max(0, min(patch_x, box_w - patch_w))
+        patch_y = max(0, min(patch_y, box_h - patch_h))
+        canvas.alpha_composite(patch, (patch_x, patch_y))
+
     stat = source.stat()
     key = _cache_key(
         source.resolve(),
@@ -431,6 +476,11 @@ def bake_sprite(
         box_w,
         box_h,
         anchor,
+        str(mouth.resolve()) if mouth is not None else "",
+        round(mouth_anchor[0], 4),
+        round(mouth_anchor[1], 4),
+        round(mouth_size[0], 4),
+        round(mouth_size[1], 4),
     )
     destination = destination_dir / f"{key}.png"
     if not destination.exists():
@@ -445,6 +495,7 @@ def bake_sprite(
         content_h=content_h,
         feet_inset_px=top + content_h,
         centre_inset_px=top + content_h // 2,
+        source_path=source,
     )
 
 
@@ -462,6 +513,7 @@ class SpritePlanner:
         source: Path,
         frame_size: tuple[int, int],
         fps: int = 30,
+        variants: tuple = (),
     ) -> list[CharacterLayer]:
         """Every composited layer for one cue, in composite order."""
         frame_w, frame_h = frame_size
@@ -585,7 +637,28 @@ class SpritePlanner:
             )
 
         if exit_start is None:
+            if variants:
+                layers.extend(
+                    self._variant_layers(
+                        variants=variants,
+                        cue=cue,
+                        resting=resting,
+                        anchor=anchor,
+                        geometry=geometry,
+                    )
+                )
             return layers
+
+        if variants:
+            layers.extend(
+                self._variant_layers(
+                    variants=variants,
+                    cue=cue,
+                    resting=resting,
+                    anchor=anchor,
+                    geometry=geometry,
+                )
+            )
 
         if exit_spec["kind"] == "series":
             layers.extend(
@@ -638,6 +711,83 @@ class SpritePlanner:
 
     # -- internals --------------------------------------------------------
 
+    def _variant_layers(
+        self,
+        *,
+        variants: tuple,
+        cue: CharacterCue,
+        resting: SpriteFrame,
+        anchor: str,
+        geometry: dict,
+    ) -> list[CharacterLayer]:
+        """
+        One baked input per distinct pose, talk frame or mouth patch.
+
+        A body variant is baked from its own artwork but into the *resting*
+        box at the resting content height, so the composite position is one
+        number for the whole cue and a swap changes pixels, not geometry:
+        feet stay on the baseline, different aspect ratios just fill the
+        box's width differently.  `travel="none"` keeps the box still while
+        the idle expression continues to move it, so a talking host keeps
+        breathing through a pose change.
+
+        A mouth variant bakes the resting sprite *with the patch already
+        composited on*, so from ffmpeg's point of view these layers are
+        indistinguishable from body variants -- but the body pixels are
+        identical between them and only the face moves.
+        """
+        layers: list[CharacterLayer] = []
+        frames: dict[tuple, SpriteFrame] = {}
+        mouth_spec = cue.mouth
+
+        for variant in variants:
+            if variant.kind == "mouth":
+                if mouth_spec is None or not variant.mouth_file:
+                    continue
+                key = ("mouth", variant.mouth_file)
+                frame = frames.get(key)
+                if frame is None:
+                    frame = self._bake(
+                        resting.source_path,
+                        height_px=resting.content_h,
+                        scale=1.0,
+                        flip=cue.flip,
+                        spinning=False,
+                        box=(resting.box_w, resting.box_h),
+                        anchor=anchor,
+                        mouth=Path(variant.mouth_file),
+                        mouth_anchor=(mouth_spec.x, mouth_spec.y),
+                        mouth_size=tuple(mouth_spec.size),
+                    )
+                    frames[key] = frame
+            else:
+                key = (variant.image_file, bool(variant.flip) != bool(cue.flip))
+                frame = frames.get(key)
+                if frame is None:
+                    frame = self._bake(
+                        Path(variant.image_file),
+                        height_px=resting.content_h,
+                        scale=1.0,
+                        flip=key[1],
+                        spinning=False,
+                        box=(resting.box_w, resting.box_h),
+                        anchor=anchor,
+                    )
+                    frames[key] = frame
+            layers.append(
+                CharacterLayer(
+                    frame=frame,
+                    start_s=variant.start_s,
+                    end_s=variant.end_s,
+                    box_x=geometry["box_x"],
+                    box_y=geometry["box_y"],
+                    idle=cue.idle,
+                    idle_origin_s=cue.start_s,
+                )
+            )
+
+        return layers
+
     def _bake(
         self,
         source: Path,
@@ -648,6 +798,9 @@ class SpritePlanner:
         spinning: bool,
         box: tuple[int, int] | None,
         anchor: str,
+        mouth: Path | None = None,
+        mouth_anchor: tuple[float, float] = (0.5, 0.5),
+        mouth_size: tuple[float, float] = (0.2, 0.1),
     ) -> SpriteFrame:
         return bake_sprite(
             source=source,
@@ -658,6 +811,9 @@ class SpritePlanner:
             box=box,
             anchor=anchor,
             destination_dir=self.cache_dir,
+            mouth=mouth,
+            mouth_anchor=mouth_anchor,
+            mouth_size=mouth_size,
         )
 
     def _box_for(

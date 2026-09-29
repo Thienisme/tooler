@@ -173,6 +173,33 @@ CHARACTER_PRESET_DEFAULTS: dict[str, dict] = {
     },
 }
 
+# Frame-swap limits.  Two or three talk frames at roughly three swaps a
+# second read as speech; past four the cost is more baked inputs for an
+# effect the eye cannot follow anyway.
+DEFAULT_TALK_PERIOD_S = 0.32
+MIN_TALK_PERIOD_S = 0.1
+MAX_TALK_PERIOD_S = 1.0
+MAX_TALK_IMAGES = 4
+
+# Poses are the deliberate beats; a long list usually means the author is
+# re-choreographing the scene one sentence at a time and should split it.
+MAX_POSES = 8
+
+# Auto-rotation: fast enough to stay lively, slow enough to read as a
+# change of mind rather than as a glitch.
+DEFAULT_AUTO_POSE_S = 2.5
+MIN_AUTO_POSE_S = 0.5
+MAX_AUTO_POSE_S = 30.0
+
+# A mouth patch is a small opaque image composited over the sprite's face
+# so the mouth flaps while the body artwork never changes.  At two frames
+# the flap is one blink of the mouth; the anchor/size are fractions of the
+# *resting artwork's trimmed box*, so they survive a change of resolution.
+MAX_MOUTH_IMAGES = 4
+DEFAULT_MOUTH_PERIOD_S = DEFAULT_TALK_PERIOD_S
+MIN_MOUTH_SIZE_FRACTION = 0.01
+MAX_MOUTH_SIZE_FRACTION = 0.6
+
 # A cutaway "reaction" panel: the same character compositing, positioned by
 # fraction of the frame instead of as a host standing on the floor.
 CHARACTER_FLASHES = frozenset({"none", "white", "black"})
@@ -348,6 +375,47 @@ class CharacterIdle:
 
 
 @dataclass(frozen=True)
+class CharacterPose:
+    """
+    A stance swap inside one cue: a different image over its own window.
+
+    `from_sentence`/`to_sentence` are 1-based and inclusive, and both may
+    be None: an unanchored pose participates in the auto-rotation instead
+    of tracking the narration.  Millisecond offsets are the fallback for a
+    script written before stage 2 has measured anything, and `flip` mirrors
+    just this image (a pointing pose aimed the other way) without touching
+    the character's own flip.
+    """
+
+    image_file: str
+    from_sentence: int | None
+    to_sentence: int | None
+    start_offset_ms: int
+    end_offset_ms: int | None
+    flip: bool
+
+
+@dataclass(frozen=True)
+class CharacterMouth:
+    """
+    A mouth flap composited *onto* the sprite, not swapped for it.
+
+    `images` are 1-4 opaque patches (closed, open, ...).  `x`/`y` is where
+    the patch's centre sits, as a fraction of the resting artwork's trimmed
+    box; `size` is the patch's own size as a fraction of the same box.
+    `flip` mirrors the anchor when the whole sprite is flipped.  The period
+    is shared with the talk-cycle cadence.
+    """
+
+    images: tuple[str, ...]
+    x: float
+    y: float
+    size: tuple[float, float]
+    flip: bool
+    period_s: float
+
+
+@dataclass(frozen=True)
 class CharacterOverlay:
     """One character layer inside one scene."""
 
@@ -369,6 +437,19 @@ class CharacterOverlay:
     exit: CharacterMotion
     sfx: str | None
     sfx_volume: float
+    # Frame swaps that run on top of the single artwork.  `talk_images` is
+    # the mouth flap: 1-4 alternates shuffled while the character speaks.
+    # `poses` are deliberate stance changes anchored to sentences (or to
+    # offsets), and `auto_pose_s` rotates every unanchored pose -- or, with
+    # no poses at all, the talk frames -- on a timer.  Everything defaults
+    # to off, so existing scripts render exactly as they did.
+    talk_images: tuple[str, ...] = ()
+    talk_period_s: float = 0.32
+    auto_pose_s: float | None = None
+    poses: tuple[CharacterPose, ...] = ()
+    # The mouth flap that keeps the body still: 1-4 opaque patches
+    # composited over the face at a fixed anchor.  Off when absent.
+    mouth: CharacterMouth | None = None
 
 
 @dataclass(frozen=True)
@@ -830,6 +911,238 @@ def _parse_character(
             maximum=MAX_SFX_VOLUME,
         )
 
+    # `talk` is the mouth flap.  A bare array is accepted as a shorthand
+    # -- "talk": ["a.png", "b.png"] -- because that is the shape a hand-
+    # written script reaches for first; the object form adds the period.
+    talk_images: tuple[str, ...] = ()
+    talk_period_s = DEFAULT_TALK_PERIOD_S
+    talk_value = raw.get("talk", _MISSING)
+    if talk_value is not _MISSING and talk_value is not None:
+        if isinstance(talk_value, list):
+            talk_raw: dict = {"images": talk_value}
+        elif isinstance(talk_value, dict):
+            talk_raw = talk_value
+        else:
+            parser.fail(
+                f"{where}.talk",
+                "expected an array of image paths or an object with "
+                "'images' and 'period_s'",
+            )
+            talk_raw = {}
+        for talk_index, talk_item in enumerate(
+            parser.array(
+                talk_raw.get("images", _MISSING), f"{where}.talk.images"
+            )
+            or []
+        ):
+            talk_image = parser.string(
+                talk_item, f"{where}.talk.images[{talk_index}]"
+            )
+            if talk_image is not None:
+                talk_images = (*talk_images, talk_image)
+        if len(talk_images) > MAX_TALK_IMAGES:
+            parser.fail(
+                f"{where}.talk.images",
+                f"at most {MAX_TALK_IMAGES} images, got {len(talk_images)}",
+            )
+        talk_period_s = parser.number(
+            talk_raw.get("period_s", _MISSING),
+            f"{where}.talk.period_s",
+            default=DEFAULT_TALK_PERIOD_S,
+            minimum=MIN_TALK_PERIOD_S,
+            maximum=MAX_TALK_PERIOD_S,
+        )
+
+    # `poses` are the deliberate stance changes, anchored to the narration
+    # when the script says so and floating (rotation fodder) when it does
+    # not.
+    poses: list[CharacterPose] = []
+    for pose_index, pose_value in enumerate(
+        parser.array(raw.get("poses", _MISSING), f"{where}.poses") or []
+    ):
+        pose_where = f"{where}.poses[{pose_index}]"
+        # A bare string is accepted as the shorthand for a pose with no
+        # window -- a rotation-pool member -- because registries list
+        # poses as plain paths and that is what a hand-written script
+        # copies from them.
+        if isinstance(pose_value, str):
+            pose_value = {"image_file": pose_value}
+        pose_raw = parser.obj(pose_value, pose_where)
+        if pose_raw is None:
+            continue
+        pose_image = parser.string(
+            parser.required(pose_value, "image_file", pose_where),
+            f"{pose_where}.image_file",
+        )
+        if pose_image is None:
+            continue
+        from_sentence = parser.integer(
+            pose_raw.get("from_sentence", _MISSING),
+            f"{pose_where}.from_sentence",
+            minimum=1,
+        )
+        to_sentence = parser.integer(
+            pose_raw.get("to_sentence", _MISSING),
+            f"{pose_where}.to_sentence",
+            minimum=1,
+        )
+        if (
+            from_sentence is not None
+            and to_sentence is not None
+            and to_sentence < from_sentence
+        ):
+            parser.fail(
+                f"{pose_where}.to_sentence",
+                f"must be >= from_sentence ({from_sentence}), got {to_sentence}",
+            )
+            continue
+        pose_start = parser.integer(
+            pose_raw.get("start_offset_ms", _MISSING),
+            f"{pose_where}.start_offset_ms",
+            default=0,
+            minimum=0,
+        )
+        pose_end = parser.integer(
+            pose_raw.get("end_offset_ms", _MISSING),
+            f"{pose_where}.end_offset_ms",
+            minimum=0,
+        )
+        if (
+            pose_end is not None
+            and pose_start is not None
+            and pose_end <= pose_start
+        ):
+            parser.fail(
+                f"{pose_where}.end_offset_ms",
+                "must be greater than start_offset_ms "
+                f"({pose_start}), got {pose_end}",
+            )
+            continue
+        poses.append(
+            CharacterPose(
+                image_file=pose_image,
+                from_sentence=from_sentence,
+                to_sentence=to_sentence,
+                start_offset_ms=pose_start or 0,
+                end_offset_ms=pose_end,
+                flip=parser.boolean(
+                    pose_raw.get("flip", _MISSING),
+                    f"{pose_where}.flip",
+                    default=False,
+                )
+                or False,
+            )
+        )
+    if len(poses) > MAX_POSES:
+        parser.fail(
+            f"{where}.poses",
+            f"at most {MAX_POSES} poses per character, got {len(poses)}",
+        )
+        poses = poses[:MAX_POSES]
+
+    # `mouth` is the flap composited onto the sprite: 1-4 opaque patches
+    # shown in turn at a fixed anchor.  The anchor and size are fractions
+    # of the resting artwork's trimmed box, so they are resolution-proof;
+    # tools/cut_mouth_from_frames.py prints exactly these numbers.
+    mouth: CharacterMouth | None = None
+    mouth_value = raw.get("mouth", _MISSING)
+    if mouth_value is not _MISSING and mouth_value is not None:
+        mouth_raw = parser.obj(mouth_value, f"{where}.mouth")
+        if mouth_raw is not None:
+            mouth_images: tuple[str, ...] = ()
+            for mouth_index, mouth_item in enumerate(
+                parser.array(
+                    mouth_raw.get("images", _MISSING), f"{where}.mouth.images"
+                )
+                or []
+            ):
+                mouth_image = parser.string(
+                    mouth_item, f"{where}.mouth.images[{mouth_index}]"
+                )
+                if mouth_image is not None:
+                    mouth_images = (*mouth_images, mouth_image)
+            if len(mouth_images) > MAX_MOUTH_IMAGES:
+                parser.fail(
+                    f"{where}.mouth.images",
+                    f"at most {MAX_MOUTH_IMAGES} images, got {len(mouth_images)}",
+                )
+            if not mouth_images:
+                parser.fail(
+                    f"{where}.mouth.images",
+                    "at least one image is required",
+                )
+            size_value = mouth_raw.get("size", _MISSING)
+            size_pair: tuple[float, float] | None = None
+            if (
+                isinstance(size_value, (list, tuple))
+                and len(size_value) == 2
+                and all(
+                    isinstance(item, (int, float)) and not isinstance(item, bool)
+                    for item in size_value
+                )
+            ):
+                size_pair = (float(size_value[0]), float(size_value[1]))
+            else:
+                parser.fail(
+                    f"{where}.mouth.size",
+                    "expected [width_fraction, height_fraction] of the "
+                    "resting artwork's trimmed box",
+                )
+            if size_pair is not None:
+                for name, fraction in zip(("width", "height"), size_pair):
+                    if not (
+                        MIN_MOUTH_SIZE_FRACTION
+                        <= fraction
+                        <= MAX_MOUTH_SIZE_FRACTION
+                    ):
+                        parser.fail(
+                            f"{where}.mouth.size",
+                            f"{name} fraction must be between "
+                            f"{MIN_MOUTH_SIZE_FRACTION} and "
+                            f"{MAX_MOUTH_SIZE_FRACTION}, got {fraction}",
+                        )
+            mouth_x = parser.number(
+                mouth_raw.get("x", _MISSING),
+                f"{where}.mouth.x",
+                default=0.5,
+                minimum=0.0,
+                maximum=1.0,
+            )
+            mouth_y = parser.number(
+                mouth_raw.get("y", _MISSING),
+                f"{where}.mouth.y",
+                default=0.5,
+                minimum=0.0,
+                maximum=1.0,
+            )
+            if size_pair is not None and mouth_images:
+                mouth = CharacterMouth(
+                    images=mouth_images,
+                    x=mouth_x,
+                    y=mouth_y,
+                    size=size_pair,
+                    flip=parser.boolean(
+                        mouth_raw.get("flip", _MISSING),
+                        f"{where}.mouth.flip",
+                        default=False,
+                    )
+                    or False,
+                    period_s=parser.number(
+                        mouth_raw.get("period_s", _MISSING),
+                        f"{where}.mouth.period_s",
+                        default=DEFAULT_MOUTH_PERIOD_S,
+                        minimum=MIN_TALK_PERIOD_S,
+                        maximum=MAX_TALK_PERIOD_S,
+                    ),
+                )
+
+    auto_pose_s = parser.number(
+        raw.get("auto_pose_s", _MISSING),
+        f"{where}.auto_pose_s",
+        minimum=MIN_AUTO_POSE_S,
+        maximum=MAX_AUTO_POSE_S,
+    )
+
     start = parser.integer(
         raw.get("start_offset_ms", _MISSING),
         f"{where}.start_offset_ms",
@@ -891,6 +1204,11 @@ def _parse_character(
         exit=exit_motion,
         sfx=sfx_file,
         sfx_volume=sfx_volume,
+        talk_images=talk_images,
+        talk_period_s=talk_period_s,
+        auto_pose_s=auto_pose_s,
+        poses=tuple(poses),
+        mouth=mouth,
     )
 
 

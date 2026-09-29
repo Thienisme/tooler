@@ -687,7 +687,108 @@ class ScriptValidator:
                     scene_id=scene.id,
                 )
 
+            self._check_variants(scene, index, character)
+
         self._check_character_overlap(scene)
+
+    def _check_variants(self, scene: Scene, index: int, character) -> None:
+        """
+        The pose/talk swaps: same checks as the main sprite, plus cadence.
+
+        These are checked at stage 1 because a missing pose image is as
+        fatal to the edit as a missing character image -- the only
+        difference is *which* frame of the character is missing.
+        """
+        for pose in character.poses:
+            self._check_variant_image(scene, index, pose.image_file)
+
+        for talk_image in character.talk_images:
+            self._check_variant_image(scene, index, talk_image)
+
+        if character.talk_images and len(character.talk_images) == 1:
+            self.report.warn(
+                "character_talk_one_frame",
+                f"character {index} lists a single talk image; a mouth flap "
+                "needs at least two frames to alternate",
+                scene_id=scene.id,
+            )
+
+        # A mouth block replaces the whole swap machinery with the patch
+        # flap: say so once, because a pose listed next to it never shows.
+        if character.mouth is not None:
+            for mouth_image in character.mouth.images:
+                self._check_mouth_image(scene, index, mouth_image)
+            if character.talk_images or character.poses or character.auto_pose_s:
+                self.report.warn(
+                    "character_mouth_overrides_swaps",
+                    f"character {index} has a mouth block, so its talk/pose "
+                    "swaps are skipped: the body stays on the resting image "
+                    "and only the mouth patch flaps",
+                    scene_id=scene.id,
+                )
+
+    def _check_mouth_image(
+        self, scene: Scene, index: int, image_file: str
+    ) -> None:
+        """A mouth patch only has to exist and decode; opaque is correct."""
+        asset = resolve_asset(image_file, self.paths.workspace)
+        if asset is None:
+            self.report.error(
+                "character_image_missing",
+                f"character {index} mouth patch not found: {image_file}",
+                scene_id=scene.id,
+            )
+            return
+        try:
+            with Image.open(asset):
+                pass
+        except OSError as error:
+            self.report.error(
+                "character_image_unreadable",
+                f"could not read character {index} mouth patch "
+                f"({image_file}): {error}",
+                scene_id=scene.id,
+            )
+
+    def _check_variant_image(
+        self, scene: Scene, index: int, image_file: str
+    ) -> None:
+        asset = resolve_asset(image_file, self.paths.workspace)
+        if asset is None:
+            self.report.error(
+                "character_image_missing",
+                f"character {index} pose/talk image not found: {image_file}",
+                scene_id=scene.id,
+            )
+            return
+
+        try:
+            has_alpha, transparent_share = sprite_transparency(asset)
+        except OSError as error:
+            self.report.error(
+                "character_image_unreadable",
+                f"could not read character {index} pose/talk image "
+                f"({image_file}): {error}",
+                scene_id=scene.id,
+            )
+            return
+
+        if not has_alpha:
+            self.report.error(
+                "character_image_opaque",
+                f"character {index} pose/talk image ({asset.name}) has no "
+                "alpha channel; it would cover the scene as a rectangle. "
+                "Export it as a transparent PNG",
+                scene_id=scene.id,
+            )
+        elif transparent_share < 0.02:
+            self.report.warn(
+                "character_fully_opaque",
+                f"character {index} pose/talk image ({asset.name}) is only "
+                f"{transparent_share * 100:.1f}% transparent; check that its "
+                "background was really removed",
+                scene_id=scene.id,
+            )
 
     def _check_character_overlap(self, scene: Scene) -> None:
         """

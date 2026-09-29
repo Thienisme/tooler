@@ -63,7 +63,7 @@
       "characters": [
         {
           "image_file": "assets/characters/my_host_01.png",
-          "x": 0.5, "y": 0.94, "height": 0.7,
+          "x": 0.65, "y": 0.94, "height": 0.7,
           "at_sentence": 1, "for_sentences": 2,
           "enter": { "type": "slide_in", "from": "right", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.32 },
@@ -91,7 +91,8 @@
         {
           "image_file": "assets/characters/my_host_03.png",
           "preset": "boing",
-          "x": 0.78, "y": 0.93, "height": 0.58,
+          "x": 0.3, "y": 0.93, "height": 0.58,
+          "flip": true,
           "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 8, "period_s": 0.3 },
           "exit": { "type": "shrink_out", "duration_ms": 200 }
@@ -262,7 +263,7 @@
         {
           "image_file": "assets/characters/my_host_03.png",
           "preset": "boing",
-          "x": 0.5, "y": 0.94, "height": 0.7,
+          "x": 0.8, "y": 0.94, "height": 0.7,
           "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 12, "period_s": 0.25 },
           "exit": { "type": "shrink_out", "duration_ms": 200 }
@@ -316,7 +317,8 @@
         {
           "image_file": "assets/characters/my_host_02.png",
           "preset": "boing",
-          "x": 0.5, "y": 0.94, "height": 0.7,
+          "x": 0.3, "y": 0.94, "height": 0.7,
+          "flip": true,
           "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 12, "period_s": 0.25 },
           "exit": { "type": "shrink_out", "duration_ms": 200 }
@@ -333,7 +335,7 @@
       "characters": [
         {
           "image_file": "assets/characters/my_host_01.png",
-          "x": 0.75, "y": 0.94, "height": 0.7,
+          "x": 0.65, "y": 0.94, "height": 0.7,
           "at_sentence": 1, "for_sentences": 2,
           "enter": { "type": "slide_in", "from": "right", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.32 },
@@ -394,7 +396,7 @@
       "characters": [
         {
           "image_file": "projects/topics-002/Figure/thi_no.png",
-          "x": 0.75, "y": 0.94, "height": 0.7,
+          "x": 0.65, "y": 0.94, "height": 0.7,
           "enter": { "type": "slide_in", "from": "right", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.32 },
           "exit": { "type": "slide_out", "to": "right", "duration_ms": 400 }
@@ -428,7 +430,7 @@
       "characters": [
         {
           "image_file": "projects/topics-002/Figure/chi_lon.png",
-          "x": 0.35, "y": 0.93, "height": 0.5,
+          "x": 0.5, "y": 0.93, "height": 0.5,
           "flip": true,
           "enter": { "type": "slide_in", "from": "left", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 9, "period_s": 0.3 },
@@ -455,7 +457,7 @@
         {
           "image_file": "projects/topics-002/Figure/chi_lon.png",
           "preset": "boing",
-          "x": 0.5, "y": 0.5, "height": 0.7,
+          "x": 0.5, "y": 0.94, "height": 0.7,
           "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 12, "period_s": 0.25 },
           "exit": { "type": "shrink_out", "duration_ms": 200 }
@@ -554,7 +556,7 @@
         {
           "image_file": "assets/characters/my_host_02.png",
           "preset": "sneak",
-          "x": 0.5, "y": 0.5, "height": 0.7,
+          "x": 0.5, "y": 0.94, "height": 0.7,
           "enter": { "type": "slide_in", "from": "right", "duration_ms": 400 },
           "idle": { "type": "shake", "amplitude_px": 6, "period_s": 0.4 },
           "exit": { "type": "fade_out", "duration_ms": 200 }
@@ -590,7 +592,8 @@
         {
           "image_file": "assets/characters/my_host_03.png",
           "preset": "ninja",
-          "x": 0.7, "y": 0.94, "height": 0.3,
+          "x": 0.3, "y": 0.94, "height": 0.3,
+          "flip": true,
           "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 400 },
           "idle": { "type": "talk", "amplitude_px": 14, "period_s": 0.2 },
           "exit": { "type": "shrink_out", "duration_ms": 200 }
@@ -617,7 +620,8 @@
         {
           "image_file": "assets/characters/my_host_03.png",
           "preset": "ninja",
-          "x": 0.7, "y": 0.94, "height": 0.3,
+          "x": 0.3, "y": 0.94, "height": 0.3,
+          "flip": true,
           "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 400 },
           "idle": { "type": "talk", "amplitude_px": 14, "period_s": 0.2 },
           "exit": { "type": "shrink_out", "duration_ms": 200 }
@@ -662,7 +666,7 @@
         {
           "image_file": "assets/characters/my_host_03.png",
           "preset": "ninja",
-          "x": 0.5, "y": 0.5, "height": 0.7,
+          "x": 0.5, "y": 0.94, "height": 0.7,
           "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 400 },
           "idle": { "type": "talk", "amplitude_px": 14, "period_s": 0.2 },
           "exit": { "type": "shrink_out", "duration_ms": 200 }
@@ -698,7 +702,7 @@
         {
           "image_file": "assets/characters/my_host_02.png",
           "preset": "boing",
-          "x": 0.5, "y": 0.5, "height": 0.7,
+          "x": 0.5, "y": 0.94, "height": 0.7,
           "enter": { "type": "drop_bounce", "from": "top", "duration_ms": 500 },
           "idle": { "type": "talk", "amplitude_px": 8, "period_s": 0.3 },
           "exit": { "type": "shrink_out", "duration_ms": 400 }

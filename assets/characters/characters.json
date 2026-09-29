@@ -1,0 +1,39 @@
+{
+  "_readme": [
+    "Registry nhan vat dung chung cho pipeline autovid.",
+    "Moi khoa la mot bo frame cua mot nhan vat:",
+    "  image_file : tu the nghi (dung gan nua thoi gian)",
+    "  mouth      : patch moi dong/mo dap LEN sprite (than giu nguyen 100%).",
+    "               anchor x/y + size la ti le so voi anh goc da trim;",
+    "               images[0] PHAI la patch MIENG DONG: pipeline giu no khi",
+    "               ngat nghi (mip moi theo giong doc that tu stage 2).",
+    "               cat bang: python3 tools/cut_mouth_from_frames.py",
+    "  talk       : cac frame thay TOAN BO anh (can cap anh chi khac mieng)",
+    "  poses      : cac tu the khac (duoc auto_pose_s xoay vong o phan chua ai chiem)",
+    "Co mouth thi talk/poses bi bo qua (chi mieng dap, than khong nhanh).",
+    "Ap dung vao script: python3 tools/apply_character_registry.py projects/<id>/script.json",
+    "Script van ghi de tay duoc: talk/poses/mouth/auto_pose_s viet trong scene thang registry."
+  ],
+  "my_host": {
+    "image_file": "assets/characters/my_host_01.png",
+    "mouth": {
+      "images": [
+        "assets/characters/mouth_closed.png",
+        "assets/characters/mouth_open.png"
+      ],
+      "x": 0.4888,
+      "y": 0.4253,
+      "size": [0.2278, 0.1071],
+      "period_s": 0.28
+    },
+    "talk": [
+      "assets/characters/my_host_02.png",
+      "assets/characters/my_host_03.png"
+    ],
+    "talk_period_s": 0.32,
+    "poses": [
+      "assets/characters/my_host_04.png"
+    ],
+    "auto_pose_s": 2.5
+  }
+}

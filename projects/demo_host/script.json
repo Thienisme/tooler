@@ -1,0 +1,175 @@
+{
+  "video_metadata": {
+    "title": "Demo host noi chuyen (mieng dap, than giu nguyen)",
+    "author": "Buffy",
+    "resolution": "1920x1080",
+    "fps": 30,
+    "language": "vi",
+    "target_minutes": [
+      0.1,
+      3
+    ]
+  },
+  "tts_config": {
+    "engine": "vieneu",
+    "voice": "Minh Quân Pro",
+    "speed": 1.05,
+    "granularity": "sentence"
+  },
+  "audio_config": {
+    "master_volume": -14.0
+  },
+  "pacing": {
+    "auto_pause": {
+      "enabled": true,
+      "per_sentence": true,
+      "min_pause_ms": 200,
+      "max_pause_ms": 1500,
+      "respect_tts_natural_pause": true
+    }
+  },
+  "scenes": [
+    {
+      "id": 1,
+      "text": "Xin chào các đồng chí! Tôi là host của kênh này. Hôm nay chúng ta sẽ cùng nhau khám phá một câu chuyện cực kỳ thú vị.",
+      "image_file": "projects/background/image01.png",
+      "transition_in": {
+        "type": "fade",
+        "duration": 0.3
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.0,
+        "end_scale": 1.08
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "use": "my_host",
+          "x": 0.78,
+          "y": 0.94,
+          "height": 0.6,
+          "enter": {
+            "type": "drop_bounce",
+            "from": "top",
+            "duration_ms": 800
+          },
+          "idle": {
+            "type": "talk",
+            "amplitude_px": 18,
+            "period_s": 0.22
+          },
+          "exit": {
+            "type": "shrink_out",
+            "duration_ms": 300
+          },
+          "mouth": {
+            "images": [
+              "assets/characters/mouth_closed.png",
+              "assets/characters/mouth_open.png"
+            ],
+            "x": 0.4888,
+            "y": 0.4253,
+            "size": [0.2278, 0.1071],
+            "period_s": 0.28
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "Câu chuyện hôm nay bắt đầu ở một làng quê yên bình. Nơi có một chàng trai hiền lành nhất làng. Nhưng cuộc đời đâu có như mơ!",
+      "image_file": "projects/background/image01.png",
+      "transition_in": {
+        "type": "slide_left",
+        "duration": 0.2
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_right",
+        "start_scale": 1.05,
+        "end_scale": 1.05
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "use": "my_host",
+          "x": 0.78,
+          "y": 0.94,
+          "height": 0.6,
+          "enter": {
+            "type": "slide_in",
+            "from": "right",
+            "duration_ms": 400
+          },
+          "idle": {
+            "type": "talk",
+            "amplitude_px": 18,
+            "period_s": 0.22
+          },
+          "exit": {
+            "type": "none"
+          },
+          "mouth": {
+            "images": [
+              "assets/characters/mouth_closed.png",
+              "assets/characters/mouth_open.png"
+            ],
+            "x": 0.4888,
+            "y": 0.4253,
+            "size": [0.2278, 0.1071],
+            "period_s": 0.24
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Và đó chính là toàn bộ câu chuyện của ngày hôm qua. Các đồng chí thấy sao? Hẹn gặp lại ở tập sau, chào thân ái và quyết thắng!",
+      "image_file": "projects/background/image01.png",
+      "transition_in": {
+        "type": "fade",
+        "duration": 0.2
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_out",
+        "start_scale": 1.1,
+        "end_scale": 1.0
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "use": "my_host",
+          "x": 0.78,
+          "y": 0.94,
+          "height": 0.6,
+          "enter": {
+            "type": "pop",
+            "duration_ms": 350
+          },
+          "idle": {
+            "type": "bob_sway",
+            "amplitude_px": 22,
+            "period_s": 1.4
+          },
+          "exit": {
+            "type": "shrink_out",
+            "duration_ms": 300
+          },
+          "mouth": {
+            "images": [
+              "assets/characters/mouth_closed.png",
+              "assets/characters/mouth_open.png"
+            ],
+            "x": 0.4888,
+            "y": 0.4253,
+            "size": [0.2278, 0.1071],
+            "period_s": 0.34
+          }
+        }
+      ]
+    }
+  ]
+}

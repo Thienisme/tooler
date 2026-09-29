@@ -276,6 +276,7 @@ yêu cầu chừa lề trên cho overlay chữ và **không render chữ** vào 
 | `ken_burns.type` | `zoom_in`, `zoom_out`, `pan_left`, `pan_right`, `pan_up`, `pan_down`, `none`; scale 1.0–1.5 (pan cần ≥ 1.02 mới thấy chuyển động) |
 | `transition_in.type` | `cut`, `fade`, `fade_fast`, `fade_slow`, `dissolve`, `slide_left/right/up/down`, `wipe_left/right/up/down`, `zoom`, `whip_pan`, `pixelize`, `blur`, `circle_open/close`, `squeeze_h/v`, `flash_white/black`, `diag_tl/br`; `duration` ≤ 0.5s |
 | `text_overlays[]` | `text`, `font`, `font_size`, `color`, `stroke_color`, `stroke_width`, `position`, `start_offset_ms`, `end_offset_ms`, `animation` (`fade_in`/`pop`/`typewriter`/`slide_in`/`none`), `animation_duration_ms`; tối đa 2 overlay cùng lúc, đọc được ≥ 2000ms, ≥ 40px @1080p |
+| `mouth` | `images` (1–4 patch, **ảnh đầu = miệng đóng**), `x`/`y`/`size` (tỉ lệ so với ảnh gốc đã trim), `period_s`, `flip`. Míp môi **theo giọng đọc thật** (từ stage 2): đang nói mới dap, ngắt nghỉ giữ patch miệng đóng; khoảng lặng ≤ 0.15s coi là lấy hơi nên không nhắm |
 | `sfx[]` | `file`, `time_offset_ms` (tính từ đầu scene), `volume` ≤ 0.8; cách nhau ≥ 5s |
 
 > Chú ý: `id` phải **tăng dần** và không trùng. Thiếu `image_file` mà có `image_prompt` thì stage 1 chỉ cảnh báo, nhưng phải có ảnh thật trước stage 3.
@@ -313,6 +314,65 @@ và neo **theo câu thoại thật** (stage 2 đã đo từng câu), còn tiến
 
 Nhiều nhân vật trong cùng scene = nhiều phần tử `characters` (đối thoại 2 nhân vật, hoặc 1 nhân vật
 kiểu PIP ở góc khung với `height: 0.28, y: 0.35`).
+
+### Mấp máy môi + đổi tư thế (talk frames & poses)
+
+Một nhân vật chỉ đứng yên 1 ảnh cả scene trông ~lợn cợn~. Ba field mới biến bộ PNG của nhân vật
+thành hoạt hình 2D:
+
+```json
+"characters": [{
+  "image_file": "assets/characters/my_host_01.png",
+  "x": 0.78, "y": 0.94, "height": 0.6,
+  "talk": {
+    "images": ["assets/characters/my_host_02.png",
+               "assets/characters/my_host_03.png"],
+    "period_s": 0.32
+  },
+  "poses": [
+    {"image_file": "assets/characters/my_host_04.png",
+     "from_sentence": 2, "to_sentence": 3}
+  ],
+  "auto_pose_s": 2.5
+}]
+```
+
+| Field | Ý nghĩa |
+|---|---|
+| `talk` | **Míp môi**: 2–4 ảnh thay nhau mỗi `period_s` giay (mặc định 0.32) ở phần nhân vật đang nói — chỉ dap khi giọng đọc đang nói, ngắt nghỉ thì về tư thế gốc. Viết gọn được: `"talk": ["a.png", "b.png"]` |
+| `poses` | **Đổi tư thế chủ đích**: `from_sentence`/`to_sentence` (1-based, chốt theo lời kể đo ở stage 2) hoặc `start_offset_ms`/`end_offset_ms`; `flip` lật riêng ảnh này. Pose không gắn mốc = viên đạn cho vòng xoay |
+| `auto_pose_s` | **Tự luân phiên** các pose chưa gắn mốc mỗi N giay ở phần chưa ai chiem. Pose đơn lẻ (không gì để xoay) thì fallback sang cycle talk; không có gì cả thì nghỉ |
+
+Quy tắc an toàn: mọi swap chỉ diễn ra **sau khi entrance chạy xong và trước khi exit bắt đầu** —
+không bao giờ có 2 nhân vật đè nhau giữa khung. Ảnh bị thiếu → báo lỗi ở validate, sprite nghỉ
+giữ nguyên tư thế (không sập render).
+
+**Registry — khai báo 1 lần, dùng mọi scene:** viết bộ frame vào
+`assets/characters/characters.json` rồi áp vào mọi `script.json` khớp `image_file`:
+
+```json
+{
+  "my_host": {
+    "image_file": "assets/characters/my_host_01.png",
+    "talk": ["assets/characters/my_host_02.png",
+             "assets/characters/my_host_03.png"],
+    "poses": ["assets/characters/my_host_04.png"],
+    "auto_pose_s": 2.5
+  }
+}
+```
+
+```bash
+# Xem trước sẽ đổi gì, rồi áp thật (script có thể ghi đè tay từng scene)
+python3 tools/apply_character_registry.py --dry-run projects/topics-002/script.json
+python3 tools/apply_character_registry.py projects/topics-002/script.json
+```
+
+Trong scene chỉ cần `"image_file": "assets/characters/my_host_01.png"` (hoặc thêm `"use": "my_host"`)
+— script ghi đè tay (`talk`/`poses`/`auto_pose_s` viết trong scene) luôn thắng registry.
+
+Demo chạy được với host 4 ảnh: `projects/demo_host/` (scene 1 míp môi, scene 2 chỉ tay theo câu,
+scene 3 pop vào + luân phiên).
 
 Xem trước **tất cả hiệu ứng** (dựng bằng chính code pipeline, không phải renderer riêng):
 

@@ -37,7 +37,7 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from autovid.application.issues import Issue, IssueCollector
@@ -76,6 +76,8 @@ from autovid.infrastructure.video.text import (
     render_typewriter_layers,
 )
 from autovid.paths import Paths, read_json, resolve_asset, write_json
+
+from PIL import Image
 
 # Encoder settings for the per-scene clips: the spec's delivery target.
 DEFAULT_PRESET = "medium"
@@ -436,6 +438,106 @@ class AssemblyStage:
             )
         return source
 
+    def _checked_variants(self, cue: CharacterCue) -> tuple:
+        """
+        The cue's pose/talk swaps, with every image verified first.
+
+        A swap whose artwork is missing is dropped with an error rather
+        than baked: the resting sprite simply stays on screen for that
+        window, which degrades gracefully instead of failing the scene.
+        The transparency check is the same one the main sprite gets -- a
+        pose without alpha would composite as a solid rectangle and look
+        like a rendering bug mid-scene.
+        """
+        checked: list = []
+        verified: set[tuple[str, bool]] = set()
+        for variant in self.character_plan.variants_for(cue.scene_id, cue.index):
+            # A mouth variant carries the patch, not a body swap: only the
+            # patch file has to resolve, and an opaque RGB patch is correct
+            # -- the alpha rules below are for full-body artwork.
+            if variant.kind == "mouth":
+                if not variant.mouth_file:
+                    continue
+                patch = resolve_asset(variant.mouth_file, self.paths.workspace)
+                if patch is None:
+                    self.issues.error(
+                        "character_image_missing",
+                        f"character {cue.index} mouth patch "
+                        f"'{variant.mouth_file}' does not exist; the mouth "
+                        "stays closed for that window",
+                        scene_id=cue.scene_id,
+                        unit_index=cue.index,
+                    )
+                    continue
+                try:
+                    with Image.open(patch):
+                        pass
+                except OSError as error:
+                    self.issues.error(
+                        "character_image_unreadable",
+                        f"could not read character {cue.index} mouth patch "
+                        f"({variant.mouth_file}): {error}",
+                        scene_id=cue.scene_id,
+                        unit_index=cue.index,
+                    )
+                    continue
+                checked.append(replace(variant, mouth_file=str(patch)))
+                continue
+
+            flip = bool(variant.flip) != bool(cue.flip)
+            source = resolve_asset(variant.image_file, self.paths.workspace)
+            if source is None:
+                self.issues.error(
+                    "character_image_missing",
+                    f"character {cue.index} pose needs '{variant.image_file}' "
+                    "and it does not exist; the resting sprite stays on "
+                    "screen for that window",
+                    scene_id=cue.scene_id,
+                    unit_index=cue.index,
+                )
+                continue
+
+            try:
+                has_alpha, transparent_share = sprite_transparency(source)
+            except OSError as error:
+                self.issues.error(
+                    "character_image_unreadable",
+                    f"could not read character {cue.index} pose "
+                    f"({variant.image_file}): {error}",
+                    scene_id=cue.scene_id,
+                    unit_index=cue.index,
+                )
+                continue
+
+            if not has_alpha:
+                self.issues.error(
+                    "character_image_opaque",
+                    f"character {cue.index} pose ({source.name}) has no alpha "
+                    "channel; it would composite as a solid rectangle. Export "
+                    "it as a transparent PNG",
+                    scene_id=cue.scene_id,
+                    unit_index=cue.index,
+                )
+                continue
+            if transparent_share < 0.02:
+                self.issues.warn(
+                    "character_fully_opaque",
+                    f"character {cue.index} pose ({source.name}) is only "
+                    f"{transparent_share * 100:.1f}% transparent; check that "
+                    "its background was really removed",
+                    scene_id=cue.scene_id,
+                    unit_index=cue.index,
+                )
+
+            verified.add((str(source), flip))
+            # The baker opens the image directly, so the variant carries the
+            # resolved path from here on -- the same contract `_sprite_source`
+            # hands the resting sprite.
+            checked.append(
+                replace(variant, image_file=str(source))
+            )
+        return tuple(checked)
+
     def _build_characters(
         self, scene: Scene, clip_duration_s: float
     ) -> tuple[list[CharacterLayer], list[CharacterCue], ImpactPunch | None]:
@@ -457,6 +559,7 @@ class AssemblyStage:
                 source=source,
                 frame_size=self.frame_size,
                 fps=self.fps,
+                variants=self._checked_variants(cue),
             )
             for layer in cue_layers:
                 if layer.frame.box_w > self.frame_size[0]:
