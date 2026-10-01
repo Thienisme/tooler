@@ -49,7 +49,7 @@ from autovid.domain.characters import (
     sentence_windows,
 )
 from autovid.domain.frames import FramePlan, SceneFrames, build_frame_plan
-from autovid.domain.script import Script, Scene
+from autovid.domain.script import Script, Scene, StoryFrameConfig
 from autovid.infrastructure.ffmpeg import (
     ffmpeg_available,
     probe_duration,
@@ -61,14 +61,20 @@ from autovid.infrastructure.image.fonts import (
     resolve_font,
 )
 from autovid.infrastructure.video.filters import (
+    LAMP_HALF,
+    LAMP_SHEET,
+    STORY_FRAME_WOBBLES,
+    STYLE_LAMPS,
     ImpactPunch,
     OverlayLayer,
     build_scene_filtergraph,
     inspect_motion,
+    story_inset_for_style,
 )
 from autovid.infrastructure.video.sprites import (
     CharacterLayer,
     SpritePlanner,
+    _cache_key,
     sprite_transparency,
 )
 from autovid.infrastructure.video.text import (
@@ -114,7 +120,12 @@ MAX_CHARACTER_LAYERS_PER_SCENE = 24
 FLASH_DURATION_SHARE = 0.6
 
 
-CLIP_VERSION = 1
+# Bumped when anything inside a scene clip's rendering changes shape:
+# v2 adds the story frame's matted backdrop (scene cropped into the panel,
+# dark surround), which the v1 graphs never drew.
+# v3 re-shapes the story frame styles: per-side art windows, the TV's
+# bottom control strip, its pilot-lamp blink and the panel's gentle wobble.
+CLIP_VERSION = 3
 
 
 @dataclass(frozen=True)
@@ -252,6 +263,7 @@ class AssemblyStage:
         *,
         preset: str = DEFAULT_PRESET,
         crf: int = DEFAULT_CRF,
+        threads: int = 0,
         force: bool = False,
         dry_run: bool = False,
         skip_characters: bool = False,
@@ -261,6 +273,9 @@ class AssemblyStage:
         self.paths = paths
         self.preset = preset
         self.crf = crf
+        # 0 = ffmpeg's auto (every core).  A low cap keeps the machine
+        # usable while a long render runs next to a live desktop.
+        self.threads = max(int(threads), 0)
         self.force = force
         self.dry_run = dry_run
         self.skip_characters = skip_characters
@@ -277,6 +292,7 @@ class AssemblyStage:
             script.video_metadata.height,
         )
         self._scenes_by_id = {scene.id: scene for scene in script.scenes}
+        self._story_frame = self._story_frame_assets(script.story_frame, self.frame_size)
 
     # -- entry point ------------------------------------------------------
 
@@ -301,8 +317,13 @@ class AssemblyStage:
         self.paths.create()
         self.overlay_cache.mkdir(parents=True, exist_ok=True)
 
-        if not self.skip_characters and any(
-            scene.characters for scene in self.script.scenes
+        if not self.skip_characters and (
+            any(scene.characters for scene in self.script.scenes)
+            # A persistent host or a story-frame narrator is injected into
+            # every scene by the resolver itself, so scenes carrying no
+            # characters of their own still need it to run.
+            or self.script.host_layout.enabled
+            or self.script.story_frame.enabled
         ):
             self._resolve_characters(timeline)
 
@@ -633,6 +654,108 @@ class AssemblyStage:
 
     # -- one scene --------------------------------------------------------
 
+    def _story_frame_assets(
+        self, config: StoryFrameConfig, frame_size: tuple[int, int]
+    ) -> dict | None:
+        """
+        The storytelling frame's baked overlay, or None when it is off.
+
+        `make_story_frame.py` paints a rounded panel sized to the frame's
+        own pixel box, and this stage composites it at exactly (x*W, y*H).
+        The panel is drawn once, at its native size, so every resolution
+        gets the same crisp border instead of resampling artefacts.
+        """
+        if not config.enabled:
+            return None
+
+        # A hand-drawn design (style "custom") brings its own PNG; the
+        # built-in styles resolve theirs from assets/frames by name.
+        if config.frame_png:
+            relative = config.frame_png
+            missing_message = (
+                f"story_frame.frame_png '{config.frame_png}' does not "
+                "exist (relative paths are tried against the project root)"
+            )
+        else:
+            relative = str(
+                Path("assets") / "frames" / f"story_frame_{config.style}.png"
+            )
+            missing_message = (
+                f"story_frame needs '{relative}' and it does not exist; "
+                "run python3 tools/make_story_frame.py --style "
+                f"{config.style} to draw it"
+            )
+
+        width, height = frame_size
+        px_w = max(2, int(round(config.width * width)))
+        px_h = max(2, int(round(config.height * height)))
+        px_x = int(round(config.x * width))
+        px_y = int(round(config.y * height))
+
+        resolved = resolve_asset(relative, self.paths.workspace)
+        if resolved is None:
+            self.issues.error("story_frame_missing", missing_message)
+            return None
+
+        with Image.open(resolved) as raw:
+            panel = raw.convert("RGBA")
+        if panel.size != (px_w, px_h):
+            panel = panel.resize((px_w, px_h), Image.LANCZOS)
+
+        # The panel is a mat, not a tint: opaque cream under the artwork
+        # window and outside the border.  The artwork itself is composited
+        # over it by the graph, so any translucency here would only dim
+        # whatever the backdrop painted -- and nothing should be visible
+        # through a frame that is supposed to be a solid card.
+        alpha = panel.getchannel("A")
+        opaque = alpha.point(lambda a: 255 if a > 0 else 0)
+        panel.putalpha(opaque)
+
+        key = _cache_key(
+            resolved.resolve(),
+            resolved.stat().st_size,
+            int(resolved.stat().st_mtime),
+            px_w,
+            px_h,
+        )
+        destination = self.sprite_cache / f"story_frame_{key}.png"
+        if not destination.exists():
+            self.sprite_cache.mkdir(parents=True, exist_ok=True)
+            panel.save(destination, format="PNG", compress_level=6)
+
+        entry = {
+            "png": destination,
+            "x": px_x,
+            "y": px_y,
+            "w": px_w,
+            "h": px_h,
+            "style": config.style,
+            # The art window crop reads this: the style's built-in mat, or
+            # the design's own declaration via `art_inset` in the script.
+            "inset": config.art_inset or story_inset_for_style(config.style),
+        }
+        if (wobble := STORY_FRAME_WOBBLES.get(config.style)) is not None:
+            # A gentle whole-panel sway; the art overlay copies the same
+            # shift so the picture stays glued inside the bezel.
+            entry["wobble"] = wobble
+        if (lamp_spec := STYLE_LAMPS.get(config.style)) is not None:
+            lamp_png = resolve_asset(LAMP_SHEET, self.paths.workspace)
+            if lamp_png is None:
+                self.issues.warn(
+                    "story_frame_lamp_missing",
+                    f"pilot lamp sheet '{LAMP_SHEET}' is missing -- the lamp "
+                    "stays dark (draw it once with any 128x64 RGBA sheet)",
+                )
+            else:
+                entry["lamp"] = {
+                    "png": str(lamp_png),
+                    "x": px_x + int(round(lamp_spec["cx"] * px_w)) - LAMP_HALF // 2,
+                    "y": px_y + int(round(lamp_spec["cy"] * px_h)) - LAMP_HALF // 2,
+                    "half": LAMP_HALF,
+                    "period": lamp_spec["period"],
+                }
+        return entry
+
     def _render_scene(
         self, scene: Scene, planned: SceneFrames
     ) -> SceneClipResult | None:
@@ -677,6 +800,8 @@ class AssemblyStage:
             frame_size=self.frame_size,
             preset=self.preset,
             crf=self.crf,
+            threads=self.threads,
+            story_frame=self._story_frame,
         )
         signature_path = clip.with_suffix(".json")
 
@@ -732,6 +857,7 @@ class AssemblyStage:
             ],
             sprites=character_layers,
             impact=impact,
+            story_frame=self._story_frame,
         )
 
         # The still is a single frame, which `zoompan` turns into the whole
@@ -741,6 +867,33 @@ class AssemblyStage:
         # (see filters.py).  A character layer needs this for the same
         # reason: its alpha ramps and its `enable` window are both time.
         inputs: list[str] = ["-i", str(image)]
+        if self._story_frame is not None:
+            inputs.extend(
+                [
+                    "-loop",
+                    "1",
+                    "-framerate",
+                    str(self.fps),
+                    "-t",
+                    f"{duration_s:.4f}",
+                    "-i",
+                    str(self._story_frame["png"]),
+                ]
+            )
+            if (lamp := self._story_frame.get("lamp")) is not None:
+                # The blinking pilot lamp: one sheet, two glowing halves.
+                inputs.extend(
+                    [
+                        "-loop",
+                        "1",
+                        "-framerate",
+                        str(self.fps),
+                        "-t",
+                        f"{duration_s:.4f}",
+                        "-i",
+                        str(lamp["png"]),
+                    ]
+                )
         for layer in character_layers:
             inputs.extend(
                 [
@@ -784,11 +937,19 @@ class AssemblyStage:
                 ]
             )
 
+        # The filtergraph spawns its own workers on top of the encoder's,
+        # so the cap has to reach both or a "2 thread" render still pins
+        # every core with filter jobs.
+        throttle = (
+            ["-filter_threads", str(self.threads)] if self.threads > 0 else []
+        )
+
         started = time.monotonic()
         try:
             run(
                 [
                     "-y",
+                    *throttle,
                     *inputs,
                     "-filter_complex",
                     graph,
@@ -802,6 +963,8 @@ class AssemblyStage:
                     self.preset,
                     "-crf",
                     str(self.crf),
+                    "-threads",
+                    str(self.threads),
                     "-pix_fmt",
                     "yuv420p",
                     "-r",
@@ -1291,10 +1454,15 @@ class AssemblyStage:
         for clip in clips:
             inputs.extend(["-i", str(clip.clip)])
 
+        throttle = (
+            ["-filter_threads", str(self.threads)] if self.threads > 0 else []
+        )
+
         try:
             run(
                 [
                     "-y",
+                    *throttle,
                     *inputs,
                     "-filter_complex",
                     ";\n".join(statements),
@@ -1306,6 +1474,8 @@ class AssemblyStage:
                     CONCAT_PRESET,
                     "-crf",
                     str(CONCAT_CRF),
+                    "-threads",
+                    str(self.threads),
                     "-pix_fmt",
                     "yuv420p",
                     "-r",
@@ -1573,6 +1743,8 @@ def _scene_signature(
     frame_size: tuple[int, int],
     preset: str,
     crf: int,
+    threads: int,
+    story_frame: dict | None,
 ) -> dict:
     """
     Everything that changes a rendered clip, and nothing else.
@@ -1589,12 +1761,31 @@ def _scene_signature(
         "size": list(frame_size),
         "preset": preset,
         "crf": crf,
+        "threads": threads,
         "image": {
             "path": str(image),
             "size": stat.st_size,
             "mtime": int(stat.st_mtime),
         },
         "ken_burns": motion,
+        # The storytelling frame changes the graph and the input list without
+        # touching anything else in this dict, so it belongs in the cache key.
+        "story_frame": (
+            {
+                "png": str(story_frame["png"]),
+                # The baked panel is identified by its file too: redrawing
+                # the frame PNG changes its mtime, which invalidates every
+                # cached clip without anyone clearing the cache by hand.
+                "png_mtime": int(Path(story_frame["png"]).stat().st_mtime),
+                "box": [story_frame["x"], story_frame["y"],
+                        story_frame["w"], story_frame["h"]],
+                "style": story_frame.get("style", "border"),
+                "wobble": story_frame.get("wobble"),
+                "lamp": story_frame.get("lamp"),
+            }
+            if story_frame is not None
+            else None
+        ),
         "overlays": [
             {
                 "path": str(span.path),

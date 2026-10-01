@@ -1,0 +1,100 @@
+{
+  "video_metadata": {
+    "title": "Demo khung custom - thiet ke tay",
+    "author": "Buffy",
+    "resolution": "1920x1080",
+    "fps": 30,
+    "language": "vi"
+  },
+  "tts_config": {
+    "engine": "vieneu",
+    "voice": "Minh Quân Pro",
+    "speed": 1.05,
+    "granularity": "sentence"
+  },
+  "audio_config": {
+    "master_volume": -14.0
+  },
+  "pacing": {
+    "auto_pause": {
+      "enabled": true,
+      "per_sentence": true,
+      "min_pause_ms": 200,
+      "max_pause_ms": 1500,
+      "respect_tts_natural_pause": true
+    }
+  },
+  "story_frame": {
+    "use": "ke_cuoi",
+    "style": "custom",
+    "frame_png": "projects/demo_style_custom/frame_design.png",
+    "art_inset": {
+      "t": 0.1053,
+      "b": 0.0684,
+      "l": 0.0655,
+      "r": 0.2952
+    }
+  },
+  "scenes": [
+    {
+      "id": 1,
+      "text": "Ngày xửa ngày xưa, trong một khu rừng nho nhỏ, có một chú cáo rất thích kể chuyện. Mỗi tối, chú lại leo lên gò đất cao nhất rừng.",
+      "image_file": "projects/background/image01.png",
+      "transition_in": {
+        "type": "fade",
+        "duration": 0.3
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.0,
+        "end_scale": 1.08
+      }
+    },
+    {
+      "id": 2,
+      "text": "Hôm ấy, chú cáo kể về một chàng thợ săn tốt bụng. Cả bọn thú rập rình xúm lại nghe, quên cả đường về tổ.",
+      "image_file": "projects/background/image01.png",
+      "transition_in": {
+        "type": "slide_left",
+        "duration": 0.2
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_right",
+        "start_scale": 1.05,
+        "end_scale": 1.05
+      },
+      "characters": [
+        {
+          "image_file": "assets/characters/my_host_01.png",
+          "x": 0.35,
+          "y": 0.95,
+          "height": 0.55,
+          "enter": {
+            "type": "fade_in",
+            "duration_ms": 300
+          },
+          "exit": {
+            "type": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Kể từ hôm đó, cứ chiều chiều là cả rừng lại xếp hàng chờ chú cáo. Và đó, chính là lúc câu chuyện của chúng ta bắt đầu!",
+      "image_file": "projects/background/image01.png",
+      "transition_in": {
+        "type": "fade",
+        "duration": 0.2
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_out",
+        "start_scale": 1.1,
+        "end_scale": 1.0
+      }
+    }
+  ]
+}

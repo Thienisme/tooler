@@ -68,7 +68,7 @@ def apply_to_character(entry: dict, character: dict) -> bool:
     changed = False
 
     # An explicit block in the script wins over the registry default.
-    for key in ("talk", "poses", "auto_pose_s", "mouth"):
+    for key in ("talk", "poses", "auto_pose_s", "mouth", "idle"):
         if key in character:
             continue
         if key in entry:

@@ -140,6 +140,8 @@ Emotion tags: `[whisper]`, `[pause]`, `[surprised]`, `[angry]`, `[sad]`, `[shock
 
 ## 📌 Lệnh thường dùng
 
+> 📒 **Sổ tay lệnh đầy đủ (cập nhật 01/10/2026):** [`notes/lenh_chay.md`](notes/lenh_chay.md) — pipeline 7 stage, khung kể chuyện 6 style, custom frame từ ảnh thiết kế, tool miệng/nhân vật, throttle render nhẹ máy.
+
 | Lệnh | Mô tả |
 |---|---|
 | `./start.sh` | Khởi động app |
@@ -306,7 +308,7 @@ và neo **theo câu thoại thật** (stage 2 đã đo từng câu), còn tiến
 |---|---|
 | `enter.type` | `none`, `fade_in`, `pop` (nở ra có overshoot), `fly_in` (bay vào), `slide_in` (trượt vào), `drop_bounce` (rơi + nảy), `spin_in` (xoay khi vào), `zoom_in` + `from` = `left/right/top/bottom/top_left/top_right/bottom_left/bottom_right/center` |
 | `exit.type` | `none`, `fade_out` (mờ đi), `shrink_out` (nhỏ rồi biến mất), `fly_out`, `slide_out`, `drop_out`, `spin_out`, `zoom_out` + `to` |
-| `idle.type` | `none`, `bob` (nhún nhẹ), `sway` (lắc lư), `bob_sway`, `shake` (run rẩy), `talk` (nhún nhanh như đang nói) — `amplitude_px` ≤ 120, `period_s` ≥ 0.2 |
+| `idle.type` | `none`, `bob` (nhún nhẹ), `sway` (lắc lư), `bob_sway`, `shake` (run rẩy), `talk` (nhún nhanh như đang nói), `tilt` (lắc đầu/xoay người nhẹ — `amplitude_px` là **số độ**, ≤ 15) — `amplitude_px` ≤ 120, `period_s` ≥ 0.2 |
 | `preset` | `pop`, `boing`, `whoosh`, `ta_da`, `sneak`, `ninja` — cả một "miếng hài" điền sẵn enter/idle/exit/sfx; field viết tay luôn thắng preset |
 | Neo thời gian | `at_sentence` (câu thứ N trong scene, 1-based) + `for_sentences`, hoặc `start_offset_ms`/`end_offset_ms` |
 | Vị trí | `x`/`y` theo tỉ lệ khung (`y: 0.92` = chân đứng mép dưới), `height` = chiều cao nhân vật / chiều cao khung (0.05–1.0), `flip` để lật |
@@ -314,6 +316,93 @@ và neo **theo câu thoại thật** (stage 2 đã đo từng câu), còn tiến
 
 Nhiều nhân vật trong cùng scene = nhiều phần tử `characters` (đối thoại 2 nhân vật, hoặc 1 nhân vật
 kiểu PIP ở góc khung với `height: 0.28, y: 0.35`).
+
+### 🖼️ Khung kể chuyện (story_frame) — ảnh trong khung, người dẫn đứng ngoài
+
+Layout "trạm kể chuyện": **một khung cố định bên trái** giữ toàn bộ nội dung truyện (ảnh scene — và
+mọi Ken Burns được crop gọn trong khung), còn **người dẫn truyện đứng NGOÀI khung, bên phải**, to,
+rõ, chỉ tay vào khung, mấp môi theo giọng đọc và đổi tư thế ở khoảng nghỉ:
+
+```json
+"story_frame": { "use": "story_host" }
+```
+
+Xong. Mặc định: khung `x: 0.04, y: 0.06, width: 0.66, height: 0.88` (viền vẽ sẵn kiểu `border`),
+narrator `host_x: 0.845, host_y: 0.985, host_height: 0.46` — chiếm ~nửa chiều cao màn hình, đứng
+sàn dưới dải phải. `use` đọc từ registry (`story_host` = nhân vật vẽ sẵn tay chỉ;
+`my_host` cũng dùng được). Tùy chọn đầy đủ:
+
+```json
+"story_frame": {
+  "use": "story_host",
+  "x": 0.04, "y": 0.06, "width": 0.66, "height": 0.88,
+  "style": "border",
+  "host_x": 0.845, "host_y": 0.985, "host_height": 0.46, "host_flip": false,
+  "idle": {"type": "tilt", "amplitude_px": 3, "period_s": 3.0}
+}
+```
+
+Hành vi:
+- ảnh scene được **crop vào trong khung** trước khi có chuyển động — nội dung không bao giờ lọt ra
+  phía sau người dẫn; panel được vẽ ngay trên nền, dưới mọi nhân vật và chữ;
+- nhân vật của scene đứng **trong khung** = nội dung truyện, narrator kể tiếp bình thường;
+- nhân vật nào **lòi ra ngoài khung** về phía phải (đụng dải narrator) thì narrator tự ẩn đúng
+  khoảng đó (nới lề 60ms để không bật/tắt gắt) và trở lại khi nhân vật xong;
+- narrator không có enter/exit — sống nhờ miệng dập + pose ở khoảng nghỉ + idle `tilt` nhẹ.
+
+Chuẩn bị ảnh (khung vẽ theo đúng tỉ lệ khung hiện tại):
+
+```bash
+# khung viền (mặc định) hoặc khung trơn --none
+python3 tools/make_story_frame.py --size 1188x1584 --style border --out assets/frames/story_frame_border.png
+# thêm/sửa story_frame cho script (mặc định use=story_host)
+python3 tools/apply_story_frame.py projects/topics-002/script.json
+python3 tools/apply_story_frame.py projects/topics-002/script.json --remove
+# vẽ lại bộ ảnh narrator mặc định (resting / chỉ tay / 2 miếng miệng)
+python3 tools/make_narrator.py --out assets/narrator --height 900
+```
+
+### 🎙️ Host cố định xuyên suốt (host_layout) — kiểu MC đứng góc
+
+Thay vì nhân vật "nhảy vào - nhảy ra" từng scene, đặt **một MC cố định ở góc màn hình xuyên suốt
+cả video** (kiểu news anchor): MC luôn thở, mấp môi theo giọng đọc, đổi tư thế ở khoảng nghỉ —
+phần còn lại của khung để cho ảnh nội dung. Thêm MỘT khối ở đầu script:
+
+```json
+"host_layout": { "use": "my_host" }
+```
+
+Xong. Mọi scene tự có MC ở góc phải (mặc định `x: 0.85, y: 0.55, height: 0.34`, idle `tilt` nhẹ),
+kế thừa toàn bộ `mouth`/`poses`/`auto_pose_s` từ `assets/characters/characters.json`. Tùy chọn:
+
+```json
+"host_layout": {
+  "use": "my_host",
+  "x": 0.15, "y": 0.5, "height": 0.4,
+  "idle": {"type": "bob", "amplitude_px": 8, "period_s": 2.2}
+}
+```
+
+Hành vi:
+- MC **tự ẩn** khi một nhân vật của scene đứng đè lên góc của nó, và trở lại ngay khi nhân vật đó xong;
+- scene nào tự liệt kê đúng ảnh của MC trong `characters[]` thì scene đó MC tự lo (không inject);
+- không có enter/exit — MC chỉ đứng đó, sống nhờ idle + miệng dập + đổi pose.
+
+Lệnh tiện ích:
+
+```bash
+# thêm/sửa host_layout cho 1 hoặc nhiều script
+python3 tools/apply_host_layout.py projects/*/script.json
+# góc trái, hoặc gỡ bỏ
+python3 tools/apply_host_layout.py projects/topics-002/script.json --corner left
+python3 tools/apply_host_layout.py projects/topics-002/script.json --remove
+```
+
+Tách nền ảnh nhân vật mới (xuất `*_cut.png` RGBA):
+
+```bash
+python3 tools/remove_background.py assets/characters --glob "my_host_*.png" --suffix _cut
+```
 
 ### Mấp máy môi + đổi tư thế (talk frames & poses)
 

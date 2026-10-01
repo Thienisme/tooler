@@ -31,10 +31,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from autovid.domain.script import (
+    DEFAULT_TALK_PERIOD_S,
     CharacterIdle,
     CharacterMouth,
     CharacterMotion,
     CharacterOverlay,
+    HostLayoutConfig,
     Impact,
     Script,
 )
@@ -87,6 +89,12 @@ class CharacterCue:
     sentence_index: int | None = None
     dropped: bool = False
     note: str = ""
+    # Scene-local windows the sprite must stand down for.  Only the
+    # persistent host carries these: a scene character landing in the
+    # host's corner suppresses it instead of compositing underneath.  The
+    # planner forwards them onto the base layers, whose enable expression
+    # already knows how to subtract a window.
+    hide_windows: tuple[tuple[float, float], ...] = ()
     # The mouth-patch spec, carried so the baker can composite the patch
     # without a second lookup: anchor/size are fractions of the trimmed
     # artwork, and the baker needs them at bake time, not at resolve time.
@@ -129,6 +137,9 @@ class CharacterCue:
             "sfx": self.sfx,
             "dropped": self.dropped,
             "note": self.note,
+            "hide_windows": [
+                [round(s, 4), round(e, 4)] for s, e in self.hide_windows
+            ],
             "mouth": (
                 {
                     "images": len(self.mouth.images),
@@ -415,11 +426,13 @@ def _pose_windows(
     leaves room for the auto-rotation of the poses that stayed unanchored
     -- or, when none is left, of the talk frames themselves.
 
-    A `mouth` block replaces the whole swap machinery with the patch flap:
-    the resting sprite stays on screen for every window and only the patch
-    over the face changes, so the body never twitches.  The flap follows
-    the voice: it tiles the speech stage 2 measured and holds the closed
-    patch through the pauses, and a talk-frame cycle rests the same way.
+    A `mouth` block owns the speech: the flap tiles every stretch of the
+    motion-free zone no pose occupies and holds the closed patch through
+    the pauses.  Sentence-anchored poses keep their windows -- the body
+    swaps while the flap covers the rest -- and the unanchored pose pool
+    rotates through the pauses, where a stance change reads as listening
+    rather than as talking.  Talk frames are not used beside a flap: the
+    patch already is the mouth.
     """
     warnings: list[dict] = []
     windows = windows if windows is not None else []
@@ -429,50 +442,6 @@ def _pose_windows(
         zone_end = min(zone_end, clip_s)
     if zone_end - zone_start < MIN_VARIANT_S:
         return (), warnings
-
-    if mouth is not None and mouth.images:
-        # The patch flap owns the cue: no pose rotation on top of it, and
-        # the resting sprite is the base layer throughout.
-        #
-        # The flap follows the voice.  Slices tile the *speech* segments
-        # stage 2 measured, and every pause between them schedules the
-        # closed patch (`images[0]`), so the mouth holds still while the
-        # narrator breathes instead of flapping into the silence.  The
-        # schedule stays contiguous: an uncovered slice would let the
-        # resting artwork's own mouth show through mid-cue.
-        mouth_variants: list[CharacterVariant] = []
-        period = max(mouth.period_s, 2 * MIN_VARIANT_S)
-        closed_patch = mouth.images[0]
-        schedule: list[tuple[float, float, str, bool]] = []
-        cursor = zone_start
-        for seg_start, seg_end in _speech_segments(windows, zone_start, zone_end):
-            if seg_start - cursor >= MIN_VARIANT_S:
-                schedule.append((cursor, seg_start, closed_patch, True))
-            cursor = max(cursor, seg_start)
-            slot = 0
-            while cursor < seg_end - MIN_VARIANT_S:
-                slice_end = min(cursor + period, seg_end)
-                if slice_end - cursor >= MIN_VARIANT_S:
-                    schedule.append(
-                        (cursor, slice_end, mouth.images[slot % len(mouth.images)], False)
-                    )
-                    slot += 1
-                cursor = slice_end
-        if zone_end - cursor >= MIN_VARIANT_S:
-            schedule.append((cursor, zone_end, closed_patch, True))
-        for start, end, patch, silent in schedule:
-            mouth_variants.append(
-                CharacterVariant(
-                    image_file="",
-                    start_s=start,
-                    end_s=end,
-                    kind="mouth",
-                    flip=False,
-                    mouth_file=patch,
-                    silence=silent,
-                )
-            )
-        return tuple(mouth_variants), warnings
 
     def clamp(start: float, end: float) -> tuple[float, float] | None:
         start = max(start, zone_start)
@@ -577,7 +546,90 @@ def _pose_windows(
     # look as the character's identity and uses the cadence the author
     # already chose for speaking.  The unused-pose warning explains how to
     # put a lone pose to work instead.
-    if auto_pose_s is not None:
+    if mouth is not None and mouth.images:
+        # The flap and the poses share the cue instead of one excluding the
+        # other.  The unanchored pose pool claims the pauses first -- a
+        # stance change while nobody speaks reads as listening -- then the
+        # flap tiles everything left: cycling the patches inside the speech
+        # segments and holding the closed patch (`images[0]`) through the
+        # pauses the poses did not take.  Slice boundaries align with the
+        # speech segments themselves, so a pause is never covered by a
+        # flapping slice, and the schedule stays contiguous.
+        period = max(mouth.period_s, 2 * MIN_VARIANT_S)
+        closed_patch = mouth.images[0]
+        speech = _speech_segments(windows, zone_start, zone_end)
+        occupied = list(covered)
+
+        if auto_pose_s is not None and pool:
+            pose_period = max(auto_pose_s, 2 * MIN_VARIANT_S)
+            slot = 0
+            for pause_start, pause_end in _subtract_windows(
+                covered + speech, zone_start, zone_end
+            ):
+                cursor = pause_start
+                while cursor < pause_end - MIN_VARIANT_S:
+                    slice_end = min(cursor + pose_period, pause_end)
+                    if slice_end - cursor >= MIN_VARIANT_S:
+                        variants.append(
+                            CharacterVariant(
+                                image_file=pool[slot % len(pool)],
+                                start_s=cursor,
+                                end_s=slice_end,
+                                kind="pose",
+                                flip=False,
+                            )
+                        )
+                        occupied.append((cursor, slice_end))
+                        slot += 1
+                    cursor = slice_end
+
+        # The flap follows the voice: cycle the patches through the speech
+        # no pose occupies.
+        for seg_start, seg_end in speech:
+            for free_start, free_end in _subtract_windows(
+                occupied, seg_start, seg_end
+            ):
+                cursor = free_start
+                slot = 0
+                while cursor < free_end - MIN_VARIANT_S:
+                    slice_end = min(cursor + period, free_end)
+                    if slice_end - cursor >= MIN_VARIANT_S:
+                        variants.append(
+                            CharacterVariant(
+                                image_file="",
+                                start_s=cursor,
+                                end_s=slice_end,
+                                kind="mouth",
+                                flip=False,
+                                mouth_file=mouth.images[slot % len(mouth.images)],
+                                silence=False,
+                            )
+                        )
+                        slot += 1
+                    cursor = slice_end
+
+        # The pauses the poses left: the closed patch holds, so the mouth
+        # stays shut while the narrator breathes.  A hold is one variant
+        # per contiguous gap -- the patch never animates, so slicing it on
+        # the flap period would only bake identical frames.
+        for pause_start, pause_end in _subtract_windows(
+            occupied + speech, zone_start, zone_end
+        ):
+            if pause_end - pause_start < MIN_VARIANT_S:
+                continue
+            variants.append(
+                CharacterVariant(
+                    image_file="",
+                    start_s=pause_start,
+                    end_s=pause_end,
+                    kind="mouth",
+                    flip=False,
+                    mouth_file=closed_patch,
+                    silence=True,
+                )
+            )
+
+    elif auto_pose_s is not None:
         pool_kinds = ["pose"] * len(pool)
         if len(pool) < 2 and len(talk_images) >= 2:
             pool = list(talk_images)
@@ -734,6 +786,99 @@ def _speech_segments(
     return merged
 
 
+# The persistent host is composited *above* the scene characters (it is
+# the last sprite in every scene's graph), so its cue index is the highest
+# slot.  A scene's own cues number from 0.
+def host_slot(scene_cue_count: int) -> int:
+    """The cue index the injected host takes in a scene."""
+    return scene_cue_count
+
+
+# Horizontal half-spans for the host-overlap test, in frame fractions.  A
+# cue is a standing character, so its box is roughly a third of its height
+# wide; the host is a corner talking head.  The spans are generous on
+# purpose: suppressing the host one beat too early reads far better than
+# two heads overlapping in the corner.
+HOST_HALF_SPAN = 0.08
+CUE_HALF_SPAN = 0.1
+
+# The storytelling-frame narrator is bigger than a corner host, and stands
+# in the right-hand strip beside the frame, so its overlap span is wider.
+STORY_HOST_HALF_SPAN = 0.15
+
+# A cue counts as "inside the story frame" when its x span sits within the
+# panel and its top clears the panel's top; its FEET may hang a little
+# below the panel's bottom edge, because scene characters stand on the
+# screen floor (y ~ 0.95) while the panel stops at ~0.94.  That much
+# overshoot still reads as "standing in the frame" -- only a cue that
+# sticks out sideways or upwards reaches into the narrator's strip.
+FRAME_FOOT_SLACK = 0.08
+
+# A scene cue whose window ends starts the host again this much early (and
+# puts it down this much late): a narrator snapping back on the exact frame
+# a guest leaves reads as a flicker.
+SUPPRESSION_MARGIN_S = 0.06
+
+
+def _host_suppression_windows(
+    scene_cues: tuple[CharacterCue, ...],
+    *,
+    host_x: float,
+    host_half_span: float = HOST_HALF_SPAN,
+    frame_box: tuple[float, float, float, float] | None = None,
+    margin_s: float = 0.0,
+) -> tuple[tuple[float, float], ...]:
+    """
+    The slices of the scene the host must stand down for.
+
+    A scene character whose x span overlaps the host's would composite
+    underneath it -- two heads in one corner -- so the host switches off
+    for exactly those cues and returns when they end.  The returned windows
+    ride on the host cue's `hide_windows`, which the filtergraph already
+    subtracts from the layer's enable, so no new plumbing is needed.
+
+    With a storytelling frame active, `frame_box` is the frame's (x, y, w, h)
+    in frame fractions: a cue that lands fully *inside* the panel is the
+    story content the frame exists to show, so the narrator outside keeps
+    talking through it -- suppression is for cues that stick out into the
+    narrator's strip.  `margin_s` pads each window so the narrator eases
+    back in instead of snapping on the exact frame a guest leaves.
+    """
+    host_left = host_x - host_half_span
+    host_right = host_x + host_half_span
+    windows: list[tuple[float, float]] = []
+    for cue in scene_cues:
+        if cue.dropped:
+            continue
+        left = cue.x - CUE_HALF_SPAN
+        right = cue.x + CUE_HALF_SPAN
+        if frame_box is not None:
+            frame_x, frame_y, frame_w, frame_h = frame_box
+            cue_top = cue.y - cue.height
+            inside = (
+                left >= frame_x
+                and right <= frame_x + frame_w
+                and cue_top >= frame_y
+                and cue.y <= frame_y + frame_h + FRAME_FOOT_SLACK
+            )
+            if inside:
+                continue
+        if right > host_left and left < host_right:
+            windows.append((cue.start_s, cue.end_s))
+    merged: list[tuple[float, float]] = []
+    for start, end in sorted(windows):
+        if merged and start - merged[-1][1] <= 0.05:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    if margin_s > 0:
+        merged = [
+            (max(start - margin_s, 0.0), end + margin_s)
+            for start, end in merged
+        ]
+    return tuple(merged)
+
+
 def resolve_character_cues(
     script: Script,
     *,
@@ -746,6 +891,11 @@ def resolve_character_cues(
 
     Cues that cannot be placed at all (no usable window) are dropped and
     reported rather than rendered as a zero-frame flash.
+
+    A `host_layout` turns into one more cue in *every* scene: the persistent
+    presenter with no enter and no exit, whose only motion is its idle.  A
+    scene character that would land under the host suppresses the host for
+    its window instead of stacking underneath it.
     """
     windows = sentence_windows(tts_report, pacing_report)
     clip_seconds = _clip_seconds(timeline)
@@ -754,9 +904,39 @@ def resolve_character_cues(
     variants_by_scene: dict[int, dict[int, tuple[CharacterVariant, ...]]] = {}
     warnings: list[dict] = []
 
+    # The storytelling frame owns the host when it is on: its narrator
+    # replaces host_layout's, and the layout carries the suppression rules
+    # (guests fully inside the panel are the story; guests sticking out
+    # suppress the narrator).  host_layout keeps its own corner semantics.
+    host_config = script.host_layout
+    frame_config = script.story_frame
+    host_enabled = (
+        host_config.enabled
+        and host_config.image_file is not None
+        and bool(script.scenes)
+    )
+    frame_enabled = (
+        frame_config.enabled
+        and frame_config.image_file is not None
+        and bool(script.scenes)
+    )
+    if frame_enabled:
+        host_config = HostLayoutConfig(
+            enabled=True,
+            use=frame_config.use,
+            image_file=frame_config.image_file,
+            x=frame_config.host_x,
+            y=frame_config.host_y,
+            height=frame_config.host_height,
+            flip=frame_config.host_flip,
+            idle=frame_config.idle,
+            mouth=frame_config.mouth,
+            poses=frame_config.poses,
+            auto_pose_s=frame_config.auto_pose_s,
+        )
+        host_enabled = True
+
     for scene in script.scenes:
-        if not scene.characters:
-            continue
 
         scene_cues: list[CharacterCue] = []
         for index, character in enumerate(scene.characters):
@@ -848,7 +1028,102 @@ def resolve_character_cues(
                 if cue_variants:
                     variants_by_scene.setdefault(scene.id, {})[index] = cue_variants
 
-        if scene_cues:
+        # The persistent host joins every scene, last in composite order, so
+        # it sits above the scene characters in the filtergraph.  Its window
+        # is the whole scene; the only motion is its idle, which is the
+        # point of the layout -- the host is always there, breathing.
+        # A scene that already lists the host's own artwork is the author
+        # choreographing that entrance by hand, so the injection stands
+        # down there instead of stacking a second host.
+        author_placed_host = bool(
+            host_config.image_file
+            and any(
+                cue.image_file == host_config.image_file
+                for cue in scene_cues
+            )
+        )
+        if host_enabled and not author_placed_host:
+            clip_s = clip_seconds.get(scene.id)
+            host_start = 0.0
+            host_end = clip_s if clip_s is not None else 6.0
+            host_cue = CharacterCue(
+                scene_id=scene.id,
+                index=host_slot(len(scene_cues)),
+                image_file=host_config.image_file or "",
+                start_s=host_start,
+                end_s=host_end,
+                x=host_config.x,
+                y=host_config.y,
+                height=host_config.height,
+                flip=host_config.flip,
+                enter=CharacterMotion(type="none", duration_ms=0, edge="bottom"),
+                idle=host_config.idle,
+                exit=CharacterMotion(type="none", duration_ms=0, edge="bottom"),
+                sfx=None,
+                sfx_volume=0.5,
+                timing_source="host_layout",
+                # The mouth spec must ride on the cue itself: the variants
+                # carry only which patch shows when, while the anchor and
+                # size live here -- without it the baker drops every mouth
+                # variant and the narrator never moves its lips.
+                mouth=host_config.mouth,
+                note=(
+                    "storytelling-frame narrator"
+                    if frame_enabled
+                    else "persistent host"
+                ),
+                # A scene character standing in the host's corner (or poking
+                # out of the story frame) suppresses the host for its
+                # window: the hide rides on hide_windows, the same machinery
+                # a pose swap uses to gate a base layer.
+                hide_windows=(
+                    _host_suppression_windows(
+                        tuple(scene_cues),
+                        host_x=host_config.x,
+                        host_half_span=STORY_HOST_HALF_SPAN,
+                        frame_box=(
+                            frame_config.x,
+                            frame_config.y,
+                            frame_config.width,
+                            frame_config.height,
+                        ),
+                        margin_s=SUPPRESSION_MARGIN_S,
+                    )
+                    if frame_enabled
+                    else _host_suppression_windows(
+                        tuple(scene_cues), host_x=host_config.x
+                    )
+                ),
+            )
+            scene_cues.append(host_cue)
+            cues[scene.id] = tuple(scene_cues)
+
+            # The host's registry frames keep working in the chair: the
+            # mouth flap follows the measured narration and the pose pool
+            # rotates through the pauses, exactly like a per-scene
+            # character.  Talk frames stay out -- beside a flap the patch
+            # already is the mouth.
+            host_variants, host_variant_warnings = _pose_windows(
+                poses=host_config.poses,
+                talk_images=(),
+                auto_pose_s=host_config.auto_pose_s,
+                talk_period_s=DEFAULT_TALK_PERIOD_S,
+                mouth=host_config.mouth,
+                start_s=host_start,
+                end_s=host_end,
+                enter_s=0.0,
+                exit_s=0.0,
+                clip_s=clip_s,
+                windows=windows.get(scene.id, []),
+                scene_id=scene.id,
+                index=host_cue.index,
+            )
+            warnings.extend(host_variant_warnings)
+            if host_variants:
+                variants_by_scene.setdefault(scene.id, {})[host_cue.index] = (
+                    host_variants
+                )
+        elif scene_cues:
             cues[scene.id] = tuple(scene_cues)
 
     return CharacterPlan(cues=cues, warnings=tuple(warnings), variants=variants_by_scene)

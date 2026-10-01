@@ -235,6 +235,14 @@ def build_parser() -> argparse.ArgumentParser:
         "is better and bigger)",
     )
     assembly.add_argument(
+        "--threads",
+        type=int,
+        default=0,
+        help="cap x264 encoder threads for the scene clips (0 = auto, all "
+        "cores; a low cap like 2-4 keeps the desktop responsive while "
+        "rendering)",
+    )
+    assembly.add_argument(
         "--force",
         action="store_true",
         help="re-render every scene even if its clip is already up to date",
@@ -827,6 +835,7 @@ def cmd_assembly(args: argparse.Namespace) -> int:
             paths,
             preset=args.preset,
             crf=args.crf,
+            threads=args.threads,
             force=args.force,
             dry_run=args.dry_run,
             skip_characters=args.no_characters,

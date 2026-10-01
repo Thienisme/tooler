@@ -30,7 +30,8 @@ module never needs to know how many text overlays share the graph.
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -42,6 +43,11 @@ from autovid.domain.script import CharacterIdle
 FRAME_PAD = 1.10
 # A rotating sprite sweeps its diagonal through the box, so it needs more.
 SPIN_PAD = 1.45
+
+# A tilt keeps the box: a few degrees of wobble never leave the padding a
+# non-spinning box already carries, so the sprite is not baked with the
+# extra diagonal headroom a full spin needs.
+TILT_PAD = FRAME_PAD
 
 # Overlap between consecutive size steps, as a share of the step length.
 # The ramp has to finish before the step it belongs to does, and the step
@@ -146,6 +152,16 @@ class CharacterLayer:
     spin_s: float = 0.0
     idle: CharacterIdle | None = None
     idle_origin_s: float = 0.0
+    # Windows *inside* this layer's own span where the layer must not be
+    # drawn: the times a pose/talk variant owns the frame.  The resting
+    # sprite stays enabled underneath otherwise, and a variant whose
+    # silhouette is smaller than the resting art composites over it -- two
+    # characters showing at once, the old one ghosting through the new one.
+    hide_windows: tuple[tuple[float, float], ...] = ()
+    # The inverse idea: instead of one layer per short window (a mouth flap
+    # would be fifty inputs a scene), ONE layer per distinct artwork shows
+    # itself during every listed window through a summed enable expression.
+    show_windows: tuple[tuple[float, float], ...] = ()
 
     @property
     def box_w(self) -> int:
@@ -155,6 +171,11 @@ class CharacterLayer:
     def box_h(self) -> int:
         return self.frame.box_h
 
+    @property
+    def tilts(self) -> bool:
+        """Whether the idle oscillates rotation (the box never moves for it)."""
+        return self.idle is not None and self.idle.type == "tilt"
+
     def to_dict(self) -> dict:
         return {
             "file": str(self.frame.path),
@@ -163,6 +184,7 @@ class CharacterLayer:
             "fade_in_s": round(self.fade_in_s, 4),
             "fade_out_s": round(self.fade_out_s, 4),
             "travel": self.travel,
+            "show_windows": [list(w) for w in self.show_windows],
             "travel_edge": self.travel_edge,
             "travel_s": round(self.travel_s, 4),
             "travel_px": [self.travel_x, self.travel_y],
@@ -175,6 +197,12 @@ class CharacterLayer:
             "idle_period_s": self.idle.period_s if self.idle else 0.0,
             "position": [self.box_x, self.box_y],
             "box": [self.frame.box_w, self.frame.box_h],
+            # The hide windows change the enable expression without touching
+            # anything else in the layer, so they belong in the signature a
+            # filtergraph cache keys on.
+            "hide_windows": [
+                [round(s, 4), round(e, 4)] for s, e in self.hide_windows
+            ],
         }
 
     # -- expressions ------------------------------------------------------
@@ -186,14 +214,17 @@ class CharacterLayer:
         return _position_expression(self, axis="y")
 
     def angle_expression(self) -> str | None:
-        """Rotation in radians, or None when the layer does not spin."""
-        if self.spin == "none" or self.spin_s <= 0:
-            return None
-        progress = _progress(self.start_s, self.spin_s)
-        if self.spin == "in":
-            # A whole turn that lands facing the viewer.
-            return f"-2*PI*(1-{progress})"
-        return f"2*PI*{progress}"
+        """Rotation in radians, or None when the layer never rotates."""
+        if self.spin != "none" and self.spin_s > 0:
+            progress = _progress(self.start_s, self.spin_s)
+            if self.spin == "in":
+                # A whole turn that lands facing the viewer.
+                return f"-2*PI*(1-{progress})"
+            return f"2*PI*{progress}"
+
+        if self.tilts:
+            return _tilt_expression(self)
+        return None
 
 
 def _number(value: float) -> str:
@@ -269,6 +300,30 @@ def _travel_expression(layer: CharacterLayer, *, axis: str) -> str:
         return f"{sign}{magnitude}*pow({progress},2)"
 
     return ""
+
+
+def _tilt_expression(layer: CharacterLayer) -> str | None:
+    """
+    The rotation wobble for a `tilt` idle, in radians.
+
+    `amplitude_px` carries degrees for this idle type (the schema caps it at
+    fifteen so it reads as a head/upper-body sway, not a metronome).  A
+    `1-cos` curve starts and ends upright, and eases through the extremes
+    the way a relaxed sway does.  `period_s` is the full there-and-back
+    cycle, exactly as for `bob`.
+    """
+    idle = layer.idle
+    if idle is None or idle.type != "tilt":
+        return None
+    degrees = max(idle.amplitude_px, 0)
+    if degrees <= 0:
+        return None
+    origin = _number(layer.idle_origin_s)
+    period = _number(max(idle.period_s, 0.2))
+    radians = degrees * math.pi / 180.0
+    # The 0.5 matches the bob: `1-cos` swings 0..2, so halving it makes
+    # `amplitude` the actual peak of the sway, not half of it.
+    return f"{radians:.6f}*0.5*(1-cos(2*PI*(t-{origin})/{period}))"
 
 
 def _idle_expression(layer: CharacterLayer, *, axis: str) -> str:
@@ -566,6 +621,33 @@ class SpritePlanner:
             anchor=anchor,
         )
 
+        # A pose wider than the resting artwork (arms out, pointing) would
+        # be sheared by a box sized for the resting art alone, so the box is
+        # widened to fit the widest body swap before anything is baked into
+        # it.  Height is untouched: feet stay on the baseline, and a taller
+        # pose is the author asking for a different character size.
+        body_swaps: tuple = ()
+        if variants:
+            body_swaps = tuple(
+                variant for variant in variants if variant.kind != "mouth"
+            )
+            widest_variant_px = 0
+            for variant in body_swaps:
+                sprite = _load_trimmed(
+                    Path(variant.image_file),
+                    flip=bool(variant.flip) != bool(cue.flip),
+                )
+                widest_variant_px = max(
+                    widest_variant_px,
+                    int(round(sprite.width * height_px / sprite.height)),
+                )
+            if widest_variant_px:
+                needed_w = max(
+                    int(round(widest_variant_px * FRAME_PAD)),
+                    widest_variant_px + 2,
+                )
+                box = (max(box[0], needed_w), box[1])
+
         # Where the box sits, in output pixels.  `y` is the ground line the
         # character stands on rather than the top of the sprite, so a cue
         # stays put when its height changes.
@@ -592,6 +674,24 @@ class SpritePlanner:
 
         layers: list[CharacterLayer] = []
 
+        # The windows a pose/talk variant owns.  The *base* layers (the
+        # resting sprite and its size steps) must switch off while a variant
+        # is up, or the resting artwork keeps showing through underneath a
+        # variant whose silhouette is smaller -- two hosts at once.  A mouth
+        # patch is composited *onto* the resting artwork, so its windows are
+        # not subtractions and must stay out of this list.
+        base_hide_windows = _hide_windows(
+            body_swaps, start=cue.start_s, end=enter_end
+        )
+
+        # Windows the whole sprite must switch off for, decided above the
+        # planner.  Only the persistent host carries these: a scene
+        # character landing in its corner suppresses the host instead of
+        # compositing underneath it.
+        cue_hide_windows: tuple[tuple[float, float], ...] = getattr(
+            cue, "hide_windows", ()
+        )
+
         if enter_spec["kind"] == "series":
             layers.extend(
                 self._series_layers(
@@ -606,6 +706,7 @@ class SpritePlanner:
                     anchor=anchor,
                     geometry=geometry,
                     hold_until=enter_end,
+                    hide_windows=base_hide_windows + cue_hide_windows,
                 )
             )
         else:
@@ -633,6 +734,7 @@ class SpritePlanner:
                     spin_s=enter_s,
                     idle=cue.idle,
                     idle_origin_s=cue.start_s,
+                    hide_windows=base_hide_windows + cue_hide_windows,
                 )
             )
 
@@ -675,6 +777,7 @@ class SpritePlanner:
                     geometry=geometry,
                     hold_until=cue.end_s,
                     fading_out=True,
+                    hide_windows=base_hide_windows + cue_hide_windows,
                 )
             )
         else:
@@ -704,6 +807,7 @@ class SpritePlanner:
                     spin_s=exit_s,
                     idle=cue.idle,
                     idle_origin_s=cue.start_s,
+                    hide_windows=base_hide_windows + cue_hide_windows,
                 )
             )
 
@@ -740,40 +844,48 @@ class SpritePlanner:
         frames: dict[tuple, SpriteFrame] = {}
         mouth_spec = cue.mouth
 
+        # The mouth flap is a schedule of short alternating windows over two
+        # (or a few) patches.  One *layer per window* would make every scene
+        # carry fifty-plus ffmpeg inputs -- each with its own decoder and
+        # filter buffers, which is what made renders eat the whole machine.
+        # So the windows are grouped by patch file and one layer per file
+        # shows itself through a summed enable expression instead.
+        mouth_windows: dict[str, list[tuple[float, float]]] = {}
+        mouth_order: list[str] = []
+        for variant in variants:
+            if variant.kind != "mouth":
+                continue
+            if mouth_spec is None or not variant.mouth_file:
+                continue
+            window = (
+                max(variant.start_s, cue.start_s),
+                min(variant.end_s, cue.end_s),
+            )
+            if window[1] <= window[0]:
+                continue
+            if variant.mouth_file not in mouth_windows:
+                mouth_windows[variant.mouth_file] = []
+                mouth_order.append(variant.mouth_file)
+            mouth_windows[variant.mouth_file].append(
+                (round(window[0], 4), round(window[1], 4))
+            )
+
         for variant in variants:
             if variant.kind == "mouth":
-                if mouth_spec is None or not variant.mouth_file:
-                    continue
-                key = ("mouth", variant.mouth_file)
-                frame = frames.get(key)
-                if frame is None:
-                    frame = self._bake(
-                        resting.source_path,
-                        height_px=resting.content_h,
-                        scale=1.0,
-                        flip=cue.flip,
-                        spinning=False,
-                        box=(resting.box_w, resting.box_h),
-                        anchor=anchor,
-                        mouth=Path(variant.mouth_file),
-                        mouth_anchor=(mouth_spec.x, mouth_spec.y),
-                        mouth_size=tuple(mouth_spec.size),
-                    )
-                    frames[key] = frame
-            else:
-                key = (variant.image_file, bool(variant.flip) != bool(cue.flip))
-                frame = frames.get(key)
-                if frame is None:
-                    frame = self._bake(
-                        Path(variant.image_file),
-                        height_px=resting.content_h,
-                        scale=1.0,
-                        flip=key[1],
-                        spinning=False,
-                        box=(resting.box_w, resting.box_h),
-                        anchor=anchor,
-                    )
-                    frames[key] = frame
+                continue
+            key = (variant.image_file, bool(variant.flip) != bool(cue.flip))
+            frame = frames.get(key)
+            if frame is None:
+                frame = self._bake(
+                    Path(variant.image_file),
+                    height_px=resting.content_h,
+                    scale=1.0,
+                    flip=key[1],
+                    spinning=False,
+                    box=(resting.box_w, resting.box_h),
+                    anchor=anchor,
+                )
+                frames[key] = frame
             layers.append(
                 CharacterLayer(
                     frame=frame,
@@ -783,6 +895,38 @@ class SpritePlanner:
                     box_y=geometry["box_y"],
                     idle=cue.idle,
                     idle_origin_s=cue.start_s,
+                )
+            )
+
+        # One input per distinct patch, visible during every window it owns.
+        # The enable expression replaces the old one-layer-per-flap schedule,
+        # which turned a talking scene into fifty ffmpeg inputs.
+        for mouth_file in mouth_order:
+            windows = _merged_windows(mouth_windows[mouth_file])
+            if not windows:
+                continue
+            frame = self._bake(
+                resting.source_path,
+                height_px=resting.content_h,
+                scale=1.0,
+                flip=cue.flip,
+                spinning=False,
+                box=(resting.box_w, resting.box_h),
+                anchor=anchor,
+                mouth=Path(mouth_file),
+                mouth_anchor=(mouth_spec.x, mouth_spec.y),
+                mouth_size=tuple(mouth_spec.size),
+            )
+            layers.append(
+                CharacterLayer(
+                    frame=frame,
+                    start_s=cue.start_s,
+                    end_s=cue.end_s,
+                    box_x=geometry["box_x"],
+                    box_y=geometry["box_y"],
+                    idle=cue.idle,
+                    idle_origin_s=cue.start_s,
+                    show_windows=tuple(windows),
                 )
             )
 
@@ -852,6 +996,7 @@ class SpritePlanner:
         geometry: dict,
         hold_until: float,
         fading_out: bool = False,
+        hide_windows: tuple[tuple[float, float], ...] = (),
     ) -> list[CharacterLayer]:
         """
         Bake a size animation as a stack of held steps.
@@ -902,9 +1047,52 @@ class SpritePlanner:
                     ),
                     idle=cue.idle,
                     idle_origin_s=cue.start_s,
+                    hide_windows=hide_windows,
                 )
             )
         return layers
+
+
+def _merged_windows(
+    windows: list[tuple[float, float]],
+) -> list[tuple[float, float]]:
+    """Sort windows and fuse the ones that touch or overlap."""
+    merged: list[tuple[float, float]] = []
+    for start, end in sorted(windows):
+        if merged and start - merged[-1][1] <= 1.0 / 1000:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((round(start, 4), round(end, 4)))
+    return merged
+
+
+def _hide_windows(
+    variants: tuple, *, start: float, end: float
+) -> tuple[tuple[float, float], ...]:
+    """
+    The slices of a base layer a pose/talk variant owns.
+
+    Variants composite *over* the resting sprite, so a silhouette smaller
+    than the resting art leaves the old pose ghosting around the new one.
+    The fix is to switch the base layer off for exactly those windows and
+    let the variant carry the frame alone -- the composite position is one
+    box, so the swap changes pixels, not geometry.  Windows are clamped to
+    the base layer's own span and dropped when nothing usable remains.
+    """
+    windows = [
+        (max(variant.start_s, start), min(variant.end_s, end))
+        for variant in variants
+        if variant.end_s > start and variant.start_s < end
+    ]
+    merged: list[tuple[float, float]] = []
+    for window_start, window_end in sorted(windows):
+        if merged and window_start - merged[-1][1] <= 1.0 / 1000:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], window_end))
+        else:
+            merged.append((window_start, window_end))
+    return tuple(
+        (round(s, 4), round(e, 4)) for s, e in merged if e > s
+    )
 
 
 def _travel_kind(spec: dict, *, phase: str) -> str:

@@ -60,7 +60,7 @@ EXITS = (
     "spin_out",
     "zoom_out",
 )
-IDLES = ("none", "bob", "sway", "bob_sway", "shake", "talk")
+IDLES = ("none", "bob", "sway", "bob_sway", "shake", "talk", "tilt")
 PRESETS = ("pop", "boing", "whoosh", "ta_da", "sneak", "ninja")
 
 DEFAULT_CHARACTER = PROJECT_ROOT / "assets" / "characters" / "host_idle.png"
@@ -151,8 +151,15 @@ def render_variant(
     cue = plan.for_scene(1)[0]
 
     planner = SpritePlanner(cache_dir)
+    # The pose/talk/mouth swaps ride on the same call: without them the
+    # preview would silently render only the resting sprite, no matter what
+    # the cue asked for -- measured exactly that way once.
     sprite_layers = planner.plan(
-        cue, source=Path(cue.image_file), frame_size=resolution, fps=fps
+        cue,
+        source=Path(cue.image_file),
+        frame_size=resolution,
+        fps=fps,
+        variants=plan.variants_for(1, 0),
     )
 
     # The punch-in gets its own variant, so only that one carries one.
@@ -294,12 +301,15 @@ def variants(selected: set[str]) -> list[tuple[str, dict, dict | None]]:
         items.append((f"exit: {exit_type}", cue, None))
 
     for idle in IDLES:
+        # A tilt's amplitude is degrees (capped at fifteen), so it gets its
+        # own value instead of sharing the position idles' amplitude.
+        amplitude = 8 if idle == "tilt" else 18
         cue = {
             "x": 0.5,
             "y": 0.94,
             "height": 0.62,
             "enter": {"type": "none"},
-            "idle": {"type": idle, "amplitude_px": 18, "period_s": 2.0},
+            "idle": {"type": idle, "amplitude_px": amplitude, "period_s": 2.0},
             "exit": {"type": "none"},
         }
         items.append((f"idle: {idle}", cue, None))

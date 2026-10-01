@@ -68,6 +68,8 @@ from autovid.infrastructure.video.filters import (  # noqa: E402
 from autovid.infrastructure.video.sprites import (  # noqa: E402
     FRAME_PAD,
     SPIN_PAD,
+    CharacterLayer,
+    SpriteFrame,
     SpritePlanner,
     bake_sprite,
     sprite_transparency,
@@ -274,6 +276,38 @@ def evaluate(expression: str, *, t: float, on: float = 0.0) -> float:
 
 
 class TestCharacterSchema(unittest.TestCase):
+    def test_a_tilt_amplitude_is_read_as_degrees_and_capped(self):
+        """`tilt` sways rotation, so its amplitude is degrees, capped hard."""
+        script = script_dict(
+            [
+                scene_dict(
+                    characters=[
+                        character_dict(
+                            idle={"type": "tilt", "amplitude_px": 8,
+                                  "period_s": 2.4},
+                        )
+                    ]
+                )
+            ]
+        )
+        character = script.scenes[0].characters[0]
+        self.assertEqual(character.idle.type, "tilt")
+        self.assertEqual(character.idle.amplitude_px, 8)
+
+        with self.assertRaises(ScriptSchemaError):
+            script_dict(
+                [
+                    scene_dict(
+                        characters=[
+                            character_dict(
+                                idle={"type": "tilt", "amplitude_px": 60,
+                                      "period_s": 2.4},
+                            )
+                        ]
+                    )
+                ]
+            )
+
     def test_preset_fills_in_the_whole_bit(self):
         script = script_dict(
             [scene_dict(characters=[character_dict(preset="boing")])]
@@ -995,6 +1029,41 @@ class TestMotionExpressions(unittest.TestCase):
             min(offsets), -5, "the bob should actually move the character"
         )
 
+    def test_a_tilt_rotates_but_never_moves_the_box(self):
+        """A tilt owns rotation: the box stays put, the angle swings."""
+        layers = self.layer_for(
+            enter={"type": "none"},
+            exit={"type": "none"},
+            idle={"type": "tilt", "amplitude_px": 8, "period_s": 2.0},
+        )
+        layer = layers[0]
+
+        # No positional idle at all: the placement expressions stay flat.
+        self.assertEqual(layer.x_expression(), str(layer.box_x))
+        self.assertEqual(layer.y_expression(), str(layer.box_y))
+
+        # The angle oscillates, starts upright, peaks at the amplitude
+        # (the 0.5 matches the bob: `1-cos` swings 0..2) and stays inside
+        # it everywhere.
+        angle = layer.angle_expression()
+        self.assertIsNotNone(angle)
+        values = [
+            evaluate(angle, t=layer.start_s + step / 40)
+            for step in range(80)
+        ]
+        peak = 8 * math.pi / 180
+        self.assertAlmostEqual(values[0], 0.0, places=9)
+        self.assertAlmostEqual(max(values), peak, delta=peak * 0.01)
+        self.assertGreaterEqual(min(values), -1e-9)
+
+        # And the graph carries the rotate with a transparent fill.
+        graph = build_scene_filtergraph(
+            frames=60, frame_size=FRAME, fps=FPS, motion=None,
+            overlays=[], sprites=layers,
+        )
+        self.assertIn("rotate=a=", graph)
+        self.assertIn("c=none", graph)
+
     def test_the_shrink_series_ends_tiny(self):
         layers = self.layer_for(
             enter={"type": "none"},
@@ -1388,6 +1457,69 @@ class TestVariants(unittest.TestCase):
         }
         self.assertGreaterEqual(len(swap_files), 2)
 
+    def test_the_base_sprite_goes_dark_while_a_pose_is_up(self):
+        """
+        A pose composites over the resting sprite, so a silhouette smaller
+        than the resting art would leave the old pose ghosting around the
+        new one.  The base layer is gated off for exactly the pose windows.
+        """
+        plan = self.variants_for(auto_pose_s=None, poses=[])
+        cue = plan.for_scene(1)[0]
+        layers = SpritePlanner(self.cache).plan(
+            cue,
+            source=self.source,
+            frame_size=FRAME,
+            fps=FPS,
+            variants=plan.variants_for(1, 0),
+        )
+        base = layers[0]
+        swaps = layers[1:]
+        self.assertTrue(swaps)
+        self.assertTrue(base.hide_windows, "the base never ducked")
+
+        # Every talk window hides the base, and the windows stay inside the
+        # base layer's own span.
+        for swap in swaps:
+            self.assertTrue(
+                any(
+                    hide_start <= swap.start_s + 1e-6
+                    and swap.end_s <= hide_end + 1e-6
+                    for hide_start, hide_end in base.hide_windows
+                ),
+                f"{swap.start_s}..{swap.end_s} not hidden",
+            )
+
+        graph = build_scene_filtergraph(
+            frames=40, frame_size=FRAME, fps=FPS, motion=None,
+            overlays=[], sprites=layers,
+        )
+        self.assertIn("*not(between(t,", graph)
+
+    def test_a_wider_pose_widens_the_shared_box(self):
+        """A pose wider than the resting art must not be sheared by it."""
+        wide = make_sprite(self.tmp / "wide.png", size=(120, 100))
+        plan = self.variants_for(
+            auto_pose_s=None,
+            poses=[{"image_file": str(wide), "from_sentence": 1,
+                    "to_sentence": 1}],
+        )
+        cue = plan.for_scene(1)[0]
+        layers = SpritePlanner(self.cache).plan(
+            cue,
+            source=self.source,
+            frame_size=FRAME,
+            fps=FPS,
+            variants=plan.variants_for(1, 0),
+        )
+        plain = SpritePlanner(self.cache).plan(
+            cue, source=self.source, frame_size=FRAME, fps=FPS
+        )
+        self.assertGreater(layers[0].frame.box_w, plain[0].frame.box_w)
+        # Feet stay on the baseline: the height never moved.
+        self.assertEqual(
+            layers[0].frame.box_h, plain[0].frame.box_h
+        )
+
 
 class TestMouthPatch(unittest.TestCase):
     """
@@ -1516,6 +1648,33 @@ class TestMouthPatch(unittest.TestCase):
         )
         self.assertTrue(all(v.image_file == "" for v in variants))
 
+    def test_a_mouth_and_a_single_pose_can_share_a_cue(self):
+        """
+        A sentence-anchored pose holds its window while the flap covers the
+        speech around it -- the old rule dropped the pose entirely.
+        """
+        pose = self.tmp / "waving.png"
+        make_sprite(pose)
+        plan = self.resolved(
+            self.mouth_character(
+                poses=[{"image_file": str(pose), "from_sentence": 1,
+                        "to_sentence": 1}],
+            )
+        )
+        variants = plan.variants_for(1, 0)
+        kinds = {v.kind for v in variants}
+        self.assertIn("pose", kinds)
+        self.assertIn("mouth", kinds)
+        for variant in variants:
+            for other in variants:
+                if other is variant:
+                    continue
+                overlap = (
+                    min(variant.end_s, other.end_s)
+                    - max(variant.start_s, other.start_s)
+                )
+                self.assertLessEqual(overlap, 1e-6, "schedule overlapped")
+
     def test_the_mouth_closes_during_measured_pauses(self):
         """The flap follows the voice: a pause holds the closed patch."""
         plan = self.resolved(self.mouth_character())
@@ -1602,7 +1761,12 @@ class TestMouthPatch(unittest.TestCase):
         )
         self.assertTrue(any(variant.silence for variant in variants))
 
-    def test_a_mouth_block_pushes_body_swaps_out_of_the_cue(self):
+    def test_a_mouth_block_shares_the_cue_with_unanchored_poses(self):
+        """
+        The flap owns the speech; an unanchored pose pool takes the pauses.
+        A talk list is not used beside a flap -- the patch already is the
+        mouth -- so the only body swaps are the poses themselves.
+        """
         plan = self.resolved(
             self.mouth_character(
                 talk=[str(self.body)],
@@ -1612,7 +1776,19 @@ class TestMouthPatch(unittest.TestCase):
         )
         variants = plan.variants_for(1, 0)
         self.assertTrue(variants)
-        self.assertTrue(all(v.kind == "mouth" for v in variants))
+        self.assertEqual({v.kind for v in variants}, {"mouth", "pose"})
+
+        # Stage 2 measured (0,2), (2.5,4.5), (5,7): every pose sits inside
+        # a pause, never on top of a flapping slice.
+        speech = [(0.0, 2.0), (2.5, 4.5), (5.0, 7.0)]
+        for variant in variants:
+            if variant.kind != "pose":
+                continue
+            middle = (variant.start_s + variant.end_s) / 2
+            self.assertFalse(
+                any(start <= middle < end for start, end in speech),
+                f"pose {variant.start_s}..{variant.end_s} covered speech",
+            )
 
     def test_mouth_layers_share_the_resting_geometry(self):
         plan = self.resolved(self.mouth_character())
@@ -1707,6 +1883,469 @@ class TestTransitionRenderPlan(unittest.TestCase):
         self.assertEqual(
             plan.rendered_frames - plan.overlapped_frames, plan.total_frames
         )
+
+class TestPersistentHost(unittest.TestCase):
+    """
+    The persistent host: one presenter injected into every scene.
+
+    The pinned properties: it is in every scene with no enter and no exit,
+    its registry frames keep working in the chair, an explicit per-scene
+    character beats it, and a scene character parked in its corner
+    suppresses it for exactly that window instead of stacking under it.
+    """
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="autovid-host-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.cache = self.tmp / "cache"
+        self.host = make_sprite(self.tmp / "host.png")
+
+    def host_script(self, scenes: list[dict], **layout) -> object:
+        payload = {
+            "video_metadata": {
+                "title": "host",
+                "resolution": "320x180",
+                "fps": FPS,
+            },
+            "tts_config": {"voice": "test", "speed": 1.0},
+            "scenes": scenes,
+            "host_layout": {"image_file": str(self.host), **layout},
+        }
+        return parse_script(payload)
+
+    def resolved(self, script, *, duration_s: float = 6.0):
+        tts, pacing = reports_dict(moments=[(0.0, 2.0), (2.5, 4.5), (5.0, 5.9)])
+        timeline = {
+            "scenes": [
+                {
+                    "id": scene.id,
+                    "start_s": (scene.id - 1) * duration_s,
+                    "end_s": scene.id * duration_s,
+                }
+                for scene in script.scenes
+            ]
+        }
+        return resolve_character_cues(
+            script,
+            timeline=timeline,
+            tts_report=tts,
+            pacing_report=pacing,
+        )
+
+    def test_the_host_is_in_every_scene(self):
+        script = self.host_script(
+            [scene_dict(1), scene_dict(2, characters=[character_dict()])]
+        )
+        plan = self.resolved(script)
+
+        self.assertEqual(len(plan.for_scene(1)), 1)
+        self.assertEqual(len(plan.for_scene(2)), 2)
+        for scene in script.scenes:
+            host = plan.for_scene(scene.id)[-1]
+            self.assertEqual(host.timing_source, "host_layout")
+            self.assertEqual(host.enter.type, "none")
+            self.assertEqual(host.exit.type, "none")
+            self.assertEqual(host.start_s, 0.0)
+            self.assertEqual(host.end_s, 6.0)
+            self.assertEqual(host.idle.type, "tilt")
+
+    def test_a_script_character_in_the_host_corner_hides_it(self):
+        """The host stands down while a cue would land underneath it."""
+        script = self.host_script(
+            [
+                scene_dict(
+                    1,
+                    characters=[character_dict(x=0.85)],
+                ),
+                scene_dict(
+                    2,
+                    characters=[character_dict(x=0.3)],
+                ),
+            ]
+        )
+        plan = self.resolved(script)
+
+        hidden = plan.for_scene(1)[-1]
+        kept = plan.for_scene(2)[-1]
+        self.assertTrue(hidden.hide_windows, "the host never ducked")
+        self.assertEqual(kept.hide_windows, ())
+        # The window covers the whole cue, edges aligned.
+        cue = plan.for_scene(1)[0]
+        self.assertEqual(
+            hidden.hide_windows, ((cue.start_s, cue.end_s),)
+        )
+
+    def test_an_explicit_character_beats_the_host(self):
+        """A scene listing the same artwork gets exactly what it asked for."""
+        script = self.host_script(
+            [scene_dict(1, characters=[character_dict(image_file=str(self.host))])]
+        )
+        plan = self.resolved(script)
+
+        self.assertEqual(len(plan.for_scene(1)), 1)
+        cue = plan.for_scene(1)[0]
+        self.assertNotEqual(cue.timing_source, "host_layout")
+
+    def test_the_host_plans_layers_with_its_registry_frames(self):
+        """The chair comes with the act: flap follows the voice in every scene."""
+        closed = self.tmp / "closed.png"
+        Image.new("RGB", (40, 20), (24, 24, 24)).save(closed)
+        mouth = {
+            "images": [str(closed), str(self.host)],
+            "x": 0.5, "y": 0.25, "size": [0.3, 0.12], "period_s": 0.3,
+        }
+        script = self.host_script(
+            [scene_dict(1), scene_dict(2)],
+            mouth=mouth,
+        )
+        plan = self.resolved(script)
+        for scene in script.scenes:
+            host = plan.for_scene(scene.id)[-1]
+            variants = plan.variants_for(scene.id, host.index)
+            self.assertTrue(variants, f"scene {scene.id}: no host flap")
+            self.assertTrue(all(v.kind == "mouth" for v in variants))
+
+            # And the layers plan cleanly at the host's corner position.
+            layers = SpritePlanner(self.cache).plan(
+                host,
+                source=Path(host.image_file),
+                frame_size=FRAME,
+                fps=FPS,
+                variants=variants,
+            )
+            self.assertTrue(layers)
+            self.assertTrue(layers[0].x_expression())
+
+    def test_no_host_layout_means_no_host(self):
+        payload = {
+            "video_metadata": {
+                "title": "x", "resolution": "320x180", "fps": FPS,
+            },
+            "tts_config": {"voice": "test"},
+            "scenes": [scene_dict(1)],
+        }
+        script = parse_script(payload)
+        plan = self.resolved(script)
+        self.assertEqual(plan.for_scene(1), ())
+
+
+class TestStoryFrame(unittest.TestCase):
+    """
+    The storytelling frame: the art lives in a fixed panel, the narrator
+    stands OUTSIDE it.
+
+    The pinned properties: the narrator is a persistent host cue anchored
+    beside the panel in every scene; a guest fully inside the panel is the
+    story being told and never suppresses the narrator; a guest sticking
+    out into the narrator's strip does; and the filtergraph composites the
+    panel above the background but under every character.
+    """
+
+    FRAME_BOX = (0.04, 0.06, 0.66, 0.88)
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="autovid-frame-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.cache = self.tmp / "cache"
+        self.host = make_sprite(self.tmp / "host.png")
+
+    def frame_script(self, scenes: list[dict], **frame) -> object:
+        payload = {
+            "video_metadata": {
+                "title": "story frame",
+                "resolution": "320x180",
+                "fps": FPS,
+            },
+            "tts_config": {"voice": "test", "speed": 1.0},
+            "scenes": scenes,
+            "story_frame": {"image_file": str(self.host), **frame},
+        }
+        return parse_script(payload)
+
+    def resolved(self, script, *, duration_s: float = 6.0):
+        tts, pacing = reports_dict(moments=[(0.0, 2.0), (2.5, 4.5), (5.0, 5.9)])
+        timeline = {
+            "scenes": [
+                {
+                    "id": scene.id,
+                    "start_s": (scene.id - 1) * duration_s,
+                    "end_s": scene.id * duration_s,
+                }
+                for scene in script.scenes
+            ]
+        }
+        return resolve_character_cues(
+            script,
+            timeline=timeline,
+            tts_report=tts,
+            pacing_report=pacing,
+        )
+
+    def test_the_narrator_stands_outside_the_frame_in_every_scene(self):
+        script = self.frame_script([scene_dict(1), scene_dict(2)])
+        plan = self.resolved(script)
+
+        for scene in script.scenes:
+            cues = plan.for_scene(scene.id)
+            self.assertEqual(len(cues), 1)
+            narrator = cues[-1]
+            self.assertEqual(narrator.timing_source, "host_layout")
+            self.assertEqual(narrator.note, "storytelling-frame narrator")
+            self.assertAlmostEqual(narrator.x, 0.845, places=3)
+            self.assertAlmostEqual(narrator.y, 0.985, places=3)
+            self.assertAlmostEqual(narrator.height, 0.46, places=3)
+            self.assertEqual(narrator.start_s, 0.0)
+            self.assertEqual(narrator.end_s, 6.0)
+
+    def test_a_guest_inside_the_frame_never_suppresses_the_narrator(self):
+        """Art inside the panel is the story being told; the narrator talks on."""
+        # Feet hang past the panel's bottom edge (scene characters stand on
+        # the screen floor, y ~ 0.95, while the panel stops at 0.94) and the
+        # guest still counts as inside: the x span decides sideways.
+        script = self.frame_script(
+            [scene_dict(1, characters=[character_dict(x=0.35, y=0.99, height=0.5)])]
+        )
+        plan = self.resolved(script)
+
+        narrator = plan.for_scene(1)[-1]
+        self.assertEqual(narrator.hide_windows, ())
+
+    def test_a_guest_sticking_out_suppresses_the_narrator_with_margin(self):
+        script = self.frame_script(
+            [scene_dict(1, characters=[character_dict(x=0.8)])]
+        )
+        plan = self.resolved(script)
+
+        narrator = plan.for_scene(1)[-1]
+        self.assertTrue(narrator.hide_windows, "the narrator never ducked")
+        cue = plan.for_scene(1)[0]
+        start, end = narrator.hide_windows[0]
+        self.assertAlmostEqual(start, max(cue.start_s - 0.06, 0.0), places=3)
+        self.assertAlmostEqual(end, cue.end_s + 0.06, places=3)
+
+    def test_the_narrator_keeps_the_registry_act(self):
+        closed = self.tmp / "closed.png"
+        Image.new("RGB", (40, 20), (24, 24, 24)).save(closed)
+        mouth = {
+            "images": [str(closed), str(self.host)],
+            "x": 0.5, "y": 0.25, "size": [0.3, 0.12], "period_s": 0.3,
+        }
+        script = self.frame_script([scene_dict(1)], mouth=mouth)
+        plan = self.resolved(script)
+
+        narrator = plan.for_scene(1)[-1]
+        variants = plan.variants_for(1, narrator.index)
+        self.assertTrue(variants, "no narrator flap")
+        self.assertTrue(all(v.kind == "mouth" for v in variants))
+
+        layers = SpritePlanner(self.cache).plan(
+            narrator,
+            source=Path(narrator.image_file),
+            frame_size=FRAME,
+            fps=FPS,
+            variants=variants,
+        )
+        self.assertTrue(layers)
+
+    def test_frame_geometry_defaults_match_the_left_panel(self):
+        script = self.frame_script([scene_dict(1)])
+        frame = script.story_frame
+        self.assertEqual(
+            (frame.x, frame.y, frame.width, frame.height), self.FRAME_BOX
+        )
+        self.assertEqual(frame.style, "border")
+
+    def test_custom_style_requires_frame_png(self):
+        with self.assertRaises(ScriptSchemaError):
+            self.frame_script([scene_dict(1)], style="custom")
+
+    def test_art_inset_parses_per_side(self):
+        script = self.frame_script(
+            [scene_dict(1)],
+            art_inset={"t": 0.10, "b": 0.12, "l": 0.07, "r": 0.30},
+        )
+        self.assertEqual(
+            script.story_frame.art_inset,
+            {"t": 0.10, "b": 0.12, "l": 0.07, "r": 0.30},
+        )
+
+    def test_art_inset_rejects_unknown_sides_and_out_of_range(self):
+        with self.assertRaises(ScriptSchemaError):
+            self.frame_script([scene_dict(1)], art_inset={"x": 0.1})
+        with self.assertRaises(ScriptSchemaError):
+            self.frame_script([scene_dict(1)], art_inset=0.6)
+
+    def test_tv_retro_art_window_is_uneven(self):
+        """The TV keeps a slim control strip at the bottom: per-side inset."""
+        # Panel 1000x500 -> inset t=0.05*500=25, b=0.155*500=78 (round),
+        # l=0.04*1000=40, r=0.04*1000=40.
+        box = {"x": 40, "y": 30, "w": 1000, "h": 500,
+               "style": "tv_retro"}
+        graph = build_scene_filtergraph(
+            frames=90,
+            frame_size=FRAME,
+            fps=FPS,
+            motion=None,
+            overlays=[],
+            sprites=[],
+            story_frame=box,
+        )
+        # Window = panel box shrunk per side, NOT a uniform shrink.
+        self.assertIn("[bgart]crop=920:397:80:55[art]", graph)
+        self.assertIn("[bfg][art]overlay=80:55", graph)
+
+    def test_tv_wobble_and_lamp_blink(self):
+        """tv_retro sways gently and its lamp hops between green/red."""
+        box = {
+            "x": 51, "y": 43, "w": 200, "h": 150, "style": "tv_retro",
+            "wobble": {"ax": 3.0, "ay": 2.0, "period": 2.4},
+            "lamp": {"png": "lamp.png", "x": 100, "y": 50,
+                     "half": 64, "period": 1.0},
+        }
+        graph = build_scene_filtergraph(
+            frames=90,
+            frame_size=FRAME,
+            fps=FPS,
+            motion=None,
+            overlays=[],
+            sprites=[],
+            story_frame=box,
+        )
+        # The panel sways on a sine; the art copies the identical shift.
+        self.assertIn("overlay=x='51+sin(2*PI*t/2.4)*3.0", graph)
+        self.assertIn("y='43+sin(2*PI*t/2.4+PI/2)*2.0", graph)
+        self.assertIn("[bgart]crop=184:119:59:51[art]", graph)
+        self.assertIn("[bfg][art]overlay=x='59+sin(2*PI*t/2.4)*3.0", graph)
+        # The lamp sheet hops half-width every half second; it takes the
+        # input slot right after the panel, pushing later inputs up by 2.
+        self.assertIn("[2:v]format=rgba[lampsheet]", graph)
+        self.assertIn("100+sin(2*PI*t/2.4)*3.0-64*gte(mod(t,1.0),0.5)", graph)
+
+    def test_the_panel_composites_under_the_characters(self):
+        """Graph order: background -> frame panel -> sprites -> text."""
+        box = {"x": 51, "y": 43, "w": 200, "h": 150}
+        sprite = CharacterLayer(
+            frame=SpriteFrame(
+                path=Path("sprite.png"),
+                box_w=10,
+                box_h=20,
+                content_w=10,
+                content_h=20,
+                feet_inset_px=20,
+                centre_inset_px=10,
+            ),
+            start_s=0.0,
+            end_s=1.0,
+        )
+        overlay = OverlayLayer(path=Path("text.png"), start_s=0.0, end_s=1.0)
+
+        with_frame = build_scene_filtergraph(
+            frames=90,
+            frame_size=FRAME,
+            fps=FPS,
+            motion=None,
+            overlays=[overlay],
+            sprites=[sprite],
+            story_frame=box,
+        )
+        self.assertIn("[bfg]", with_frame)
+        self.assertIn("overlay=51:43", with_frame)
+        # The plate behind the panel is the scene cropped to the panel box
+        # and padded out with the dark backdrop -- no full-frame art anywhere.
+        self.assertIn("[bgfull]crop=200:150:51:43", with_frame)
+        self.assertIn("pad=320:180:51:43:color=0x1F232D", with_frame)
+        # The artwork is cropped into the panel's window -- the box shrunk
+        # by the mat inset (3.5% of the panel's short side, rounded to 5) --
+        # and composited onto the mat above the panel.
+        self.assertIn("[bgart]crop=190:140:56:48[art]", with_frame)
+        self.assertIn("[bfg][art]overlay=56:48", with_frame)
+        # The panel occupies input 1; sprite and text shift one slot each.
+        self.assertIn("[2:v]format=rgba[sp0]", with_frame)
+        self.assertIn("[3:v]format=rgba,fade", with_frame)
+        self.assertLess(with_frame.index("[bfg]"), with_frame.index("[sp0]"))
+        # The art lands after the panel and before every character too.
+        self.assertLess(with_frame.index("[bfart]"), with_frame.index("[sp0]"))
+
+        without = build_scene_filtergraph(
+            frames=90,
+            frame_size=FRAME,
+            fps=FPS,
+            motion=None,
+            overlays=[overlay],
+            sprites=[sprite],
+        )
+        self.assertNotIn("[bfg]", without)
+        self.assertIn("[1:v]format=rgba[sp0]", without)
+        self.assertIn("[2:v]format=rgba,fade", without)
+
+    def test_the_assembly_stage_renders_panel_then_narrator(self):
+        """End to end: the panel is on screen, the narrator above it."""
+        import json
+
+        from autovid.application.assembly import AssemblyStage
+        from autovid.paths import Paths
+
+        payload = {
+            "video_metadata": {
+                "title": "sf e2e", "resolution": "320x180", "fps": FPS,
+            },
+            "tts_config": {"voice": "test", "speed": 1.0},
+            "scenes": [scene_dict(1)],
+            "story_frame": {"image_file": str(self.host), "style": "border"},
+        }
+        script = parse_script(payload)
+        paths = Paths.from_workspace(self.tmp)
+        paths.create()
+        Image.new("RGB", FRAME, (235, 240, 245)).save(
+            paths.prepared_images_dir / "scene_001.png"
+        )
+        for name, payload_json in (
+            ("timeline.json", {"scenes": [
+                {"id": 1, "start_s": 0.0, "narration_s": 1.0,
+                 "pause_after_s": 0.0, "end_s": 1.0}
+            ]}),
+            ("tts_report.json", {"scenes": [
+                {"id": 1, "units": [{"duration_s": 1.0}]}
+            ]}),
+            ("pacing_report.json", {"scenes": [
+                {"id": 1, "sentences": [{"index": 0, "pause_ms": 0}]}
+            ]}),
+        ):
+            (paths.output_dir / name).write_text(
+                json.dumps(payload_json), encoding="utf-8"
+            )
+
+        result = AssemblyStage(script, paths, preset="ultrafast", crf=30).run()
+        self.assertEqual(result.status, "pass", result.issues)
+        clip = result.clips[0].clip
+        frame_path = self.tmp / "probe.png"
+        subprocess.run(
+            [FFMPEG, "-v", "error", "-y", "-ss", "0.5",
+             "-i", str(clip), "-frames:v", "1", str(frame_path)],
+            check=True,
+        )
+
+        image = np.array(Image.open(frame_path).convert("RGB")).astype(int)
+        W, H = FRAME
+        # The panel's centre is now the ARTWORK WINDOW: the scene itself,
+        # cropped inside the frame.  The prepared plate is uniform
+        # (235, 240, 245), so the window must show exactly that.
+        window = image[H // 2, int(0.35 * W)]
+        self.assertTrue(
+            abs(int(window[0]) - 235) <= 4 and abs(int(window[1]) - 240) <= 4
+            and abs(int(window[2]) - 245) <= 4,
+            f"art window does not show the scene: {window}",
+        )
+        # Outside the panel, top-left: the dark backdrop, never the picture.
+        corner = image[int(0.03 * H), int(0.01 * W)]
+        self.assertLess(int(corner[0]), 100, f"corner {corner}")
+        # The narrator's strip: the green test sprite stands there.
+        strip = image[:, int(0.72 * W):]
+        green = (
+            (strip[:, :, 1] > strip[:, :, 0] + 40)
+            & (strip[:, :, 1] > strip[:, :, 2] + 30)
+        ).mean()
+        self.assertGreater(float(green), 0.02, "narrator missing from strip")
 
 
 if __name__ == "__main__":

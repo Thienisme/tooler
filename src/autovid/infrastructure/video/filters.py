@@ -15,11 +15,18 @@ ffmpeg before being written down (see `notes` in the stage-4 tests):
 
 The scene graph therefore looks like:
 
-    [0:v] zoompan=... , setsar=1 [bg];
-    [1:v] format=rgba, <animation> [ov0];
-    [bg][ov0] overlay=...:enable=... [v0];
+    [0:v] zoompan=... , setsar=1 , split=2 [bgfull][bgart];
+    [bgfull] crop=<panel> , pad=<backdrop> [bg];
+    [1:v] format=rgba [fr];
+    [bg][fr] overlay=<panel xy> [bfg];
+    [bgart] crop=<art window> [art];
+    [bfg][art] overlay=<art xy> [bfart];
+    [2:v] format=rgba, <animation> [ov0];
+    [bfart][ov0] overlay=...:enable=... [v0];
     ...
     [vN] format=yuv420p [out]
+
+(the split/panel/art lines exist only when a story frame is configured)
 
 Input 0 is the prepared still, then one input per character layer, then one
 per text layer, then (when the scene flashes) one colour source.
@@ -62,6 +69,67 @@ IMPACT_SHAKE_HZ = 16.0
 # How much of the flash colour a punch-in lays over the frame at its peak.
 IMPACT_FLASH_STRENGTH = 0.55
 
+# Where the story frame sits, the rest of the canvas is a matte, not part
+# of the picture: the scene is cropped into the panel's window and the
+# surrounding canvas is filled with this near-black backdrop.  Art never
+# bleeds past the frame's edge, and the narrator reads against a surface
+# that never fights the picture for attention.
+STORY_FRAME_BACKDROP_RGB = (31, 35, 45)
+
+# Artwork-window inset per frame style, in panel fractions.  A float is
+# uniform on all sides (of the panel's short side, like before); a dict
+# names sides explicitly: t/b are fractions of the panel HEIGHT, l/r of
+# the panel WIDTH.  Must match ART_INSETS in make_story_frame.py -- that
+# is the mat the drawn frame promises, and the crop has to honour it.
+STYLE_ART_INSETS = {
+    "border": 0.035,
+    "none": 0.035,
+    "polaroid": 0.045,
+    "tv_retro": {"t": 0.05, "b": 0.155, "l": 0.04, "r": 0.04},
+    "night": 0.035,
+}
+
+
+def story_inset_for_style(style: str) -> float:
+    """The artwork-window inset for a frame style, in panel fractions."""
+    return STYLE_ART_INSETS.get(style, 0.035)
+
+# The picture sits inside the panel on a cream mat, like a matted print:
+# this share of the panel's own short side is left as mat between the
+# border ring and the artwork window on every side.
+# Default mat inset for callers that do not name a style (panel fractions
+# of the short side).
+STORY_FRAME_ART_INSET = 0.035
+
+# The blinking pilot lamp: a 128x64 sheet (green lamp left, red lamp right)
+# overlaid on the panel, hopping between halves every half period.  cx/cy
+# are the lamp centre in panel fractions; the socket is painted by the
+# panel PNG itself, the sheet only supplies the glowing bulb.
+STYLE_LAMPS = {
+    "tv_retro": {"cx": 0.892, "cy": 0.915, "period": 1.0},
+}
+LAMP_SHEET = "assets/frames/tv_lamp_blink.png"
+LAMP_HALF = 64
+
+# A gentle whole-panel wobble (the buttons and lamp ride along): the
+# overlay positions get a small sine offset, and the artwork overlay uses
+# the identical shift so the picture stays glued inside the bezel.
+STORY_FRAME_WOBBLES = {
+    "tv_retro": {"ax": 3.0, "ay": 2.0, "period": 2.4},
+}
+
+
+def _wobble_shifts(story_frame: dict) -> tuple[str, str]:
+    """Expression suffixes for the panel/art/lamp overlays, or ('','')."""
+    wobble = story_frame.get("wobble") or {}
+    ax, ay, period = wobble.get("ax"), wobble.get("ay"), wobble.get("period")
+    if not (ax and ay and period):
+        return "", ""
+    return (
+        f"+sin(2*PI*t/{period})*{ax}",
+        f"+sin(2*PI*t/{period}+PI/2)*{ay}",
+    )
+
 
 @dataclass(frozen=True)
 class OverlayLayer:
@@ -98,6 +166,38 @@ class ImpactPunch:
 def _number(value: float) -> str:
     """Compact fixed-point number for a filter argument (no exponents)."""
     return f"{value:.4f}".rstrip("0").rstrip(".") or "0"
+
+
+def _sprite_enable(layer: CharacterLayer) -> str:
+    """
+    The overlay gate for one sprite layer, hide windows subtracted.
+
+    A layer with show windows is the merged-mouth case: one baked input
+    that is visible during a long list of short flap windows.  Its gate is
+    a sum of `between(...)` terms -- ffmpeg's enable treats any nonzero
+    value as on -- which keeps one input alive for the whole cue instead
+    of one input per window.
+
+    The plain case is `between(t, start, end)`.  When the planner marked
+    windows where a pose/talk variant owns the frame, those are multiplied
+    out -- `between(...) * not(between(...))` -- so the base sprite goes
+    dark exactly while the variant is up, instead of ghosting through it.
+    The expression stays a single product of 0/1 terms, which enable
+    treats as plain truthiness.
+    """
+    if layer.show_windows:
+        expression = "+".join(
+            f"between(t,{_number(s)},{_number(e)})"
+            for s, e in layer.show_windows
+        )
+        return f":enable='{expression}'"
+    expression = f"between(t,{_number(layer.start_s)},{_number(layer.end_s)})"
+    for hide_start, hide_end in layer.hide_windows:
+        expression = (
+            f"({expression}"
+            f"*not(between(t,{_number(hide_start)},{_number(hide_end)})))"
+        )
+    return f":enable='{expression}'"
 
 
 def _progress(frames: int) -> str:
@@ -339,6 +439,8 @@ def build_sprite_block(
     # silently shorten the effect that was asked for.
     span = max(layer.end_s - layer.start_s, 0.05)
 
+    enable = _sprite_enable(layer)
+
     if layer.fade_in_s > 0:
         window = min(max(layer.fade_in_s, 0.05), span)
         chain.append(
@@ -353,9 +455,6 @@ def build_sprite_block(
             f":d={_number(window)}:alpha=1"
         )
 
-    enable = (
-        f":enable='between(t,{_number(layer.start_s)},{_number(layer.end_s)})'"
-    )
     overlay = (
         f"overlay=x='{layer.x_expression()}':y='{layer.y_expression()}'"
         f":format=auto{enable}"
@@ -393,6 +492,120 @@ def build_flash_block(
     ]
 
 
+def build_story_frame_block(
+    *,
+    input_index: int,
+    background: str,
+    story_frame: dict,
+) -> list[str]:
+    """
+    Composite the storytelling frame's panel right above the background.
+
+    The panel is a baked RGBA PNG placed at exactly (x, y), full opacity,
+    for the whole clip: the frame is a fixture of the layout, not a layer
+    with moods.  The background underneath it is already just backdrop and
+    the panel box itself -- the panel is opaque, so nothing of that plate
+    survives -- and the artwork goes on top in `build_story_art_block`.
+
+    Styles with a pilot lamp (STYLE_LAMPS) take one extra input right
+    after the panel: a two-lamp sheet whose overlay hops between the
+    green and the red half, so the lamp blinks without any second graph.
+    """
+    x = int(story_frame["x"])
+    y = int(story_frame["y"])
+    wx, wy = _wobble_shifts(story_frame)
+    if wx:
+        panel_xy = f"x='{x}{wx}':y='{y}{wy}'"
+    else:
+        panel_xy = f"{x}:{y}"
+    lines = [
+        f"[{input_index}:v]format=rgba[fr]",
+        f"{background}[fr]overlay={panel_xy}:format=auto[bfg]",
+    ]
+    lamp = story_frame.get("lamp")
+    if lamp:
+        lx, ly = int(lamp["x"]), int(lamp["y"])
+        half, period = int(lamp["half"]), float(lamp["period"])
+        lamp_x = f"{lx}{wx}-{half}*gte(mod(t,{period}),0.5)"
+        lines.extend(
+            [
+                f"[{input_index + 1}:v]format=rgba[lampsheet]",
+                f"[bfg][lampsheet]overlay=x='{lamp_x}':y='{ly}{wy}':format=auto[bfg]",
+            ]
+        )
+    return lines
+
+
+def build_story_art_block(
+    *,
+    background: str,
+    story_frame: dict,
+) -> list[str]:
+    """
+    Crop the Ken Burns picture into the panel's window and lay it on the mat.
+
+    The zoompan output is split: one branch becomes the backdrop plate (see
+    `build_scene_filtergraph`), the other is cropped to the artwork window
+    -- the panel box shrunk by the style's mat inset -- and composited back
+    at the window's own position.  The picture therefore exists *only*
+    inside the frame, exactly the storytelling look the layout promises.
+    """
+    x = int(story_frame["x"])
+    y = int(story_frame["y"])
+    w = int(story_frame["w"])
+    h = int(story_frame["h"])
+    # An explicit `art_inset` in the script (a hand-drawn frame's declared
+    # window) wins over the style's built-in mat.
+    inset = story_frame.get("inset") or story_inset_for_style(
+        story_frame.get("style", "border")
+    )
+    if isinstance(inset, dict):
+        # Per-side window: a styled frame can keep a fat column for knobs
+        # and a chin under the screen, so the mat is intentionally uneven.
+        top = max(int(round(h * inset.get("t", 0.0))), 1)
+        bottom = max(int(round(h * inset.get("b", 0.0))), 1)
+        left = max(int(round(w * inset.get("l", 0.0))), 1)
+        right = max(int(round(w * inset.get("r", 0.0))), 1)
+    else:
+        top = bottom = left = right = max(
+            int(round(min(w, h) * inset)), 1
+        )
+    art_w = max(w - left - right, 2)
+    art_h = max(h - top - bottom, 2)
+    art_x = x + left
+    art_y = y + top
+    wx, wy = _wobble_shifts(story_frame)
+    if wx:
+        art_xy = f"x='{art_x}{wx}':y='{art_y}{wy}'"
+    else:
+        art_xy = f"{art_x}:{art_y}"
+    return [
+        f"[bgart]crop={art_w}:{art_h}:{art_x}:{art_y}[art]",
+        f"{background}[art]overlay={art_xy}:format=auto[bfart]",
+    ]
+
+
+def _story_backdrop_chain(story_frame: dict, frame_size: tuple[int, int]) -> str:
+    """
+    Crop the background plate to the panel box and pad it out to full frame.
+
+    `pad` both re-expands the canvas and paints everything around the panel
+    box with the backdrop colour, so no second colour input is needed.
+    `setsar=1` was already applied before the split; crop and pad preserve
+    sample aspect, so the plate stays square-pixelled.
+    """
+    width, height = frame_size
+    x = int(story_frame["x"])
+    y = int(story_frame["y"])
+    w = int(story_frame["w"])
+    h = int(story_frame["h"])
+    r, g, b = STORY_FRAME_BACKDROP_RGB
+    return (
+        f"crop={w}:{h}:{x}:{y},"
+        f"pad={width}:{height}:{x}:{y}:color=0x{r:02X}{g:02X}{b:02X}"
+    )
+
+
 def build_scene_filtergraph(
     *,
     frames: int,
@@ -402,34 +615,76 @@ def build_scene_filtergraph(
     overlays: list[OverlayLayer],
     sprites: list[CharacterLayer] | None = None,
     impact: ImpactPunch | None = None,
+    story_frame: dict | None = None,
 ) -> str:
     """
     Complete filtergraph for one scene.
 
     The order is the compositing order and it is deliberate:
 
-        Ken Burns background -> characters -> text overlays -> flash
+        Ken Burns background -> story frame -> characters -> text -> flash
+
+    With a story frame, "background" means the matted plate -- the scene
+    cropped into the panel box, the rest of the canvas filled with the
+    dark backdrop -- and the scene's artwork is laid onto the panel's mat
+    before anything else composites.  The picture only ever exists inside
+    the frame.
 
     Characters go *under* the text, because a host standing on top of a
     caption reads as a mistake, and the flash goes last so a punch-in hits
     the whole frame rather than only the background plate.
 
     Callers must pass inputs in the matching order: `[0:v]` is the prepared
-    image, then one input per sprite layer, then one per text overlay, then
-    (only when the scene punches in with a flash) one colour source.
+    image, then -- when `story_frame` is set -- the frame's panel PNG, then
+    one input per sprite layer, then one per text overlay, then (only when
+    the scene punches in with a flash) one colour source.
     """
     width, height = frame_size
     sprites = sprites or []
 
-    statements = [
-        f"[0:v]{build_zoompan_filter(motion=motion, frames=frames, frame_size=(width, height), fps=fps, impact=impact)},setsar=1[bg]"
-    ]
-    current = "[bg]"
+    zoompan = build_zoompan_filter(
+        motion=motion, frames=frames, frame_size=(width, height), fps=fps,
+        impact=impact,
+    )
+
+    statements: list[str]
+    if story_frame is None:
+        statements = [f"[0:v]{zoompan},setsar=1[bg]"]
+        current = "[bg]"
+    else:
+        # One Ken Burns run, two consumers: the backdrop plate and the
+        # artwork that is cropped into the panel's window.
+        statements = [f"[0:v]{zoompan},setsar=1,split=2[bgfull][bgart]"]
+        statements.append(f"[bgfull]{_story_backdrop_chain(story_frame, (width, height))}[bg]")
+        current = "[bg]"
+
+    if story_frame is not None:
+        statements.extend(
+            build_story_frame_block(
+                input_index=1,
+                background=current,
+                story_frame=story_frame,
+            )
+        )
+        statements.extend(
+            build_story_art_block(
+                background="[bfg]",
+                story_frame=story_frame,
+            )
+        )
+        current = "[bfart]"
+
+    def _after_frame(offset: int) -> int:
+        """Input slots shift by the panel (1) and its lamp sheet (0 or 1)."""
+        shift = 1 if story_frame is not None else 0
+        if story_frame is not None and story_frame.get("lamp"):
+            shift += 1
+        return offset + shift
 
     for position, sprite in enumerate(sprites):
         statements.extend(
             build_sprite_block(
-                input_index=1 + position,
+                input_index=_after_frame(1 + position),
                 label_index=position,
                 background=current,
                 layer=sprite,
@@ -442,7 +697,7 @@ def build_scene_filtergraph(
             build_overlay_block(
                 index,
                 layer,
-                input_index=1 + len(sprites) + index,
+                input_index=_after_frame(1 + len(sprites) + index),
                 background=current,
             )
         )
@@ -451,7 +706,7 @@ def build_scene_filtergraph(
     if impact is not None and impact.flash != "none":
         statements.extend(
             build_flash_block(
-                input_index=1 + len(sprites) + len(overlays),
+                input_index=_after_frame(1 + len(sprites) + len(overlays)),
                 background=current,
                 punch=impact,
             )

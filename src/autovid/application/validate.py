@@ -713,17 +713,20 @@ class ScriptValidator:
                 scene_id=scene.id,
             )
 
-        # A mouth block replaces the whole swap machinery with the patch
-        # flap: say so once, because a pose listed next to it never shows.
+        # A mouth block owns the speech, but poses now share the cue: the
+        # unanchored pool rotates through the pauses the flap leaves as
+        # closed-mouth holds.  A talk list is still redundant -- the patch
+        # already is the mouth -- so warn when both are given.
         if character.mouth is not None:
             for mouth_image in character.mouth.images:
                 self._check_mouth_image(scene, index, mouth_image)
-            if character.talk_images or character.poses or character.auto_pose_s:
+            if character.talk_images:
                 self.report.warn(
-                    "character_mouth_overrides_swaps",
-                    f"character {index} has a mouth block, so its talk/pose "
-                    "swaps are skipped: the body stays on the resting image "
-                    "and only the mouth patch flaps",
+                    "character_talk_unused_beside_mouth",
+                    f"character {index} has a mouth block, so its talk "
+                    "frames are never shown: the patch over the face is "
+                    "the mouth. List poses instead if the body should "
+                    "change stance",
                     scene_id=scene.id,
                 )
 

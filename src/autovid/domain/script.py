@@ -110,8 +110,10 @@ CHARACTER_EXIT_TYPES = frozenset(
 # of position, because a size cannot be animated inside one filtergraph
 # (see infrastructure/video/sprites.py): "talk" is the quick bob that
 # stands in for speech, "bob_sway" is the general "alive" setting.
+# "tilt" is the exception: it oscillates *rotation* (a head/upper-body
+# wobble), which rotate() can do with a timeline expression.
 CHARACTER_IDLE_TYPES = frozenset(
-    {"none", "bob", "sway", "bob_sway", "shake", "talk"}
+    {"none", "bob", "sway", "bob_sway", "shake", "talk", "tilt"}
 )
 
 CHARACTER_EDGES = frozenset(
@@ -203,6 +205,40 @@ MAX_MOUTH_SIZE_FRACTION = 0.6
 # A cutaway "reaction" panel: the same character compositing, positioned by
 # fraction of the frame instead of as a host standing on the floor.
 CHARACTER_FLASHES = frozenset({"none", "white", "black"})
+
+# `tilt` sways rotation rather than position: amplitude_px is reinterpreted
+# as degrees.  Past about fifteen the wobble stops reading as a head tilt
+# and starts reading as a metronome, so the schema clamps it.
+MAX_IDLE_TILT_DEGREES = 15.0
+
+# The persistent-host defaults: a presenter parked in the top-right corner,
+# at talk-head height, breathing with a gentle sway.  The corner keeps the
+# host clear of any scene character, which stands on the floor; the height
+# is a talking head, not a full-body cut-out, so it never blocks the art.
+DEFAULT_HOST_X = 0.85
+DEFAULT_HOST_Y = 0.55
+DEFAULT_HOST_HEIGHT = 0.34
+# --- story frame (khung ke chuyen) -----------------------------------------
+# The frame is a fixed panel on the left of the screen; the narrator stands
+# OUTSIDE it, on the right, pointing in.  All fractions of the output frame.
+DEFAULT_FRAME_X = 0.04
+DEFAULT_FRAME_Y = 0.06
+DEFAULT_FRAME_W = 0.66
+DEFAULT_FRAME_H = 0.88
+# The narrator's slot beside the frame: centred in the right-hand strip the
+# frame leaves free (0.70..1.0), feet near the bottom edge.
+STORY_FRAME_HOST_X = 0.845
+STORY_FRAME_HOST_Y = 0.985
+STORY_FRAME_HOST_HEIGHT = 0.46
+
+# How the frame's edge is drawn onto the baked PNG.
+FRAME_STYLES = ("border", "none", "polaroid", "tv_retro", "night", "custom")
+
+DEFAULT_HOST_IDLE: dict = {
+    "type": "tilt",
+    "amplitude_px": 4,
+    "period_s": 3.0,
+}
 
 MAX_CHARACTER_HEIGHT_FRACTION = 1.0
 MIN_CHARACTER_HEIGHT_FRACTION = 0.05
@@ -453,6 +489,92 @@ class CharacterOverlay:
 
 
 @dataclass(frozen=True)
+class HostLayoutConfig:
+    """
+    A persistent host: one character injected into *every* scene.
+
+    The point is the layout, not the effect -- a presenter that never
+    leaves the frame reads as the video's narrator, the way a channel's
+    mascot does, instead of popping in and out per scene.  `use` names a
+    registry key (assets/characters/characters.json) for the frame set;
+    `image_file` names the artwork directly when there is no registry.
+    The host runs on the cue with no enter, no exit and a gentle idle, so
+    the only motion is the idle itself -- which is exactly what makes it
+    visible.
+    """
+
+    enabled: bool = False
+    use: str | None = None
+    image_file: str | None = None
+    x: float = DEFAULT_HOST_X
+    y: float = DEFAULT_HOST_Y
+    height: float = DEFAULT_HOST_HEIGHT
+    flip: bool = False
+    idle: CharacterIdle = field(
+        default_factory=lambda: CharacterIdle(
+            type=DEFAULT_HOST_IDLE["type"],
+            amplitude_px=DEFAULT_HOST_IDLE["amplitude_px"],
+            period_s=DEFAULT_HOST_IDLE["period_s"],
+        )
+    )
+    # The registry's swap machinery rides along: the mouth patch follows
+    # the narration and the pose pool rotates through the pauses, so the
+    # parked host is a talking head, not a sticker.
+    mouth: CharacterMouth | None = None
+    poses: tuple[CharacterPose, ...] = ()
+    auto_pose_s: float | None = None
+
+
+@dataclass(frozen=True)
+class StoryFrameConfig:
+    """
+    The storytelling frame: a fixed panel holding the scene art, and a
+    narrator standing OUTSIDE it.
+
+    The frame owns the left of the screen (`x`/`y`/`width`/`height`); the
+    scene image is composed inside it and nowhere else, so the artwork is
+    always readably large.  The narrator is a persistent host cue anchored
+    to the right-hand strip (`host_x`/`host_y`/`host_height`), talking with
+    the registry's mouth flap and pose pool, visually pointing into the
+    frame.    "use" names a registry key exactly like `host_layout` does;
+    `style` picks the frame's drawn look (see FRAME_STYLES): a cream mat
+    with or without a keyline, an instant-film card, a walnut TV bezel,
+    or a deep-navy mat for a sombre telling.
+    """
+
+    enabled: bool = False
+    use: str | None = None
+    image_file: str | None = None
+    x: float = DEFAULT_FRAME_X
+    y: float = DEFAULT_FRAME_Y
+    width: float = DEFAULT_FRAME_W
+    height: float = DEFAULT_FRAME_H
+    host_x: float = STORY_FRAME_HOST_X
+    host_y: float = STORY_FRAME_HOST_Y
+    host_height: float = STORY_FRAME_HOST_HEIGHT
+    host_flip: bool = False
+    style: str = "border"
+    # Per-side artwork window override for hand-drawn frames: a float
+    # (uniform) or a dict {t,b,l,r} in panel fractions.  None = the style's
+    # own inset.  Verified against the PNG by tools/check_story_frame_design.py.
+    art_inset: float | dict | None = None
+    # Path to a hand-drawn frame PNG (style "custom").  Transparent where
+    # the artwork shows, painted everywhere else; checked by
+    # tools/check_story_frame_design.py before it lands here.
+    frame_png: str | None = None
+    idle: CharacterIdle = field(
+        default_factory=lambda: CharacterIdle(
+            type=DEFAULT_HOST_IDLE["type"],
+            amplitude_px=DEFAULT_HOST_IDLE["amplitude_px"],
+            period_s=DEFAULT_HOST_IDLE["period_s"],
+        )
+    )
+    mouth: CharacterMouth | None = None
+    poses: tuple[CharacterPose, ...] = ()
+    auto_pose_s: float | None = None
+
+
+@dataclass(frozen=True)
 class Impact:
     """A punch-in: a fast zoom spike, an optional camera shake, a flash."""
 
@@ -487,6 +609,11 @@ class Script:
     audio_config: AudioConfig
     pacing: PacingConfig
     scenes: tuple[Scene, ...]
+    # The persistent host, off unless the script asks for it.
+    host_layout: HostLayoutConfig = field(default_factory=HostLayoutConfig)
+    # The storytelling frame; off unless the script asks for it.  When it is
+    # on it *owns* the host too: its narrator replaces host_layout's.
+    story_frame: StoryFrameConfig = field(default_factory=StoryFrameConfig)
 
     @property
     def scene_count(self) -> int:
@@ -891,6 +1018,22 @@ def _parse_character(
             minimum=0.2,
         ),
     )
+    # For a tilt the amplitude means degrees, so it is capped separately:
+    # the pixel cap would allow a 120-degree spin, which is a preset, not
+    # an idle.
+    if idle.type == "tilt":
+        amplitude_degrees = parser.number(
+            idle_raw.get("amplitude_px", _MISSING),
+            f"{where}.idle.amplitude_px",
+            default=idle_defaults.get("amplitude_px", 5),
+            minimum=0.0,
+            maximum=MAX_IDLE_TILT_DEGREES,
+        )
+        idle = CharacterIdle(
+            type=idle.type,
+            amplitude_px=int(round(amplitude_degrees or 0.0)),
+            period_s=idle.period_s,
+        )
 
     sfx_raw = parser.obj(raw.get("sfx", _MISSING), f"{where}.sfx")
     sfx_file: str | None = None
@@ -1589,6 +1732,394 @@ def _parse_pacing_config(parser: _Parser, data: Any) -> PacingConfig:
     )
 
 
+def _parse_art_inset(parser: "_Parser", raw: dict) -> float | dict | None:
+    """
+    `story_frame.art_inset`: None, a uniform fraction, or a per-side dict.
+
+    A hand-drawn frame (style "custom") rarely has a symmetric window, so
+    the design's mat is declared here in panel fractions -- t/b of the
+    panel height, l/r of the panel width.  Bounds keep the window alive:
+    every side between 0 and 0.45, and a uniform value must leave at least
+    10% of each axis for the picture.  The declaration is verified against
+    the actual PNG by tools/check_story_frame_design.py.
+    """
+    value = raw.get("art_inset", _MISSING)
+    if value is _MISSING or value is None:
+        return None
+    if isinstance(value, dict):
+        result: dict = {}
+        for side in ("t", "b", "l", "r"):
+            result[side] = parser.number(
+                value.get(side), f"story_frame.art_inset.{side}",
+                minimum=0.0, maximum=0.45, default=0.0,
+            ) or 0.0
+        if value.keys() - result.keys():
+            parser.fail(
+                "story_frame.art_inset",
+                "unknown key(s) "
+                f"{sorted(value.keys() - result.keys())}; expected t/b/l/r",
+            )
+        if max(result.values()) >= 0.5:
+            parser.fail(
+                "story_frame.art_inset",
+                "a side inset of 0.5 or more leaves no picture",
+            )
+        return result
+    return parser.number(
+        value, "story_frame.art_inset", minimum=0.0, maximum=0.45
+    )
+
+
+def _parse_story_frame(parser: "_Parser", data: Any) -> StoryFrameConfig:
+    """
+    The storytelling-frame block, filling the gaps from the registry.
+
+    The frame geometry and the narrator slot have measured defaults that
+    leave the right-hand strip free; `use` names a registry key exactly
+    like `host_layout` does, and explicit keys beat the registry.  The
+    narrator's mouth/poses/auto_pose_s ride through `_parse_character` so
+    the limits and error messages match the per-scene path.
+    """
+    raw = parser.obj(data, "story_frame")
+    if raw is None:
+        return StoryFrameConfig()
+
+    if raw.get("style") == "custom" and not str(
+        raw.get("frame_png") or ""
+    ).strip():
+        parser.fail(
+            "story_frame.style",
+            'style "custom" needs frame_png: the path to your designed '
+            "frame PNG (see tools/check_story_frame_design.py)",
+        )
+
+    enabled = parser.boolean(
+        raw.get("enabled", _MISSING), "story_frame.enabled", default=True
+    )
+    use = parser.string(
+        raw.get("use", _MISSING), "story_frame.use", allow_empty=False
+    )
+    image_file = parser.string(
+        raw.get("image_file", _MISSING),
+        "story_frame.image_file",
+        allow_empty=False,
+    )
+
+    entry: dict = {}
+    if use and not image_file:
+        registry_path = Path("assets/characters/characters.json")
+        try:
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            registry = {}
+        candidate = registry.get(use)
+        if isinstance(candidate, dict) and candidate.get("image_file"):
+            entry = candidate
+        else:
+            parser.fail(
+                "story_frame.use",
+                f"'{use}' is not in the character registry "
+                "(assets/characters/characters.json), or the entry has no "
+                "image_file",
+            )
+    elif not image_file:
+        parser.fail(
+            "story_frame",
+            "needs an image_file, or a use naming a registry entry",
+        )
+
+    def entry_or(raw_key: str, entry_key: str | None = None) -> Any:
+        if raw_key in raw:
+            return raw[raw_key]
+        return entry.get(entry_key or raw_key, _MISSING)
+
+    idle_raw = parser.obj(entry_or("idle"), "story_frame.idle") or {}
+    idle_type = parser.enum(
+        idle_raw.get("type", _MISSING),
+        "story_frame.idle.type",
+        CHARACTER_IDLE_TYPES,
+        default=DEFAULT_HOST_IDLE["type"],
+    )
+    if idle_type == "tilt":
+        amplitude = parser.number(
+            idle_raw.get("amplitude_px", _MISSING),
+            "story_frame.idle.amplitude_px",
+            default=DEFAULT_HOST_IDLE["amplitude_px"],
+            minimum=0.0,
+            maximum=MAX_IDLE_TILT_DEGREES,
+        )
+        idle_amplitude = int(round(amplitude or 0.0))
+    else:
+        idle_amplitude = parser.integer(
+            idle_raw.get("amplitude_px", _MISSING),
+            "story_frame.idle.amplitude_px",
+            default=DEFAULT_HOST_IDLE["amplitude_px"],
+            minimum=0,
+            maximum=MAX_CHARACTER_IDLE_AMPLITUDE_PX,
+        )
+        idle_amplitude = idle_amplitude or 0
+    idle = CharacterIdle(
+        type=idle_type or DEFAULT_HOST_IDLE["type"],
+        amplitude_px=idle_amplitude,
+        period_s=parser.number(
+            idle_raw.get("period_s", _MISSING),
+            "story_frame.idle.period_s",
+            default=DEFAULT_HOST_IDLE["period_s"],
+            minimum=0.2,
+        )
+        or DEFAULT_HOST_IDLE["period_s"],
+    )
+
+    host_mouth: CharacterMouth | None = None
+    host_poses: tuple[CharacterPose, ...] = ()
+    host_auto_pose_s: float | None = None
+    fake_character: dict = {"image_file": image_file or entry.get("image_file")}
+    for key in ("mouth", "poses", "auto_pose_s"):
+        if key in entry:
+            fake_character[key] = entry[key]
+        if key in raw:
+            fake_character[key] = raw[key]
+    if len(fake_character) > 1:
+        parsed = _parse_character(parser, fake_character, "story_frame")
+        if parsed is not None:
+            host_mouth = parsed.mouth
+            host_poses = parsed.poses
+            host_auto_pose_s = parsed.auto_pose_s
+
+    return StoryFrameConfig(
+        enabled=bool(enabled),
+        use=use,
+        image_file=image_file or entry.get("image_file"),
+        x=parser.number(
+            raw.get("x", _MISSING),
+            "story_frame.x",
+            default=DEFAULT_FRAME_X,
+            minimum=0.0,
+            maximum=1.0,
+        )
+        or 0.0,
+        y=parser.number(
+            raw.get("y", _MISSING),
+            "story_frame.y",
+            default=DEFAULT_FRAME_Y,
+            minimum=0.0,
+            maximum=1.0,
+        )
+        or 0.0,
+        width=parser.number(
+            raw.get("width", _MISSING),
+            "story_frame.width",
+            default=DEFAULT_FRAME_W,
+            minimum=0.1,
+            maximum=1.0,
+        )
+        or DEFAULT_FRAME_W,
+        height=parser.number(
+            raw.get("height", _MISSING),
+            "story_frame.height",
+            default=DEFAULT_FRAME_H,
+            minimum=0.1,
+            maximum=1.0,
+        )
+        or DEFAULT_FRAME_H,
+        host_x=parser.number(
+            raw.get("host_x", _MISSING),
+            "story_frame.host_x",
+            default=STORY_FRAME_HOST_X,
+            minimum=0.0,
+            maximum=1.0,
+        )
+        or 0.0,
+        host_y=parser.number(
+            raw.get("host_y", _MISSING),
+            "story_frame.host_y",
+            default=STORY_FRAME_HOST_Y,
+            minimum=0.0,
+            maximum=1.0,
+        )
+        or 0.0,
+        host_height=parser.number(
+            raw.get("host_height", _MISSING),
+            "story_frame.host_height",
+            default=STORY_FRAME_HOST_HEIGHT,
+            minimum=MIN_CHARACTER_HEIGHT_FRACTION,
+            maximum=MAX_CHARACTER_HEIGHT_FRACTION,
+        )
+        or STORY_FRAME_HOST_HEIGHT,
+        host_flip=parser.boolean(
+            raw.get("host_flip", _MISSING), "story_frame.host_flip", default=False
+        )
+        or False,
+        style=parser.enum(
+            raw.get("style", _MISSING),
+            "story_frame.style",
+            FRAME_STYLES,
+            default="border",
+        )
+        or "border",
+        art_inset=_parse_art_inset(parser, raw),
+        frame_png=parser.string(
+            raw.get("frame_png", _MISSING),
+            "story_frame.frame_png",
+            allow_empty=False,
+        ),
+        idle=idle,
+        mouth=host_mouth,
+        poses=host_poses,
+        auto_pose_s=host_auto_pose_s,
+    )
+
+
+def _parse_host_layout(parser: "_Parser", data: Any) -> HostLayoutConfig:
+    """
+    The persistent-host block, filling the gaps from the registry.
+
+    The registry (assets/characters/characters.json) supplies everything a
+    `use` name needs -- artwork, mouth patch, poses, rotation timer -- so a
+    script only says which character sits in the host chair.  An explicit
+    key in the script wins over the registry, exactly like the per-scene
+    `use` merge; artwork is required from one source or the other.
+    """
+    raw = parser.obj(data, "host_layout")
+    if raw is None:
+        return HostLayoutConfig()
+
+    enabled = parser.boolean(
+        raw.get("enabled", _MISSING), "host_layout.enabled", default=True
+    )
+    use = parser.string(
+        raw.get("use", _MISSING), "host_layout.use", allow_empty=False
+    )
+    image_file = parser.string(
+        raw.get("image_file", _MISSING),
+        "host_layout.image_file",
+        allow_empty=False,
+    )
+
+    entry: dict = {}
+    if use and not image_file:
+        registry_path = Path("assets/characters/characters.json")
+        try:
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            registry = {}
+        candidate = registry.get(use)
+        if isinstance(candidate, dict) and candidate.get("image_file"):
+            entry = candidate
+        else:
+            parser.fail(
+                "host_layout.use",
+                f"'{use}' is not in the character registry "
+                "(assets/characters/characters.json), or the entry has no "
+                "image_file",
+            )
+    elif not image_file:
+        parser.fail(
+            "host_layout",
+            "needs an image_file, or a use naming a registry entry",
+        )
+
+    def entry_or(raw_key: str, entry_key: str | None = None) -> Any:
+        if raw_key in raw:
+            return raw[raw_key]
+        return entry.get(entry_key or raw_key, _MISSING)
+
+    idle_raw = parser.obj(entry_or("idle"), "host_layout.idle") or {}
+    idle_type = parser.enum(
+        idle_raw.get("type", _MISSING),
+        "host_layout.idle.type",
+        CHARACTER_IDLE_TYPES,
+        default=DEFAULT_HOST_IDLE["type"],
+    )
+    if idle_type == "tilt":
+        amplitude = parser.number(
+            idle_raw.get("amplitude_px", _MISSING),
+            "host_layout.idle.amplitude_px",
+            default=DEFAULT_HOST_IDLE["amplitude_px"],
+            minimum=0.0,
+            maximum=MAX_IDLE_TILT_DEGREES,
+        )
+        idle_amplitude = int(round(amplitude or 0.0))
+    else:
+        idle_amplitude = parser.integer(
+            idle_raw.get("amplitude_px", _MISSING),
+            "host_layout.idle.amplitude_px",
+            default=DEFAULT_HOST_IDLE["amplitude_px"],
+            minimum=0,
+            maximum=MAX_CHARACTER_IDLE_AMPLITUDE_PX,
+        )
+        idle_amplitude = idle_amplitude or 0
+    idle = CharacterIdle(
+        type=idle_type or DEFAULT_HOST_IDLE["type"],
+        amplitude_px=idle_amplitude,
+        period_s=parser.number(
+            idle_raw.get("period_s", _MISSING),
+            "host_layout.idle.period_s",
+            default=DEFAULT_HOST_IDLE["period_s"],
+            minimum=0.2,
+        )
+        or DEFAULT_HOST_IDLE["period_s"],
+    )
+
+    # `mouth`/`poses`/`auto_pose_s` come from the registry, and keys written
+    # directly in the block win over it -- the same merge rule a per-scene
+    # `use` gets.  They ride through `_parse_character` so the limits and
+    # error messages match the per-scene path exactly.
+    host_mouth: CharacterMouth | None = None
+    host_poses: tuple[CharacterPose, ...] = ()
+    host_auto_pose_s: float | None = None
+    fake_character: dict = {"image_file": image_file or entry.get("image_file")}
+    for key in ("mouth", "poses", "auto_pose_s"):
+        if key in entry:
+            fake_character[key] = entry[key]
+        if key in raw:
+            fake_character[key] = raw[key]
+    if len(fake_character) > 1:
+        parsed = _parse_character(parser, fake_character, "host_layout")
+        if parsed is not None:
+            host_mouth = parsed.mouth
+            host_poses = parsed.poses
+            host_auto_pose_s = parsed.auto_pose_s
+
+    return HostLayoutConfig(
+        enabled=bool(enabled),
+        use=use,
+        image_file=image_file or entry.get("image_file"),
+        mouth=host_mouth,
+        poses=host_poses,
+        auto_pose_s=host_auto_pose_s,
+        x=parser.number(
+            raw.get("x", _MISSING),
+            "host_layout.x",
+            default=DEFAULT_HOST_X,
+            minimum=0.0,
+            maximum=1.0,
+        )
+        or 0.0,
+        y=parser.number(
+            raw.get("y", _MISSING),
+            "host_layout.y",
+            default=DEFAULT_HOST_Y,
+            minimum=0.0,
+            maximum=1.0,
+        )
+        or 0.0,
+        height=parser.number(
+            raw.get("height", _MISSING),
+            "host_layout.height",
+            default=DEFAULT_HOST_HEIGHT,
+            minimum=MIN_CHARACTER_HEIGHT_FRACTION,
+            maximum=MAX_CHARACTER_HEIGHT_FRACTION,
+        )
+        or DEFAULT_HOST_HEIGHT,
+        flip=parser.boolean(
+            raw.get("flip", _MISSING), "host_layout.flip", default=False
+        )
+        or False,
+        idle=idle,
+    )
+
+
 def parse_script(data: Any) -> Script:
     """
     Parse a raw dict into a validated `Script`.
@@ -1619,6 +2150,9 @@ def parse_script(data: Any) -> Script:
     if not scenes:
         parser.fail("scenes", "must contain at least one scene")
 
+    host_layout = _parse_host_layout(parser, data.get("host_layout", _MISSING))
+    story_frame = _parse_story_frame(parser, data.get("story_frame", _MISSING))
+
     if parser.errors:
         raise ScriptSchemaError(parser.errors)
 
@@ -1628,6 +2162,8 @@ def parse_script(data: Any) -> Script:
         audio_config=audio_config,
         pacing=pacing,
         scenes=tuple(scenes),
+        host_layout=host_layout,
+        story_frame=story_frame,
     )
 
 
@@ -1638,7 +2174,9 @@ def load_script(path: Path) -> Script:
     except FileNotFoundError as error:
         raise ScriptSchemaError([f"{path}: file not found"]) from error
     except OSError as error:
-        raise ScriptSchemaError([f"{path}: {error}"]) from error
+        raise ScriptSchemaError(
+            [f"{path}: invalid JSON at line {error.lineno}, col {error.colno}: {error.msg}"]
+        ) from error
 
     try:
         data = json.loads(raw)
@@ -1648,3 +2186,4 @@ def load_script(path: Path) -> Script:
         ) from error
 
     return parse_script(data)
+

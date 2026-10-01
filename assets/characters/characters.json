@@ -9,10 +9,18 @@
     "               ngat nghi (mip moi theo giong doc that tu stage 2).",
     "               cat bang: python3 tools/cut_mouth_from_frames.py",
     "  talk       : cac frame thay TOAN BO anh (can cap anh chi khac mieng)",
-    "  poses      : cac tu the khac (duoc auto_pose_s xoay vong o phan chua ai chiem)",
-    "Co mouth thi talk/poses bi bo qua (chi mieng dap, than khong nhanh).",
+    "  poses      : cac tu the khac (auto_pose_s xoay vong). Khi co mouth,",
+    "               poses chi xoay vong o KHOANG NGHI giua cac cau (doc)",
+    "               chuoi pose vo dich vua no cuoi cau); khong co mouth thi",
+    "               poses xoay vong ca phan chua.",
+    "  idle       : chuyen dong dung yen mac dinh (bob/sway/bob_sway/shake/",
+    "               talk/tilt). 'tilt' = lac dau xoay nguoi nhe, do bang DO:",
+    "               amplitude_px la so do (toi da 15), period_s la chu ky.",
     "Ap dung vao script: python3 tools/apply_character_registry.py projects/<id>/script.json",
-    "Script van ghi de tay duoc: talk/poses/mouth/auto_pose_s viet trong scene thang registry."
+    "Script van ghi de tay duoc: talk/poses/mouth/auto_pose_s/idle viet trong",
+    "scene thang registry (ghi ro trong script se thang).",
+    "Tach nen anh moi: python3 tools/remove_background.py <anh-hoac-thu-muc>",
+    "  -> xuat *_cut.png RGBA san sang dung lam pose/talk."
   ],
   "my_host": {
     "image_file": "assets/characters/my_host_01.png",
@@ -23,7 +31,10 @@
       ],
       "x": 0.4888,
       "y": 0.4253,
-      "size": [0.2278, 0.1071],
+      "size": [
+        0.2278,
+        0.1071
+      ],
       "period_s": 0.28
     },
     "talk": [
@@ -34,6 +45,185 @@
     "poses": [
       "assets/characters/my_host_04.png"
     ],
-    "auto_pose_s": 2.5
+    "auto_pose_s": 0.8,
+    "idle": {
+      "type": "tilt",
+      "amplitude_px": 5,
+      "period_s": 2.4
+    }
+  },
+  "story_host": {
+    "_readme": [
+      "Nhan vat dan truyen cho khung ke chuyen (story_frame).",
+      "resting = dang CHI TAY ve phia khung (ben trai man hinh);",
+      "poses = tu the tha loi xuat hien trong khoang nghi giua cau.",
+      "mouth anchor/size tinh theo anh resting da trim."
+    ],
+    "image_file": "assets/narrator/narrator_point.png",
+    "mouth": {
+      "images": [
+        "assets/narrator/narrator_mouth_closed.png",
+        "assets/narrator/narrator_mouth_open.png"
+      ],
+      "x": 0.7383,
+      "y": 0.1971,
+      "size": [
+        0.23,
+        0.11
+      ],
+      "period_s": 0.26
+    },
+    "poses": [
+      "assets/narrator/narrator_resting.png"
+    ],
+    "auto_pose_s": 1.6,
+    "idle": {
+      "type": "tilt",
+      "amplitude_px": 3,
+      "period_s": 3.0
+    }
+  },
+  "ke_su": {
+    "_readme": [
+      "Ke su - nhan vat cua user, tac tu assets/characters/Part/image.png (8 frame).",
+      "resting = DANG CHI TAY (ke_01_point); poses xoay vong o khoang nghi:",
+      "nghi -> tu the khac, het nghi -> ve chi tay => hieu ung 'vung tay chi'.",
+      "mouth anchor/size do thu cong tren frame chi tay (da kiem tra bang anh check)."
+    ],
+    "image_file": "assets/characters/Part/ke_01_point.png",
+    "mouth": {
+      "images": [
+        "assets/characters/Part/ke_mouth_closed.png",
+        "assets/characters/Part/ke_mouth_open.png"
+      ],
+      "x": 0.5379,
+      "y": 0.4329,
+      "size": [
+        0.2512,
+        0.1523
+      ],
+      "period_s": 0.26
+    },
+    "poses": [
+      "assets/characters/Part/ke_03_think.png",
+      "assets/characters/Part/ke_02_laugh.png",
+      "assets/characters/Part/ke_04_shock.png",
+      "assets/characters/Part/ke_06_cool.png",
+      "assets/characters/Part/ke_07_plead.png",
+      "assets/characters/Part/ke_05_roll.png",
+      "assets/characters/Part/ke_08_run.png"
+    ],
+    "auto_pose_s": 1.4,
+    "idle": {
+      "type": "tilt",
+      "amplitude_px": 3,
+      "period_s": 3.0
+    }
+  },
+  "ke_cuoi": {
+    "_readme": [
+      "Ke su ban cuoi suong: resting la frame CUOI TO (ke_02_laugh),",
+      "idle bob_sway cho dau luc luc nhu vua noi vua cuoi. Phu hop",
+      "khi ke chuyen phan hap dan / tiet lac."
+    ],
+    "image_file": "assets/characters/Part/ke_02_laugh.png",
+    "poses": [
+      "assets/characters/Part/ke_01_point.png",
+      "assets/characters/Part/ke_03_think.png",
+      "assets/characters/Part/ke_04_shock.png",
+      "assets/characters/Part/ke_05_roll.png",
+      "assets/characters/Part/ke_06_cool.png",
+      "assets/characters/Part/ke_07_plead.png",
+      "assets/characters/Part/ke_08_run.png"
+    ],
+    "auto_pose_s": 1.4,
+    "idle": {
+      "type": "bob_sway",
+      "amplitude_px": 8,
+      "period_s": 1.6
+    },
+    "mouth": {
+      "images": [
+        "assets/characters/Part/ke02_mouth_closed.png",
+        "assets/characters/Part/ke02_mouth_open.png"
+      ],
+      "x": 0.4046,
+      "y": 0.3722,
+      "size": [
+        0.2735,
+        0.2049
+      ],
+      "period_s": 0.26
+    }
+  },
+  "ke_soke": {
+    "_readme": [
+      "Ke su soc: resting la frame SOC (ke_04_shock), idle shake de",
+      "dau lac lac khong tin. Phu hop cho plot twist / drama."
+    ],
+    "image_file": "assets/characters/Part/ke_04_shock.png",
+    "poses": [
+      "assets/characters/Part/ke_01_point.png",
+      "assets/characters/Part/ke_02_laugh.png",
+      "assets/characters/Part/ke_03_think.png",
+      "assets/characters/Part/ke_05_roll.png",
+      "assets/characters/Part/ke_06_cool.png",
+      "assets/characters/Part/ke_07_plead.png",
+      "assets/characters/Part/ke_08_run.png"
+    ],
+    "auto_pose_s": 1.4,
+    "idle": {
+      "type": "shake",
+      "amplitude_px": 7,
+      "period_s": 0.5
+    },
+    "mouth": {
+      "images": [
+        "assets/characters/Part/ke04_mouth_closed.png",
+        "assets/characters/Part/ke04_mouth_open.png"
+      ],
+      "x": 0.4018,
+      "y": 0.4275,
+      "size": [
+        0.2382,
+        0.1534
+      ],
+      "period_s": 0.26
+    }
+  },
+  "ke_chay": {
+    "_readme": [
+      "Ke su chay bo: resting la frame CHAY (ke_08_run), idle bob nhanh",
+      "nhu dang chay tai cho while ke chuyen. Vinh dia cho noi nhanh."
+    ],
+    "image_file": "assets/characters/Part/ke_08_run.png",
+    "poses": [
+      "assets/characters/Part/ke_01_point.png",
+      "assets/characters/Part/ke_02_laugh.png",
+      "assets/characters/Part/ke_03_think.png",
+      "assets/characters/Part/ke_04_shock.png",
+      "assets/characters/Part/ke_05_roll.png",
+      "assets/characters/Part/ke_06_cool.png",
+      "assets/characters/Part/ke_07_plead.png"
+    ],
+    "auto_pose_s": 1.4,
+    "idle": {
+      "type": "bob",
+      "amplitude_px": 10,
+      "period_s": 0.9
+    },
+    "mouth": {
+      "images": [
+        "assets/characters/Part/ke08_mouth_closed.png",
+        "assets/characters/Part/ke08_mouth_open.png"
+      ],
+      "x": 0.6751,
+      "y": 0.4424,
+      "size": [
+        0.271,
+        0.2038
+      ],
+      "period_s": 0.26
+    }
   }
 }
