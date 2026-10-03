@@ -78,6 +78,23 @@ def build_quality_report(script: Script, paths: Paths) -> dict:
         for issue in warnings:
             issues.append({"stage": stage, **issue})
 
+    mix_report = reports.get("mix")
+    if script.audio_config.background_music and isinstance(mix_report, dict):
+        mix_totals = mix_report.get("totals") or {}
+        if mix_totals.get("music_used") is False:
+            issues.append(
+                {
+                    "stage": "mix",
+                    "code": "configured_music_missing",
+                    "severity": "error",
+                    "message": (
+                        "background music is configured in script.json but "
+                        "the rendered mix does not contain it; check "
+                        "mix_report.json and rerun the mix stage"
+                    ),
+                }
+            )
+
     errors_total = sum(1 for issue in issues if issue["severity"] == "error")
     warnings_total = len(issues) - errors_total
     stages_failed = [entry["stage"] for entry in stages if entry["status"] != "pass"]

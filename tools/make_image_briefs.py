@@ -4,10 +4,10 @@ Turn a script.json into the shot list the artwork has to answer.
     python tools/make_image_briefs.py projects/<id>/script.json
     python tools/make_image_briefs.py projects/<id>/script.json --rate 18.3
 
-Writes `image_briefs.md` next to the script: one row per scene with the
-narration it has to illustrate, how long that narration lasts, which file the
-image must be, and an empty *Brief* column to fill in before drawing or
-generating anything.
+Writes `image_briefs.md` and `image_contact_sheet.html` next to the script:
+the Markdown shot list is editable, while the HTML page shows every scene's
+artwork beside its narration and flags missing, upscaled or heavily reused
+images for a quick visual review.
 
 It also audits the artwork that is already there, because the two mistakes
 this step makes are expensive: an image smaller than the frame (which stage 3
@@ -19,9 +19,12 @@ when it is working).
 from __future__ import annotations
 
 import argparse
+import html
+import os
 import sys
 from collections import Counter
 from pathlib import Path
+from urllib.parse import quote
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = PROJECT_ROOT / "src"
@@ -52,6 +55,113 @@ def image_size(path: Path) -> tuple[int, int] | None:
         return None
 
 
+def write_contact_sheet(
+    rows: list[dict],
+    inventory: list[dict],
+    *,
+    title: str,
+    resolution: str,
+    output: Path,
+) -> None:
+    """Write a self-contained review page with per-scene image links."""
+    assets = {entry["reference"]: entry for entry in inventory}
+    cards: list[str] = []
+
+    for row in rows:
+        reference = row["reference"]
+        entry = assets.get(reference) if reference else None
+        excerpt = html.escape(row["excerpt"])
+        prompt = html.escape((row["prompt"] or "").strip())
+        filename = html.escape(Path(reference).name if reference else "No image")
+        badges: list[str] = []
+
+        if entry is None:
+            badges.append('<span class="badge missing">Chưa có ảnh</span>')
+        else:
+            size = entry["size"]
+            if size:
+                badges.append(
+                    f'<span class="badge">{size[0]} × {size[1]}</span>'
+                )
+            if entry["upscaled"]:
+                badges.append('<span class="badge warning">Ảnh nhỏ hơn khung</span>')
+            if entry["scenes"] > REUSE_LIMIT:
+                badges.append(
+                    f'<span class="badge warning">Dùng lại {entry["scenes"]} scene</span>'
+                )
+            if not entry["upscaled"] and entry["scenes"] <= REUSE_LIMIT:
+                badges.append('<span class="badge good">Sẵn sàng</span>')
+
+        image_markup = '<div class="placeholder">Chưa có ảnh cho scene này</div>'
+        if entry is not None and entry["resolved"] is not None:
+            relative = os.path.relpath(entry["resolved"], output.parent).replace(
+                os.sep, "/"
+            )
+            image_url = quote(relative, safe="/:@")
+            image_markup = (
+                f'<a href="{html.escape(image_url, quote=True)}" target="_blank" '
+                'rel="noreferrer">'
+                f'<img src="{html.escape(image_url, quote=True)}" '
+                f'alt="Scene {row["id"]}: {filename}" loading="lazy"></a>'
+            )
+
+        detail = f'<p class="prompt">Prompt: {prompt}</p>' if prompt else ""
+        cards.append(
+            '<article class="scene">'
+            '<div class="scene-head">'
+            f'<span class="scene-number">{row["id"]:02d}</span>'
+            f'<span class="duration">~{row["seconds"]:.0f}s</span>'
+            '</div>'
+            f'<div class="preview">{image_markup}</div>'
+            f'<div class="badges">{"".join(badges)}</div>'
+            f'<h2>{filename}</h2>'
+            f'<p class="narration">{excerpt}</p>{detail}'
+            '</article>'
+        )
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    page = f'''<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Duyệt ảnh — {html.escape(title)}</title>
+  <style>
+    :root {{ color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #242b30; background: #edf0ee; }}
+    * {{ box-sizing: border-box; }}
+    body {{ margin: 0; }}
+    header {{ padding: 24px clamp(18px, 4vw, 52px); background: #173a3a; color: #fff; }}
+    header h1 {{ margin: 0 0 6px; font-size: 24px; font-weight: 650; }}
+    header p {{ margin: 0; color: #d4e5dc; font-size: 14px; }}
+    main {{ max-width: 1600px; margin: auto; padding: 22px clamp(14px, 3vw, 40px) 48px; }}
+    .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 16px; align-items: start; }}
+    .scene {{ min-width: 0; overflow: hidden; background: #fff; border: 1px solid #d5ddda; border-radius: 6px; }}
+    .scene-head {{ display: flex; align-items: baseline; justify-content: space-between; padding: 12px 14px 8px; }}
+    .scene-number {{ color: #176c63; font-size: 17px; font-weight: 750; }}
+    .duration {{ color: #67746f; font-size: 12px; }}
+    .preview {{ display: grid; place-items: center; min-height: 188px; aspect-ratio: 16 / 9; overflow: hidden; background: repeating-conic-gradient(#e9eeeb 0% 25%, #f8faf9 0% 50%) 50% / 20px 20px; }}
+    .preview img {{ display: block; width: 100%; height: 100%; object-fit: contain; }}
+    .placeholder {{ padding: 18px; color: #9d3e2e; font-size: 14px; }}
+    .badges {{ display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px 0; }}
+    .badge {{ padding: 4px 7px; border-radius: 3px; background: #e8efec; color: #38534b; font-size: 11px; }}
+    .badge.warning {{ background: #fff0d5; color: #80520b; }}
+    .badge.missing {{ background: #fde4df; color: #963c2c; }}
+    .badge.good {{ background: #e2f2e8; color: #286744; }}
+    .scene h2 {{ overflow-wrap: anywhere; margin: 10px 14px 6px; font-size: 14px; font-weight: 650; }}
+    .narration, .prompt {{ margin: 0; padding: 0 14px 12px; color: #4d5c56; font-size: 13px; line-height: 1.5; }}
+    .prompt {{ color: #6a7771; font-size: 12px; }}
+    @media (max-width: 480px) {{ header {{ padding-block: 18px; }} header h1 {{ font-size: 20px; }} }}
+  </style>
+</head>
+<body>
+  <header><h1>Duyệt ảnh: {html.escape(title)}</h1><p>{len(rows)} scene · khung {html.escape(resolution)} · bấm ảnh để mở bản gốc</p></header>
+  <main><section class="grid">{"".join(cards)}</section></main>
+</body>
+</html>
+'''
+    output.write_text(page, encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     parser.add_argument("script", help="path to script.json")
@@ -60,6 +170,12 @@ def main() -> int:
         type=Path,
         default=None,
         help="where to write the briefs (default: <workspace>/image_briefs.md)",
+    )
+    parser.add_argument(
+        "--contact-sheet",
+        type=Path,
+        default=None,
+        help="where to write the visual review page (default: image_contact_sheet.html beside the briefs)",
     )
     parser.add_argument(
         "--rate",
@@ -233,8 +349,17 @@ def main() -> int:
     lines.append("")
 
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    contact_sheet = args.contact_sheet or out.with_name("image_contact_sheet.html")
+    write_contact_sheet(
+        rows,
+        inventory,
+        title=metadata.title,
+        resolution=metadata.resolution,
+        output=contact_sheet,
+    )
 
     print(f"shot list  : {out}")
+    print(f"review     : {contact_sheet}")
     print(f"scenes     : {len(rows)} ({sum(r['seconds'] for r in rows) / 60:.1f} min @ {args.rate:g} chars/s)")
     print(f"images     : {len(inventory)} needed, {len(missing)} missing, "
           f"{len(upscaled)} smaller than the frame, {len(reused)} reused too often")

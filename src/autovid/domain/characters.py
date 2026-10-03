@@ -921,22 +921,29 @@ def resolve_character_cues(
         and bool(script.scenes)
     )
     if frame_enabled:
-        host_config = HostLayoutConfig(
-            enabled=True,
-            use=frame_config.use,
-            image_file=frame_config.image_file,
-            x=frame_config.host_x,
-            y=frame_config.host_y,
-            height=frame_config.host_height,
-            flip=frame_config.host_flip,
-            idle=frame_config.idle,
-            mouth=frame_config.mouth,
-            poses=frame_config.poses,
-            auto_pose_s=frame_config.auto_pose_s,
-        )
-        host_enabled = True
+        host_enabled = frame_config.show_narrator
+        if frame_config.show_narrator:
+            host_config = HostLayoutConfig(
+                enabled=True,
+                use=frame_config.use,
+                image_file=frame_config.image_file,
+                x=frame_config.host_x,
+                y=frame_config.host_y,
+                height=frame_config.host_height,
+                flip=frame_config.host_flip,
+                idle=frame_config.idle,
+                mouth=frame_config.mouth,
+                poses=frame_config.poses,
+                auto_pose_s=frame_config.auto_pose_s,
+            )
 
     for scene in script.scenes:
+        scene_frame_enabled = (
+            frame_enabled and scene.story_frame_enabled is not False
+        )
+        scene_host_enabled = host_enabled and (
+            not frame_enabled or scene_frame_enabled
+        )
 
         scene_cues: list[CharacterCue] = []
         for index, character in enumerate(scene.characters):
@@ -1042,7 +1049,7 @@ def resolve_character_cues(
                 for cue in scene_cues
             )
         )
-        if host_enabled and not author_placed_host:
+        if scene_host_enabled and not author_placed_host:
             clip_s = clip_seconds.get(scene.id)
             host_start = 0.0
             host_end = clip_s if clip_s is not None else 6.0
@@ -1069,7 +1076,7 @@ def resolve_character_cues(
                 mouth=host_config.mouth,
                 note=(
                     "storytelling-frame narrator"
-                    if frame_enabled
+                    if scene_frame_enabled
                     else "persistent host"
                 ),
                 # A scene character standing in the host's corner (or poking
@@ -1089,7 +1096,7 @@ def resolve_character_cues(
                         ),
                         margin_s=SUPPRESSION_MARGIN_S,
                     )
-                    if frame_enabled
+                    if scene_frame_enabled
                     else _host_suppression_windows(
                         tuple(scene_cues), host_x=host_config.x
                     )

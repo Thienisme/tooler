@@ -561,3 +561,34 @@ class TestQualityReport(unittest.TestCase):
         # Captions are optional by design, so their absence is not a reason
         # to hold an episode back.
         self.assertNotIn("captions", quality["stages_not_run"])
+
+    def test_configured_music_missing_from_mix_fails_release_quality(self):
+        payload = script_dict([scene_dict(1)])
+        payload["audio_config"]["background_music"] = "data/music/track.mp3"
+        script = parse_script(payload)
+        paths = Paths.from_workspace(self.workspace)
+        paths.create()
+
+        reports = {
+            "validation_report.json": {"status": "pass"},
+            "tts_report.json": {"status": "pass"},
+            "image_report.json": {"status": "pass"},
+            "assembly_report.json": {"status": "pass"},
+            "mix_report.json": {
+                "status": "pass",
+                "totals": {"music_used": False},
+            },
+            "render_report.json": {"status": "pass"},
+        }
+        for name, report in reports.items():
+            (paths.output_dir / name).write_text(
+                json.dumps(report), encoding="utf-8"
+            )
+
+        quality = build_quality_report(script, paths)
+
+        self.assertEqual(quality["status"], "fail")
+        self.assertIn(
+            "configured_music_missing",
+            [issue["code"] for issue in quality["issues"]],
+        )

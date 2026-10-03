@@ -16,8 +16,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 SRC_DIR = PROJECT_ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
+if str(SRC_DIR) in sys.path:
+    sys.path.remove(str(SRC_DIR))
+sys.path.insert(0, str(SRC_DIR))
 
 from autovid.presentation.cli import main  # noqa: E402
 

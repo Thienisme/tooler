@@ -9,6 +9,7 @@ PATH is only a fallback for machines without them.
 from __future__ import annotations
 
 import json
+import platform
 import shutil
 import subprocess
 from pathlib import Path
@@ -18,9 +19,33 @@ from autovid.paths import PROJECT_ROOT
 BIN_DIR = PROJECT_ROOT / "bin"
 
 
+def _is_native(binary: Path) -> bool:
+    """
+    True when `binary` is a Mach-O executable this machine can exec.
+
+    The bundled binaries are static Linux ELF builds, so on macOS they must
+    be ignored -- picking them yields "Exec format error" at the first call.
+    Sniffing the magic bytes is more honest than asking the platform: a
+    future macOS bundle needs no code change.
+    """
+    try:
+        with binary.open("rb") as handle:
+            magic = handle.read(4)
+    except OSError:
+        return False
+    if magic[:4] == b"\x7fELF":
+        return platform.system() == "Linux"
+    if magic[:4] in (b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe"):
+        return platform.system() == "Darwin"
+    if magic[:2] == b"MZ":  # PE/COFF, i.e. Windows
+        return platform.system() == "Windows"
+    # No recognised header: scripts and symlinks land here.
+    return True
+
+
 def _resolve(name: str) -> str | None:
     bundled = BIN_DIR / name
-    if bundled.exists() and bundled.is_file():
+    if bundled.exists() and bundled.is_file() and _is_native(bundled):
         return str(bundled)
     return shutil.which(name)
 

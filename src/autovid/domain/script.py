@@ -219,8 +219,8 @@ DEFAULT_HOST_X = 0.85
 DEFAULT_HOST_Y = 0.55
 DEFAULT_HOST_HEIGHT = 0.34
 # --- story frame (khung ke chuyen) -----------------------------------------
-# The frame is a fixed panel on the left of the screen; the narrator stands
-# OUTSIDE it, on the right, pointing in.  All fractions of the output frame.
+# Defaults preserve the original left-panel layout; scripts may place the
+# frame elsewhere and optionally keep the narrator outside it.
 DEFAULT_FRAME_X = 0.04
 DEFAULT_FRAME_Y = 0.06
 DEFAULT_FRAME_W = 0.66
@@ -528,8 +528,8 @@ class HostLayoutConfig:
 @dataclass(frozen=True)
 class StoryFrameConfig:
     """
-    The storytelling frame: a fixed panel holding the scene art, and a
-    narrator standing OUTSIDE it.
+    The storytelling frame: a fixed panel holding the scene art, with an
+    optional narrator standing outside it.
 
     The frame owns the left of the screen (`x`/`y`/`width`/`height`); the
     scene image is composed inside it and nowhere else, so the artwork is
@@ -543,6 +543,7 @@ class StoryFrameConfig:
     """
 
     enabled: bool = False
+    show_narrator: bool = True
     use: str | None = None
     image_file: str | None = None
     x: float = DEFAULT_FRAME_X
@@ -600,6 +601,7 @@ class Scene:
     sfx: tuple[SFX, ...]
     characters: tuple[CharacterOverlay, ...] = ()
     impact: Impact | None = None
+    story_frame_enabled: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -1482,6 +1484,10 @@ def _parse_scene(
         text_overlays=tuple(overlays),
         sfx=tuple(sfx_list),
         characters=tuple(characters),
+        story_frame_enabled=parser.boolean(
+            raw.get("story_frame", _MISSING),
+            f"{where}.story_frame",
+        ),
         # An absent `impact` block means no punch-in, so the parser is only
         # consulted when the key is actually there; otherwise every scene
         # would silently get one.
@@ -1888,6 +1894,11 @@ def _parse_story_frame(parser: "_Parser", data: Any) -> StoryFrameConfig:
 
     return StoryFrameConfig(
         enabled=bool(enabled),
+        show_narrator=parser.boolean(
+            raw.get("show_narrator", _MISSING),
+            "story_frame.show_narrator",
+            default=True,
+        ),
         use=use,
         image_file=image_file or entry.get("image_file"),
         x=parser.number(

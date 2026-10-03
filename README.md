@@ -179,6 +179,23 @@ python autovid.py --help
 ```bash
 S=projects/<topic-id>/script.json
 
+.venv/bin/python autovid.py run "$S"
+```
+
+Lệnh `run` chạy validate → TTS → images → assembly → mix → render → captions,
+dừng ngay ở stage lỗi và in đường dẫn video cuối. Chạy lại đúng lệnh sau khi sửa lỗi
+để tiếp tục; TTS theo câu và scene video đã có sẽ được tận dụng từ cache. Mặc định
+video có phụ đề mềm; thêm `--no-captions` để bỏ qua, hoặc `--burn-captions` để đốt
+phụ đề vào hình. Khi thử luồng mà chưa cài VieNeu, có thể dùng `--backend fake`
+(audio tạo ra chỉ là placeholder, không dùng để phát hành):
+
+```bash
+.venv/bin/python autovid.py run "$S" --backend fake
+```
+
+Muốn chạy riêng hoặc điều tra một stage, vẫn có thể dùng lệnh thủ công:
+
+```bash
 python autovid.py validate   "$S"            # thêm --skip-engine-check khi máy chưa có vieneu
 python autovid.py tts        "$S"            # --backend fake để test khi chưa có model
 python autovid.py images     "$S"
@@ -187,6 +204,10 @@ python autovid.py mix        "$S"            # --skip-music để nghe thử voi
 python autovid.py render     "$S"            # --voice-only để bỏ nhạc/SFX, --dry-run để xem trước
 python autovid.py captions   "$S"            # --burn để đốt phụ đề vào hình
 ```
+
+Quality report sẽ đánh dấu **fail** nếu script khai báo nhạc nền nhưng file mix
+không có nhạc đó. Các cảnh báo thẩm mỹ như ảnh upscale hoặc nhân vật chồng lấn
+vẫn được giữ làm cảnh báo để người làm duyệt, không tự ý chặn render.
 
 Stage sau đọc lại sản phẩm của stage trước, và mọi stage đều ghi tiến trình vào
 `output/state.json` nên chạy lại sẽ dùng lại phần đã xong (cache clip scene,
@@ -234,6 +255,10 @@ python tools/generate_images.py projects/topics-001/script.json --dry-run
 
 # Xuất toàn bộ prompt ra image_prompts.md để review / dán tay vào web
 python tools/generate_images.py projects/topics-001/script.json --prompts-only
+
+# Tạo shot list + contact sheet HTML để duyệt toàn bộ ảnh theo scene
+python tools/make_image_briefs.py projects/topics-001/script.json
+open projects/topics-001/image_contact_sheet.html
 
 # Tạo ảnh (bỏ qua ảnh đã có; tạo lại hết thì thêm --force)
 python tools/generate_images.py projects/topics-001/script.json
@@ -317,6 +342,46 @@ và neo **theo câu thoại thật** (stage 2 đã đo từng câu), còn tiến
 Nhiều nhân vật trong cùng scene = nhiều phần tử `characters` (đối thoại 2 nhân vật, hoặc 1 nhân vật
 kiểu PIP ở góc khung với `height: 0.28, y: 0.35`).
 
+### 🖌️ Studio thiết kế video (studio.py) — kéo-thả, không soạn JSON tay
+
+Giao diện Qt cho **đúng phần thiết kế hình ảnh của video thuyết minh**: bố cục scene, Ken Burns,
+chuyển cảnh, nhân vật, khung kể chuyện. Không đụng audio (TTS/voice/SFX) và không đụng luồng truyện.
+
+```bash
+.venv/bin/python studio.py                                        # mở project demo
+.venv/bin/python studio.py projects/demo_story_inside/script.json  # mở project cụ thể
+```
+
+**Cách dùng:** kéo ảnh nền / sprite nhân vật từ panel **Thư viện ảnh** (bên trái) thả lên khung hình
+ở giữa. Kéo để đổi vị trí, kéo góc dưới để đổi cỡ, lăn chuột để phóng to/thu nhỏ, **double-click để
+xoá** nhân vật. Mọi thao tác ghi thẳng vào `script.json` theo tỉ lệ khung, nên chỗ bạn kéo là chỗ
+pipeline sẽ render.
+
+| Vùng | Việc |
+|---|---|
+| **Du an** | Mở / tạo project (mọi `projects/*/script.json` trong repo) |
+| **Thu vien anh** | Ảnh nền (`images/backgrounds/`) và nhân vật (`assets/characters/`), có thumbnail. Bấm **Làm mới** sau khi bỏ ảnh mới vào thư mục |
+| **Khung hinh** | Khung kể chuyện dùng chung: bật/tắt, kiểu khung, hình học, người dẫn. Cảnh báo nếu khung che mất chỗ của người dẫn |
+| **Scene / Nhan vat** | Ken Burns, chuyển cảnh, khung riêng của scene; và `enter`/`idle`/`exit`/vị trí của nhân vật đang chọn |
+| **Chu de them** | Chữ đốt vào hình (`text_overlays`): nội dung, vị trí 7 chỗ, kiểu hiện, cỡ chữ, màu + viền, cửa sổ thời gian. Nhiều chữ trên một scene |
+| **Punch-in** | Cú zoom giật cả scene (`impact`): neo theo câu hoặc theo mili giây, cường độ, rung màn hình, thời lượng, flash trắng/đen |
+| **Video** | Tiêu đề, tác giả, độ phân giải, fps |
+| **Xem giua chuyen dong** | Kéo thanh trượt để xem Ken Burns **và punch-in** chạy trong scene, thay vì tin hai con số |
+
+**Chọn nhiều nhân vật:** `Shift`+click để thêm/bớt vào nhóm, `Cmd/Ctrl+A` chọn hết, rồi kéo để
+chuyển cả nhóm cùng lúc. Kéo góc dưới để đổi cỡ (không giãn méo — giữ đúng tỉ lệ sprite).
+
+Nút **Lưu script.json** (Cmd/Ctrl+S) ghi file, giữ bản cũ ở `script.json.bak`. Nút **Render video**
+chạy stage `assembly` (video **im lặng**) và ghi log vào tab *Nhật ký* — đúng nhu cầu xem bố cục
+trước khi làm audio. Studio chỉ sửa `video_metadata`, `story_frame` và `scenes[]`; các khối
+`tts_config`, `audio_config`, `pacing` được giữ nguyên.
+
+Cài thêm nếu chưa có:
+
+```bash
+uv pip install PySide6    # hoặc: .venv/bin/python -m pip install PySide6
+```
+
 ### 🖼️ Khung kể chuyện (story_frame) — ảnh trong khung, người dẫn đứng ngoài
 
 Layout "trạm kể chuyện": **một khung cố định bên trái** giữ toàn bộ nội dung truyện (ảnh scene — và
@@ -349,6 +414,24 @@ Hành vi:
 - nhân vật nào **lòi ra ngoài khung** về phía phải (đụng dải narrator) thì narrator tự ẩn đúng
   khoảng đó (nới lề 60ms để không bật/tắt gắt) và trở lại khi nhân vật xong;
 - narrator không có enter/exit — sống nhờ miệng dập + pose ở khoảng nghỉ + idle `tilt` nhẹ.
+
+Muốn đổi nhịp hình giữa các scene, đặt `"story_frame": false` ngay trong scene cần bỏ khung.
+Scene đó dùng ảnh toàn màn hình và không inject narrator của story-frame; các scene không khai báo
+trường này vẫn dùng cấu hình khung ở cấp script. Có thể dùng scene bỏ khung cho cảnh đối thoại,
+liệt kê hai nhân vật trong `characters[]`, rồi để scene sau trở lại khung kể chuyện:
+
+```json
+{
+  "id": 2,
+  "text": "Hai nhân vật đối thoại trực tiếp.",
+  "image_file": "projects/<id>/images/dialogue.png",
+  "story_frame": false,
+  "characters": [
+    {"image_file": "projects/<id>/assets/characters/character_a.png", "x": 0.38, "y": 0.92, "height": 0.42},
+    {"image_file": "projects/<id>/assets/characters/character_b.png", "x": 0.64, "y": 0.92, "height": 0.38}
+  ]
+}
+```
 
 Chuẩn bị ảnh (khung vẽ theo đúng tỉ lệ khung hiện tại):
 
@@ -403,6 +486,45 @@ Tách nền ảnh nhân vật mới (xuất `*_cut.png` RGBA):
 ```bash
 python3 tools/remove_background.py assets/characters --glob "my_host_*.png" --suffix _cut
 ```
+
+### Cắt sheet nhân vật theo lưới cố định
+
+Tạo sheet ngang tỉ lệ 3:2 gồm đúng 6 ô vuông, 3 cột × 2 hàng. Mỗi ô 480×480 px; lề ngoài 16 px, khe giữa các ô 32 px. Tool cắt theo thứ tự trái sang phải, trên xuống dưới; không tự nhận diện vị trí nhân vật.
+
+```bash
+.venv/bin/python tools/split_character_sheet.py projects/<id>/assets/character_sheet.png \
+  --out projects/<id>/assets/character_cutouts \
+  --names character_01 character_02 character_03 character_04 character_05 character_06
+
+# Tách nền các ảnh vừa cắt
+.venv/bin/python tools/remove_background.py projects/<id>/assets/character_cutouts \
+  --glob "character_[0-9][0-9].png" --suffix _cut
+```
+
+Prompt mẫu để tạo sheet (thay sáu mô tả nhân vật theo thứ tự các ô):
+
+```text
+Create a clean character sprite sheet on a pure solid white (#FFFFFF) background.
+Canvas: exact landscape 3:2 aspect ratio, preferably 1536 x 1024 pixels.
+Arrange exactly six separate full-body characters in a strict 3-column by 2-row grid,
+read left-to-right, then top-to-bottom. Each character cell is 480 x 480 pixels.
+Use 16 px outer margins and 32 px white gutters between cells. Keep every character,
+including hair, hands, clothing, and props, fully inside its cell with at least 24 px
+of clear white space from each cell edge. One character per cell; no overlaps.
+
+Cell 1, top-left: [describe character 1]
+Cell 2, top-middle: [describe character 2]
+Cell 3, top-right: [describe character 3]
+Cell 4, bottom-left: [describe character 4]
+Cell 5, bottom-middle: [describe character 5]
+Cell 6, bottom-right: [describe character 6]
+
+Keep character scale and rendering style consistent across all six cells. No text,
+labels, watermarks, borders, panel outlines, shadows, floor lines, gradients, or texture.
+Do not merge or repeat characters. The background must remain pure white and unobstructed.
+```
+
+Image generators may not honor exact pixel geometry. Check the generated sheet's 3:2 ratio and cell alignment before using the splitter; it scales the fixed reference coordinates but does not detect misplaced characters.
 
 ### Mấp máy môi + đổi tư thế (talk frames & poses)
 

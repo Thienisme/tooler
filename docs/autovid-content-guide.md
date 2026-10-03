@@ -80,7 +80,14 @@ Cách gửi: copy file vào repo rồi nói đường dẫn, ví dụ `projects/
 # Sau khi tôi dựng script.json từ lời kể của bạn:
 python tools/make_image_briefs.py projects/<topic-id>/script.json
 ```
-File `projects/<topic-id>/image_briefs.md` sinh ra gồm:
+Lệnh sinh đồng thời hai file trong project:
+
+- `image_briefs.md`: shot list để điền brief và kiểm tra ảnh.
+- `image_contact_sheet.html`: bảng duyệt trực quan theo scene. Mở file HTML trong trình duyệt để xem ảnh cùng lời kể, kích thước và cảnh báo.
+
+Contact sheet đánh dấu ảnh thiếu, ảnh nhỏ hơn khung (sẽ bị upscale), và ảnh dùng lại quá nhiều scene; bấm thumbnail để mở ảnh gốc. File này phục vụ duyệt trước khi chạy render, không thay đổi `script.json`.
+
+File `image_briefs.md` gồm:
 - **Cần tạo / cần bổ sung**: file thiếu, file nhỏ hơn khung, ảnh bị dùng lại quá nhiều scene.
 - **Danh sách ảnh**: mỗi file → trạng thái, kích thước, dùng cho scene nào, **cột Brief để bạn điền**.
 - **Nội dung từng scene**: lời kể của từng scene để bạn vẽ cho khớp.

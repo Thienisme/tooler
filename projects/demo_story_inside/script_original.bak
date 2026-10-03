@@ -1,0 +1,112 @@
+{
+  "video_metadata": {
+    "title": "Demo ke chuyen trong khung - nhan vat theo lop",
+    "author": "Buffy",
+    "resolution": "1920x1080",
+    "fps": 30,
+    "language": "vi"
+  },
+  "tts_config": {
+    "engine": "vieneu",
+    "voice": "Minh Quân Pro",
+    "speed": 1.05,
+    "granularity": "sentence"
+  },
+  "audio_config": {
+    "master_volume": -14.0
+  },
+  "pacing": {
+    "auto_pause": {
+      "enabled": true,
+      "per_sentence": true,
+      "min_pause_ms": 200,
+      "max_pause_ms": 1500,
+      "respect_tts_natural_pause": true
+    }
+  },
+  "story_frame": {
+    "use": "ke_su",
+    "style": "tv_retro",
+    "show_narrator": true,
+    "host_x": 0.92,
+    "host_height": 0.34,
+    "x": 0.02,
+    "y": 0.068,
+    "width": 0.81,
+    "height": 0.864
+  },
+  "scenes": [
+    {
+      "id": 1,
+      "text": "Ở cổng làng Vũ Đại, Chí Phèo bước ra, vừa giận dữ vừa chẳng biết đi đâu. Thị Nở tiến lại gần, còn mấy người trong làng đứng xa nhìn theo. Cả khung hình dồn về phía hai người, để câu chuyện chính luôn nổi bật giữa đám đông.",
+      "image_file": "projects/demo_story_inside/images/backgrounds/village_gate.png",
+      "transition_in": {
+        "type": "cut",
+        "duration": 0.0
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.0,
+        "end_scale": 1.12
+      },
+      "characters": [
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/village_crowd.png",
+          "x": 0.398,
+          "y": 0.78,
+          "height": 0.16,
+          "enter": {
+            "type": "none",
+            "duration_ms": 0
+          },
+          "idle": {
+            "type": "sway",
+            "amplitude_px": 2,
+            "period_s": 3.2
+          },
+          "exit": {
+            "type": "none"
+          }
+        },
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/thi_no.png",
+          "x": 0.247,
+          "y": 0.78,
+          "height": 0.25,
+          "at_sentence": 2,
+          "for_sentences": 2,
+          "preset": "pop",
+          "idle": {
+            "type": "sway",
+            "amplitude_px": 5,
+            "period_s": 2.6
+          },
+          "exit": {
+            "type": "fade_out",
+            "duration_ms": 350
+          }
+        },
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/chi_pheo.png",
+          "x": 0.474,
+          "y": 0.78,
+          "height": 0.34,
+          "preset": "none",
+          "enter": {
+            "type": "none",
+            "duration_ms": 0
+          },
+          "idle": {
+            "type": "bob_sway",
+            "amplitude_px": 5,
+            "period_s": 1.9
+          },
+          "exit": {
+            "type": "none"
+          }
+        }
+      ]
+    }
+  ]
+}

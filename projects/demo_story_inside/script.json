@@ -1,0 +1,317 @@
+{
+  "video_metadata": {
+    "title": "Demo 4 phan: co khung / khong khung, doi nen linh hoat",
+    "author": "Buffy",
+    "resolution": "1920x1080",
+    "fps": 30,
+    "language": "vi"
+  },
+  "tts_config": {
+    "engine": "vieneu",
+    "voice": "Minh Quân Pro",
+    "speed": 1.05,
+    "granularity": "sentence"
+  },
+  "audio_config": {
+    "master_volume": -14.0
+  },
+  "pacing": {
+    "auto_pause": {
+      "enabled": true,
+      "per_sentence": true,
+      "min_pause_ms": 250,
+      "max_pause_ms": 1200,
+      "respect_tts_natural_pause": true
+    }
+  },
+  "story_frame": {
+    "enabled": true,
+    "use": "ke_su",
+    "style": "tv_retro",
+    "show_narrator": true,
+    "x": 0.02,
+    "y": 0.1,
+    "width": 0.58,
+    "height": 0.8,
+    "host_x": 0.78,
+    "host_y": 0.985,
+    "host_height": 0.4
+  },
+  "scenes": [
+    {
+      "id": 1,
+      "text": "Phan mot. Scene nay CO khung hinh, nen la cong tru lang Vu Dai, zoom cham vao mot.",
+      "image_file": "projects/demo_story_inside/images/backgrounds/village_gate.png",
+      "transition_in": {
+        "type": "fade",
+        "duration": 0.6
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.0,
+        "end_scale": 1.12
+      },
+      "characters": [
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/village_crowd.png",
+          "x": 0.31,
+          "y": 0.74,
+          "height": 0.14,
+          "idle": {
+            "type": "sway",
+            "amplitude_px": 2,
+            "period_s": 3.2
+          },
+          "exit": {
+            "type": "none"
+          }
+        },
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/thi_no.png",
+          "x": 0.18,
+          "y": 0.74,
+          "height": 0.24,
+          "enter": {
+            "type": "drop_bounce",
+            "duration_ms": 450
+          },
+          "idle": {
+            "type": "sway",
+            "amplitude_px": 5,
+            "period_s": 2.6
+          },
+          "exit": {
+            "type": "fade_out",
+            "duration_ms": 350
+          }
+        },
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/chi_pheo.png",
+          "x": 0.44,
+          "y": 0.74,
+          "height": 0.3,
+          "enter": {
+            "type": "slide_in",
+            "from": "left",
+            "duration_ms": 500
+          },
+          "idle": {
+            "type": "bob_sway",
+            "amplitude_px": 5,
+            "period_s": 1.9
+          },
+          "exit": {
+            "type": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "Phan hai. Scene nay KHONG khung hinh, nen doi sang mot toan canh khac, ken burns lui ra.",
+      "image_file": "projects/demo_story_inside/images/backgrounds/image.png",
+      "story_frame": false,
+      "transition_in": {
+        "type": "slide_left",
+        "duration": 0.7
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_out",
+        "start_scale": 1.14,
+        "end_scale": 1.0
+      },
+      "characters": [
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/ly_cuong.png",
+          "x": 0.62,
+          "y": 0.86,
+          "height": 0.3,
+          "enter": {
+            "type": "slide_in",
+            "from": "bottom",
+            "duration_ms": 400
+          },
+          "idle": {
+            "type": "bob",
+            "amplitude_px": 3,
+            "period_s": 2.4
+          },
+          "exit": {
+            "type": "fade_out",
+            "duration_ms": 400
+          }
+        },
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/tu_lang.png",
+          "x": 0.82,
+          "y": 0.86,
+          "height": 0.27,
+          "enter": {
+            "type": "drop_bounce",
+            "duration_ms": 450
+          },
+          "idle": {
+            "type": "sway",
+            "amplitude_px": 4,
+            "period_s": 2.1
+          },
+          "exit": {
+            "type": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Phan ba. Scene nay CO khung hinh, nen la mot toan canh khac nua, zoom nhung goc khac.",
+      "image_file": "projects/demo_story_inside/images/backgrounds/image01.png",
+      "transition_in": {
+        "type": "dissolve",
+        "duration": 0.8
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "zoom_in",
+        "start_scale": 1.02,
+        "end_scale": 1.16
+      },
+      "characters": [
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/lao_hac.png",
+          "x": 0.19,
+          "y": 0.74,
+          "height": 0.26,
+          "enter": {
+            "type": "slide_in",
+            "from": "left",
+            "duration_ms": 450
+          },
+          "idle": {
+            "type": "tilt",
+            "amplitude_px": 3,
+            "period_s": 3.0
+          },
+          "exit": {
+            "type": "none"
+          }
+        },
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/ba_kien.png",
+          "x": 0.34,
+          "y": 0.74,
+          "height": 0.24,
+          "enter": {
+            "type": "drop_bounce",
+            "duration_ms": 400
+          },
+          "idle": {
+            "type": "sway",
+            "amplitude_px": 4,
+            "period_s": 2.3
+          },
+          "exit": {
+            "type": "fade_out",
+            "duration_ms": 350
+          }
+        },
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/giao_thu.png",
+          "x": 0.47,
+          "y": 0.74,
+          "height": 0.22,
+          "enter": {
+            "type": "slide_in",
+            "from": "right",
+            "duration_ms": 500
+          },
+          "idle": {
+            "type": "bob_sway",
+            "amplitude_px": 3,
+            "period_s": 2.0
+          },
+          "exit": {
+            "type": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "text": "Phan bon. Scene cuoi KHONG khung hinh, nen moi nhat, chuyen dong pan ngang de thay doi khung hinh.",
+      "image_file": "projects/demo_story_inside/images/backgrounds/image02.png",
+      "story_frame": false,
+      "transition_in": {
+        "type": "slide_up",
+        "duration": 0.6
+      },
+      "ken_burns": {
+        "enabled": true,
+        "type": "pan_right",
+        "start_scale": 1.1,
+        "end_scale": 1.1
+      },
+      "characters": [
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/ba_ba.png",
+          "x": 0.3,
+          "y": 0.86,
+          "height": 0.29,
+          "enter": {
+            "type": "slide_in",
+            "from": "bottom",
+            "duration_ms": 450
+          },
+          "idle": {
+            "type": "bob",
+            "amplitude_px": 3,
+            "period_s": 2.7
+          },
+          "exit": {
+            "type": "none"
+          }
+        },
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/chi_pheo.png",
+          "x": 0.55,
+          "y": 0.86,
+          "height": 0.33,
+          "enter": {
+            "type": "drop_bounce",
+            "duration_ms": 400
+          },
+          "idle": {
+            "type": "bob_sway",
+            "amplitude_px": 5,
+            "period_s": 1.8
+          },
+          "exit": {
+            "type": "none"
+          }
+        },
+        {
+          "image_file": "projects/demo_story_inside/assets/characters/thi_no.png",
+          "x": 0.78,
+          "y": 0.86,
+          "height": 0.25,
+          "flip": true,
+          "enter": {
+            "type": "slide_in",
+            "from": "right",
+            "duration_ms": 450
+          },
+          "idle": {
+            "type": "sway",
+            "amplitude_px": 5,
+            "period_s": 2.5
+          },
+          "exit": {
+            "type": "fade_out",
+            "duration_ms": 400
+          }
+        }
+      ]
+    }
+  ]
+}

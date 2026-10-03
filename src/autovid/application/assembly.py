@@ -756,12 +756,20 @@ class AssemblyStage:
                 }
         return entry
 
+    def _story_frame_for_scene(self, scene: Scene) -> dict | None:
+        """Apply the scene-level frame opt-out to the script default."""
+        if scene.story_frame_enabled is False:
+            return None
+        return self._story_frame
+
     def _render_scene(
         self, scene: Scene, planned: SceneFrames
     ) -> SceneClipResult | None:
         image = self._prepared_image(scene)
         if image is None:
             return None
+
+        story_frame = self._story_frame_for_scene(scene)
 
         frames = planned.segment_frames
         duration_s = frames / self.fps
@@ -801,7 +809,7 @@ class AssemblyStage:
             preset=self.preset,
             crf=self.crf,
             threads=self.threads,
-            story_frame=self._story_frame,
+            story_frame=story_frame,
         )
         signature_path = clip.with_suffix(".json")
 
@@ -857,7 +865,7 @@ class AssemblyStage:
             ],
             sprites=character_layers,
             impact=impact,
-            story_frame=self._story_frame,
+            story_frame=story_frame,
         )
 
         # The still is a single frame, which `zoompan` turns into the whole
@@ -867,7 +875,7 @@ class AssemblyStage:
         # (see filters.py).  A character layer needs this for the same
         # reason: its alpha ramps and its `enable` window are both time.
         inputs: list[str] = ["-i", str(image)]
-        if self._story_frame is not None:
+        if story_frame is not None:
             inputs.extend(
                 [
                     "-loop",
@@ -877,10 +885,10 @@ class AssemblyStage:
                     "-t",
                     f"{duration_s:.4f}",
                     "-i",
-                    str(self._story_frame["png"]),
+                    str(story_frame["png"]),
                 ]
             )
-            if (lamp := self._story_frame.get("lamp")) is not None:
+            if (lamp := story_frame.get("lamp")) is not None:
                 # The blinking pilot lamp: one sheet, two glowing halves.
                 inputs.extend(
                     [

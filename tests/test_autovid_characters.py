@@ -114,7 +114,8 @@ def script_dict(scenes: list[dict], *, fps: int = FPS, resolution: str = "320x18
 
 
 def scene_dict(scene_id: int = 1, *, characters: list[dict] | None = None,
-               impact: dict | None = None) -> dict:
+               impact: dict | None = None,
+               story_frame: bool | None = None) -> dict:
     payload = {
         "id": scene_id,
         "text": "Câu một. Câu hai. Câu ba.",
@@ -125,6 +126,8 @@ def scene_dict(scene_id: int = 1, *, characters: list[dict] | None = None,
         payload["characters"] = characters
     if impact is not None:
         payload["impact"] = impact
+    if story_frame is not None:
+        payload["story_frame"] = story_frame
     return payload
 
 
@@ -2096,6 +2099,47 @@ class TestStoryFrame(unittest.TestCase):
             self.assertAlmostEqual(narrator.height, 0.46, places=3)
             self.assertEqual(narrator.start_s, 0.0)
             self.assertEqual(narrator.end_s, 6.0)
+
+    def test_scene_can_disable_frame_and_narrator_then_inherit_again(self):
+        script = self.frame_script(
+            [
+                scene_dict(1),
+                scene_dict(2, story_frame=False),
+                scene_dict(3),
+            ]
+        )
+        plan = self.resolved(script)
+
+        self.assertEqual(len(plan.for_scene(1)), 1)
+        self.assertEqual(plan.for_scene(2), ())
+        self.assertEqual(len(plan.for_scene(3)), 1)
+        self.assertEqual(plan.for_scene(1)[0].note, "storytelling-frame narrator")
+        self.assertEqual(plan.for_scene(3)[0].note, "storytelling-frame narrator")
+
+    def test_scene_frame_override_defaults_to_project_setting(self):
+        script = self.frame_script(
+            [scene_dict(1), scene_dict(2, story_frame=False)]
+        )
+
+        self.assertIsNone(script.scenes[0].story_frame_enabled)
+        self.assertFalse(script.scenes[1].story_frame_enabled)
+
+    def test_scene_override_controls_the_frame_asset_used_by_assembly(self):
+        from autovid.application.assembly import AssemblyStage
+        from autovid.paths import Paths
+
+        script = self.frame_script(
+            [scene_dict(1), scene_dict(2, story_frame=False)]
+        )
+        stage = AssemblyStage(
+            script,
+            Paths.from_workspace(self.tmp),
+            preset="ultrafast",
+            crf=30,
+        )
+
+        self.assertIsNotNone(stage._story_frame_for_scene(script.scenes[0]))
+        self.assertIsNone(stage._story_frame_for_scene(script.scenes[1]))
 
     def test_a_guest_inside_the_frame_never_suppresses_the_narrator(self):
         """Art inside the panel is the story being told; the narrator talks on."""

@@ -14,6 +14,7 @@ import argparse
 import dataclasses
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from autovid.application.assembly import (
@@ -57,6 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  mix        mix voiceover, BGM and SFX into audio/mix.wav\n"
             "  render     mux picture and sound into output/final_video.mp4\n"
             "  captions   optional subtitles (script timings or faster-whisper)\n"
+            "  run        run the full pipeline in order; rerun to resume cached work\n"
 
         ),
     )
@@ -369,6 +371,48 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="only print warnings, errors and the final summary",
     )
+
+    run = subparsers.add_parser(
+        "run",
+        help="run all production stages in order and resume cached work",
+        description=(
+            "Run validate, TTS, image preparation, assembly, mix, render and "
+            "captions in order. Re-running the command reuses sentence and "
+            "scene caches; the run stops at the first failed stage."
+        ),
+    )
+    add_common(run)
+    run.add_argument(
+        "--backend",
+        choices=TTS_BACKENDS,
+        default="vieneu",
+        help="voice engine (use fake only for a pipeline smoke test)",
+    )
+    run.add_argument("--voice", default=None, help="override tts_config.voice")
+    run.add_argument(
+        "--speed", type=float, default=None, help="override tts_config.speed"
+    )
+    run.add_argument(
+        "--fit",
+        choices=("pad", "cover"),
+        default="pad",
+        help="image fit mode (default: pad)",
+    )
+    run.add_argument(
+        "--pad-colour", default="#FFFFFF", help="letterbox fill colour"
+    )
+    run.add_argument(
+        "--preset", default=DEFAULT_PRESET, help="scene video encoder preset"
+    )
+    run.add_argument("--crf", type=int, default=DEFAULT_CRF)
+    run.add_argument("--threads", type=int, default=0)
+    run.add_argument("--no-captions", action="store_true", help="skip subtitle generation")
+    run.add_argument(
+        "--burn-captions",
+        action="store_true",
+        help="burn subtitles into the image instead of adding a soft subtitle track",
+    )
+    run.add_argument("--quiet", action="store_true")
 
     return parser
 
@@ -1194,7 +1238,10 @@ def cmd_render(args: argparse.Namespace) -> int:
     )
     _refresh_quality(script, paths)
 
-    return 0 if result.status == "pass" else 1
+    quality_status = quality.get("status")
+    if result.status != "pass" or quality_status == "fail":
+        return 1
+    return 0
 
 
 def cmd_captions(args: argparse.Namespace) -> int:
@@ -1291,6 +1338,129 @@ def cmd_captions(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_run(args: argparse.Namespace) -> int:
+    """Run the production stages in order; stage caches make reruns resumable."""
+    common = {
+        "script": args.script,
+        "workspace": args.workspace,
+        "out": args.out,
+        "quiet": args.quiet,
+    }
+    stages: list[tuple[str, Callable[[argparse.Namespace], int], argparse.Namespace]] = [
+        (
+            "validate",
+            cmd_validate,
+            argparse.Namespace(
+                **common,
+                strict=False,
+                no_write=False,
+                skip_engine_check=args.backend == "fake",
+                json=False,
+            ),
+        ),
+        (
+            "tts",
+            cmd_tts,
+            argparse.Namespace(
+                **common,
+                backend=args.backend,
+                voice=args.voice,
+                speed=args.speed,
+                force=False,
+                max_retries=DEFAULT_MAX_RETRIES,
+                normalize_each_scene=False,
+            ),
+        ),
+        (
+            "images",
+            cmd_images,
+            argparse.Namespace(
+                **common,
+                fit=args.fit,
+                pad_colour=args.pad_colour,
+                strict=False,
+            ),
+        ),
+        (
+            "assembly",
+            cmd_assembly,
+            argparse.Namespace(
+                **common,
+                preset=args.preset,
+                crf=args.crf,
+                threads=args.threads,
+                force=False,
+                dry_run=False,
+                no_characters=False,
+                strict=False,
+            ),
+        ),
+        (
+            "mix",
+            cmd_mix,
+            argparse.Namespace(**common, skip_music=False),
+        ),
+        (
+            "render",
+            cmd_render,
+            argparse.Namespace(
+                **common,
+                audio_bitrate=DEFAULT_AUDIO_BITRATE,
+                voice_only=False,
+                dry_run=False,
+            ),
+        ),
+    ]
+    if not args.no_captions:
+        stages.append(
+            (
+                "captions",
+                cmd_captions,
+                argparse.Namespace(
+                    **common,
+                    asr=False,
+                    asr_model="small",
+                    burn=args.burn_captions,
+                    max_chars=DEFAULT_MAX_CHARS_PER_LINE,
+                ),
+            )
+        )
+
+    for index, (stage_name, handler, stage_args) in enumerate(stages, start=1):
+        if not args.quiet:
+            print(f"\n=== autovid run: {index}/{len(stages)} {stage_name} ===")
+        result = handler(stage_args)
+        if result != 0:
+            print(
+                f"{ERROR_MARK} pipeline stopped at '{stage_name}'. "
+                "Fix the reported issue and rerun the same command to continue.",
+                file=sys.stderr,
+            )
+            return result
+
+    script_path = Path(args.script).resolve()
+    workspace = Path(args.workspace).resolve() if args.workspace else script_path.parent
+    paths = Paths.from_workspace(workspace, args.out)
+    script = load_script(script_path)
+    quality = write_quality_report(script, paths)
+    if quality.get("status") != "pass":
+        print(
+            f"{ERROR_MARK} pipeline finished, but release checks failed; "
+            f"see {paths.quality_report_path}",
+            file=sys.stderr,
+        )
+        return 1
+
+    final_path = (
+        paths.subtitled_video_path
+        if not args.no_captions
+        else paths.final_video_path
+    )
+    print(f"\n{OK_MARK} pipeline complete: {final_path}")
+    print(f"quality report: {paths.quality_report_path}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -1313,6 +1483,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_render(args)
     if args.command == "captions":
         return cmd_captions(args)
+    if args.command == "run":
+        return cmd_run(args)
 
     parser.print_help()
     return 2
