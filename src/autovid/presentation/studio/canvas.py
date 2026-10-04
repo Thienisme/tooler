@@ -27,12 +27,14 @@ from PySide6.QtGui import (
     QDragMoveEvent,
     QDropEvent,
     QFont,
+    QFontDatabase,
     QFontMetrics,
     QImage,
     QMouseEvent,
     QPainter,
     QPen,
     QPixmap,
+    QPolygonF,
 )
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
@@ -44,10 +46,50 @@ from autovid.domain.script import (
     KEN_BURNS_TYPES,
     TRANSITION_TYPES,
 )
+from autovid.infrastructure.image.fonts import resolve_font, wrap_lines
 from autovid.infrastructure.video.filters import (
     STORY_FRAME_BACKDROP_RGB,
     story_inset_for_style,
 )
+from autovid.infrastructure.video.text import bubble_inset, tail_direction
+
+
+class _QtAdvance:
+    """
+    Lets Qt text metrics stand in for a PIL font when wrapping.
+
+    `wrap_lines` asks its font how wide a string is; PIL spells that
+    `getlength` and Qt spells it `horizontalAdvance`.  Rather than write the
+    wrapping twice -- once for the render and once for the preview, and hope
+    they agree -- the preview measures through this shim.
+    """
+
+    def __init__(self, metrics: QFontMetrics) -> None:
+        self._metrics = metrics
+
+    def getlength(self, text: str) -> float:
+        return float(self._metrics.horizontalAdvance(text))
+
+
+def _revealed_lines(lines: list[str], revealed: str) -> list[str]:
+    """
+    The wrapped lines as they stand mid-typewriter.
+
+    Whole lines first, with the cut inside one line -- the same rule the
+    renderer's typewriter uses, so the preview reveals in the same places.
+    """
+    budget = len(revealed)
+    out: list[str] = []
+    for line in lines:
+        if budget <= 0:
+            break
+        if len(line) <= budget:
+            out.append(line)
+            budget -= len(line)
+            continue
+        out.append(line[:budget])
+        budget = 0
+    return out or [""]
 
 from .assets import AssetLibrary
 from .preview import SceneTimeline
@@ -133,12 +175,16 @@ class StageCanvas(QWidget):
         self.selected_move: int | None = None
 
         self._pixmaps: dict[str, QPixmap] = {}
+        # Font file -> the family name Qt gave it.  Registering a face is
+        # global and not free, so it happens once per file per session.
+        self._font_families: dict[str, str] = {}
         self._drag_index: int | None = None
         self._drag_group: list[Placement] = []
         self._resizing: bool = False
         self._grab_offset: tuple[float, float] = (0.0, 0.0)
         self._last_pos: QPoint | None = None
         self._drop_target: QRectF | None = None
+        self._drag_overlay: int | None = None
 
         self.setAcceptDrops(True)
         self.setMinimumSize(480, 320)
@@ -629,13 +675,297 @@ class StageCanvas(QWidget):
                     for corner in self._handles(rect):
                         painter.drawRect(corner.adjusted(-3, -3, 3, 3))
 
-    def _paint_overlays(self, painter: QPainter, stage: QRectF) -> None:
+    def _paint_caption_frame(
+        self,
+        painter: QPainter,
+        box: QRectF,
+        *,
+        kind: str,
+        padding: float,
+        tail: str,
+        fill: str,
+        stroke: str,
+        width: float,
+    ) -> None:
         """
-        Draw the scene's captions where the render will put them.
+        Draw a caption's box in the preview.
+
+        The same three shapes the renderer draws with PIL -- a rounded box
+        with a tail, a cloud of puffs, a starburst -- so that choosing
+        `thought` in the panel shows the cloud, not a rectangle that only
+        turns into one in the finished video.
+        """
+        outer = box.adjusted(-padding, -padding, padding, padding)
+        pen = QPen(QColor(stroke), width)
+        brush = QBrush(QColor(fill))
+        painter.setPen(pen)
+        painter.setBrush(brush)
+
+        if kind == "speech":
+            painter.drawRoundedRect(outer, padding * 1.5, padding * 1.5)
+            self._paint_caption_tail(painter, outer, tail, padding, fill, stroke)
+            return
+
+        if kind == "thought":
+            centre_x = outer.center().x()
+            centre_y = outer.center().y()
+            radius_x = outer.width() / 2 + padding * 0.4
+            radius_y = outer.height() / 2 + padding * 0.4
+            for dx, dy, scale in (
+                (-0.30, 0.22, 1.05),
+                (0.30, 0.20, 1.00),
+                (-0.28, -0.20, 0.92),
+                (0.30, -0.22, 0.96),
+                (0.00, 0.28, 0.88),
+            ):
+                puff = padding * 1.1 * scale
+                painter.drawEllipse(
+                    QPointF(
+                        centre_x + outer.width() * dx,
+                        centre_y + outer.height() * dy,
+                    ),
+                    puff,
+                    puff,
+                )
+            x = outer.left() + outer.width() * 0.34
+            y = outer.bottom() if tail == "down" else outer.top()
+            step = padding * 0.95
+            direction = 1.0 if tail == "down" else -1.0
+            for index, scale in enumerate((0.55, 0.40, 0.26)):
+                puff = padding * 1.1 * scale
+                painter.drawEllipse(
+                    QPointF(x, y + step * (index + 1) * direction), puff, puff
+                )
+            return
+
+        if kind == "shout":
+            centre = outer.center()
+            spikes = 20
+            half_x = outer.width() / 2
+            half_y = outer.height() / 2
+            path_points: list[QPointF] = []
+            for index in range(spikes * 2):
+                angle = math.pi * index / spikes - math.pi / 2
+                spike = index % 2 == 0
+                radius_x = half_x + padding * 0.55 if spike else half_x * 0.84
+                radius_y = half_y + padding * 0.55 if spike else half_y * 0.84
+                path_points.append(
+                    QPointF(
+                        centre.x() + math.cos(angle) * radius_x,
+                        centre.y() + math.sin(angle) * radius_y,
+                    )
+                )
+            painter.setBrush(brush)
+            painter.drawPolygon(QPolygonF(path_points))
+
+    def _paint_caption_tail(
+        self,
+        painter: QPainter,
+        outer: QRectF,
+        tail: str,
+        padding: float,
+        fill: str,
+        stroke: str,
+    ) -> None:
+        """The point that says who is talking, sitting off to one side."""
+        size = padding * 1.3
+        y = outer.bottom() if tail == "down" else outer.top()
+        direction = 1.0 if tail == "down" else -1.0
+        x = outer.left() + outer.width() * 0.32
+        spread = size * 0.55
+        triangle = QPolygonF(
+            [
+                QPointF(x - spread, y - size * 0.18 * direction),
+                QPointF(x + spread, y - size * 0.18 * direction),
+                QPointF(x + size * 0.35, y + size * direction),
+            ]
+        )
+        painter.setBrush(QBrush(QColor(fill)))
+        painter.setPen(QPen(QColor(stroke), 1))
+        painter.drawPolygon(triangle)
+
+    def caption_font(self, reference: str, size: int) -> QFont:
+        """
+        The caption's own face, loaded from the file the render will open.
+
+        The preview used to draw every caption in the system font, bold, so a
+        caption picked for its handwriting looked exactly like one picked for
+        its weight -- and a `Bangers` caption was judged on a face nobody
+        would ever see.  `QFontDatabase.addApplicationFont` is the only way
+        Qt draws a TTF that is not installed system-wide, which is our
+        situation: the faces ship with the project.
+
+        Returns the system default when the file cannot be read, which is
+        what the preview has always done for a caption with no font.
+        """
+        fallback = QFont()
+        fallback.setPixelSize(int(round(size)))
+
+        resolution = resolve_font(reference, self.library.workspace)
+        if resolution.path is None or not resolution.path.is_file():
+            return fallback
+
+        family = self._font_families.get(str(resolution.path))
+        if family is None:
+            font_id = QFontDatabase.addApplicationFont(str(resolution.path))
+            families = QFontDatabase.applicationFontFamilies(font_id)
+            if font_id < 0 or not families:
+                return fallback
+            family = families[0]
+            self._font_families[str(resolution.path)] = family
+
+        font = QFont(family)
+        font.setPixelSize(int(round(size)))
+        return font
+
+    def overlay_layout(
+        self, overlay, stage: QRectF, state
+    ) -> tuple[QFont, list[str], QRectF, float, float] | None:
+        """
+        Where a caption sits at this moment, and in what face.
+
+        Returns the font, the wrapped lines, the block's box, the box's
+        padding and the line height -- or None when the caption has nothing
+        to say yet.  Painting and hit-testing both go through here, so what
+        the mouse can grab is exactly what the eye is looking at.
 
         `font_size` in the script is pixels on a 1080-line frame, so it is
         scaled by the preview's own height -- otherwise a caption authored
         at 72px would look enormous in a 540px preview.
+        """
+        anchor = OVERLAY_ANCHORS.get(overlay.position, OVERLAY_ANCHORS["bottom"])
+        size = max(8.0, overlay.font_size * (stage.height() / 1080.0))
+        font = self.caption_font(overlay.font, int(round(size)))
+        metrics = QFontMetrics(font)
+
+        if overlay.image_file:
+            return self._image_layout(overlay, stage)
+
+        # The bubble's padding is reserved from the caption's own area, so
+        # the box grows outwards and still lands inside the frame.
+        padding = bubble_inset(overlay.font_size, overlay.frame) * (
+            stage.height() / 1080.0
+        )
+        # Shrink to fit rather than letting a long caption run off the
+        # frame, which is what the assembler does with the same rule.
+        available = max(stage.width() * 0.9 - 2 * padding, size)
+        text_width = metrics.horizontalAdvance(overlay.text)
+        if text_width > available and text_width > 0:
+            font.setPixelSize(max(8, int(round(size * available / text_width))))
+            metrics = QFontMetrics(font)
+
+        # Wrapped by the same rule the renderer wraps by, so the preview
+        # breaks a caption in the same places the video will.
+        lines = wrap_lines(
+            overlay.text,
+            _QtAdvance(metrics),
+            available,
+            stroke_width=overlay.stroke_width,
+        )
+        # Mid-typewriter the caption is shorter than its final self, but
+        # it is laid out as if complete: otherwise the words crawl
+        # outwards from the centre on every keystroke.
+        if state.text.strip() and state.text.strip() != overlay.text.strip():
+            lines = _revealed_lines(lines, state.text)
+
+        line_height = metrics.height()
+        block_width = max(
+            (metrics.horizontalAdvance(line) for line in lines), default=1
+        )
+        block_height = line_height * len(lines)
+
+        if overlay.x is not None and overlay.y is not None:
+            # A caption the author placed by hand is centred on its
+            # coordinates, exactly as the renderer centres it.
+            left = stage.left() + overlay.x * stage.width() - block_width / 2
+            top = stage.top() + overlay.y * stage.height() - block_height / 2
+        else:
+            point = QPointF(
+                stage.left() + (anchor[0] + state.dx) * stage.width(),
+                stage.top() + anchor[1] * stage.height(),
+            )
+            left = {
+                "top_left": point.x() + padding,
+                "bottom_left": point.x() + padding,
+            }.get(overlay.position, point.x() - block_width / 2)
+            if overlay.position.endswith("_right"):
+                left = point.x() - block_width - padding
+            top = {
+                "top": point.y() + padding,
+                "top_left": point.y() + padding,
+                "top_right": point.y() + padding,
+            }.get(overlay.position, point.y() - block_height - padding)
+
+        return font, lines, QRectF(left, top, block_width, block_height), padding, line_height
+
+    def _image_layout(self, overlay, stage: QRectF) -> tuple | None:
+        """
+        Where a picture overlay lands, in the same terms as a caption's box.
+
+        The height is the author's share of the frame and the width follows
+        from the file's own shape, exactly as the render works it out -- a
+        picture squashed into a fixed box is not a caption, it is a mistake.
+        """
+        pixmap = self._pixmap_for(overlay.image_file)
+        if pixmap.isNull():
+            return None
+        height = max(8.0, overlay.image_height * stage.height())
+        width = height * (pixmap.width() / max(1, pixmap.height()))
+        left = {
+            "top_left": stage.left() + stage.width() * 0.05,
+            "bottom_left": stage.left() + stage.width() * 0.05,
+        }.get(overlay.position, stage.left() + (stage.width() - width) / 2)
+        if overlay.position.endswith("_right"):
+            left = stage.right() - stage.width() * 0.05 - width
+        top = {
+            "top": stage.top() + stage.height() * 0.05,
+            "top_left": stage.top() + stage.height() * 0.05,
+            "top_right": stage.top() + stage.height() * 0.05,
+        }.get(overlay.position, stage.top() + (stage.height() - height) / 2)
+        if overlay.position.startswith("bottom"):
+            top = stage.bottom() - stage.height() * 0.05 - height
+
+        if overlay.x is not None and overlay.y is not None:
+            left = stage.left() + overlay.x * stage.width() - width / 2
+            top = stage.top() + overlay.y * stage.height() - height / 2
+
+        box = QRectF(left, top, width, height)
+        return QFont(), [], box, 0.0, height
+
+    def overlay_at(self, point: QPointF) -> int | None:
+        """
+        Which caption is under the cursor, topmost first.
+
+        Captions are drawn over the characters, so a caption is grabbed
+        before the sprite underneath it -- the same order they are painted
+        in, or a caption the author can see would be one they cannot move.
+        """
+        scene = self.scene
+        if scene is None:
+            return None
+        timeline = self.timeline()
+        if timeline is None:
+            return None
+        stage = self._stage_rect()
+        seconds = timeline.seconds(self.progress)
+        for index in range(len(scene.overlays) - 1, -1, -1):
+            overlay = scene.overlays[index]
+            if not overlay.text.strip() and not overlay.image_file:
+                continue
+            state = timeline.overlay_state(overlay, seconds)
+            if state is None or not state.text.strip():
+                continue
+            layout = self.overlay_layout(overlay, stage, state)
+            if layout is None:
+                continue
+            _font, _lines, box, padding, _line_height = layout
+            if box.adjusted(-padding, -padding, padding, padding).contains(point):
+                return index
+        return None
+
+    def _paint_overlays(self, painter: QPainter, stage: QRectF) -> None:
+        """
+        Draw the scene's captions where the render will put them.
         """
         scene = self.scene
         assert scene is not None
@@ -643,61 +973,60 @@ class StageCanvas(QWidget):
         assert timeline is not None
         seconds = timeline.seconds(self.progress)
         for index, overlay in enumerate(scene.overlays):
-            if not overlay.text.strip():
+            if not overlay.text.strip() and not overlay.image_file:
                 continue
             state = timeline.overlay_state(overlay, seconds)
             if state is None or not state.text.strip():
                 # Not showing at this moment: the caption has its own window.
                 continue
-            anchor = OVERLAY_ANCHORS.get(overlay.position, OVERLAY_ANCHORS["bottom"])
-            size = max(8.0, overlay.font_size * (stage.height() / 1080.0))
-            font = QFont()
-            font.setPixelSize(int(round(size)))
-            font.setBold(True)
+            layout = self.overlay_layout(overlay, stage, state)
+            if layout is None:
+                continue
+            font, lines, box, padding, line_height = layout
+            block_width = box.width()
 
+            painter.save()
             painter.setFont(font)
-            metrics = QFontMetrics(font)
-            # Shrink to fit rather than letting a long caption run off the
-            # frame, which is what the assembler does with the same rule.
-            available = stage.width() * 0.9
-            text_width = metrics.horizontalAdvance(overlay.text)
-            if text_width > available and text_width > 0:
-                font.setPixelSize(max(8, int(round(size * available / text_width))))
-                painter.setFont(font)
-                metrics = QFontMetrics(font)
-
-            point = QPointF(
-                stage.left() + (anchor[0] + state.dx) * stage.width(),
-                stage.top() + anchor[1] * stage.height(),
-            )
-            # The box is measured from the full caption even mid-typewriter,
-            # so the words stay put instead of crawling as they appear.
-            rect = metrics.boundingRect(overlay.text)
-
-            left = {
-                "top_left": point.x(),
-                "bottom_left": point.x(),
-            }.get(overlay.position, point.x() - rect.width() / 2)
-            if overlay.position.endswith("_right"):
-                left = point.x() - rect.width()
-            top = {
-                "top": point.y(),
-                "top_left": point.y(),
-                "top_right": point.y(),
-            }.get(overlay.position, point.y() - rect.height())
-
-            box = QRectF(left, top, rect.width(), rect.height())
+            painter.setOpacity(max(0.0, min(1.0, state.opacity)))
+            if overlay.image_file:
+                pixmap = self._pixmap_for(overlay.image_file)
+                painter.drawPixmap(box, pixmap, QRectF(pixmap.rect()))
+                painter.restore()
+                if index == self.selected_overlay:
+                    painter.setPen(QPen(QColor("#4ea3ff"), 1, Qt.DashLine))
+                    painter.setBrush(Qt.NoBrush)
+                    painter.drawRect(box.adjusted(-6, -6, 6, 6))
+                continue
+            if overlay.frame != "none":
+                self._paint_caption_frame(
+                    painter,
+                    box,
+                    kind=overlay.frame,
+                    padding=padding,
+                    tail=tail_direction(overlay.position),
+                    fill=overlay.frame_fill,
+                    stroke=overlay.frame_stroke,
+                    width=max(overlay.stroke_width, 2),
+                )
 
             # The stroke is what keeps a caption readable over a bright
             # picture, so it is drawn twice: once fat in the stroke colour,
             # then the fill on top.
-            painter.save()
-            painter.setOpacity(max(0.0, min(1.0, state.opacity)))
-            if overlay.stroke_width > 0:
-                painter.setPen(QPen(QColor(overlay.stroke_color), overlay.stroke_width))
-                painter.drawText(box, int(Qt.AlignLeft | Qt.AlignVCenter), state.text)
-            painter.setPen(QPen(QColor(overlay.color)))
-            painter.drawText(box, int(Qt.AlignLeft | Qt.AlignVCenter), state.text)
+            for line_index, line in enumerate(lines):
+                line_box = QRectF(
+                    box.left(),
+                    box.top() + line_index * line_height,
+                    block_width,
+                    line_height,
+                )
+                flags = int(Qt.AlignLeft | Qt.AlignVCenter)
+                if overlay.stroke_width > 0:
+                    painter.setPen(
+                        QPen(QColor(overlay.stroke_color), overlay.stroke_width)
+                    )
+                    painter.drawText(line_box, flags, line)
+                painter.setPen(QPen(QColor(overlay.color)))
+                painter.drawText(line_box, flags, line)
             painter.restore()
 
             if index == self.selected_overlay:
@@ -821,12 +1150,45 @@ class StageCanvas(QWidget):
                 self._last_pos = position.toPoint()
                 self.update()
                 return
+
+        # Captions are drawn over the characters, so they are grabbed after
+        # them -- but before the click falls through to "deselect", because a
+        # caption the author can see has to be one they can move.
+        overlay_index = self.overlay_at(position)
+        if overlay_index is not None and event.button() == Qt.LeftButton:
+            self.select_overlay(overlay_index)
+            self._drag_overlay = overlay_index
+            # The grab offset is measured from the caption's own centre, so
+            # the drag moves the caption rather than jumping its centre to
+            # wherever the cursor happened to land.
+            state = self.timeline().overlay_state(
+                self.scene.overlays[overlay_index],
+                self.timeline().seconds(self.progress),
+            )
+            layout = self.overlay_layout(
+                self.scene.overlays[overlay_index], self._stage_rect(), state
+            )
+            centre = (
+                layout[2].center()
+                if layout is not None
+                else QPointF(position)
+            )
+            self._grab_offset = (position.x() - centre.x(), position.y() - centre.y())
+            self._last_pos = position.toPoint()
+            self.update()
+            return
+
         if event.button() == Qt.LeftButton:
             self.select(None)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         if self.scene is None or self._last_pos is None:
             return
+
+        if self._drag_overlay is not None:
+            self._move_overlay(event.position())
+            return
+
         placement = self.current()
         if placement is None:
             return
@@ -856,7 +1218,43 @@ class StageCanvas(QWidget):
         self.changed.emit()
         self.update()
 
+    def _move_overlay(self, position: QPointF) -> None:
+        """
+        Put a dragged caption where the cursor is.
+
+        The grab offset is kept, so the caption does not jump its centre to
+        the cursor the moment it is grabbed -- it follows the cursor by the
+        same offset it was picked up at, which is what makes the drag feel
+        like moving the thing rather than teleporting it.
+
+        A dragged caption gets a free position, which then outranks its
+        `position` setting; the panel shows both, so nothing is hidden.
+        """
+        scene = self.scene
+        if scene is None or not 0 <= self._drag_overlay < len(scene.overlays):
+            return
+        overlay = scene.overlays[self._drag_overlay]
+        stage = self._stage_rect()
+        if stage.width() <= 0 or stage.height() <= 0:
+            return
+
+        overlay.x = _clamp((position.x() - self._grab_offset[0] - stage.left())
+                           / stage.width())
+        overlay.y = _clamp((position.y() - self._grab_offset[1] - stage.top())
+                           / stage.height())
+        self._last_pos = position.toPoint()
+        if self.project is not None:
+            self.project.mark_dirty()
+        self.overlay_changed.emit(self._drag_overlay)
+        self.changed.emit()
+        self.update()
+
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if self._drag_overlay is not None:
+            self._drag_overlay = None
+            self._last_pos = None
+            self.changed.emit()
+            return
         if self._drag_index is not None or self._resizing:
             self._drag_index = None
             self._drag_group = []

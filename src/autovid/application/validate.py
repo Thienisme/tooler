@@ -32,6 +32,7 @@ from autovid.domain.script import (
 )
 from autovid.infrastructure import ffmpeg as ffmpeg_tools
 from autovid.infrastructure.video.sprites import sprite_transparency
+from autovid.infrastructure.image.fonts import resolve_font
 from autovid.paths import Paths, read_json, resolve_asset
 
 # --------------------------------------------------------------------------
@@ -911,7 +912,10 @@ class ScriptValidator:
 
     def _check_sfx(self, scene: Scene, missing_fonts: dict[str, int]) -> None:
         for index, overlay in enumerate(scene.text_overlays):
-            if resolve_asset(overlay.font, self.paths.workspace) is None:
+            # Through `resolve_font` rather than `resolve_asset`, so a font
+            # named by its catalogue key is not reported missing; the
+            # fallback flag is what says the file is not really there.
+            if resolve_font(overlay.font, self.paths.workspace).used_fallback:
                 missing_fonts[overlay.font] = (
                     missing_fonts.get(overlay.font, 0) + 1
                 )

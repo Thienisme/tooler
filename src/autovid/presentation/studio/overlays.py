@@ -10,10 +10,13 @@ a single form would have to be either ambiguous or a list of identical rows.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QColorDialog,
+    QFileDialog,
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
@@ -29,15 +32,26 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from autovid.domain.fonts import fonts_by_mood
 from autovid.domain.script import (
     MAX_IMPACT_INTENSITY,
     MAX_IMPACT_SHAKE_PX,
     TEXT_ANIMATIONS,
+    TEXT_FRAMES,
     TEXT_POSITIONS,
 )
 
 from .canvas import StageCanvas
 from .store import TextOverlay
+
+
+def _spin(minimum: float, maximum: float, step: float):
+    """A two-decimal number box; the same shape the inspector uses."""
+    box = QDoubleSpinBox()
+    box.setRange(minimum, maximum)
+    box.setSingleStep(step)
+    box.setDecimals(2)
+    return box
 
 
 class OverlayPanel(QWidget):
@@ -82,10 +96,53 @@ class OverlayPanel(QWidget):
         self.text_edit.editingFinished.connect(self._on_text)
         form.addRow("Noi dung", self.text_edit)
 
+        # A caption may be a picture instead of words: a meme, a reaction
+        # face, a GIF.  Leaving the field empty keeps this an ordinary
+        # caption, which is why the words above stay editable either way.
+        image_row = QHBoxLayout()
+        self.image_edit = QLineEdit()
+        self.image_edit.setPlaceholderText("assets/memes/oh_no.gif")
+        self.image_edit.editingFinished.connect(self._on_image)
+        image_row.addWidget(self.image_edit)
+        image_browse = QPushButton("Chon...")
+        image_browse.clicked.connect(self._on_pick_image)
+        image_row.addWidget(image_browse)
+        image_widget = QWidget()
+        image_widget.setLayout(image_row)
+        form.addRow("Anh / GIF", image_widget)
+
+        self.image_height = QSpinBox()
+        self.image_height.setRange(2, 100)
+        self.image_height.setValue(30)
+        self.image_height.setSuffix(" %")
+        self.image_height.valueChanged.connect(self._on_image_height)
+        form.addRow("Cao anh", self.image_height)
+
         self.position = QComboBox()
         self.position.addItems(TEXT_POSITIONS)
         self.position.currentTextChanged.connect(self._on_position)
         form.addRow("Vi tri", self.position)
+
+        # A free position, for putting a bubble beside the character it
+        # belongs to.  Off by default: the seven named positions are what a
+        # caption almost always wants, and a caption that drifts off its
+        # anchor at 4K is worse than one that is merely centred.
+        self.free_position = QCheckBox("Keo tren canvas de chon toa do")
+        self.free_position.toggled.connect(self._on_free_position)
+        form.addRow(self.free_position)
+
+        free = QHBoxLayout()
+        self.free_x = _spin(0.0, 1.0, 0.01)
+        self.free_x.valueChanged.connect(self._on_free_position_value)
+        self.free_y = _spin(0.0, 1.0, 0.01)
+        self.free_y.valueChanged.connect(self._on_free_position_value)
+        free.addWidget(QLabel("x"))
+        free.addWidget(self.free_x)
+        free.addWidget(QLabel("y"))
+        free.addWidget(self.free_y)
+        free_widget = QWidget()
+        free_widget.setLayout(free)
+        form.addRow("Toa do", free_widget)
 
         self.animation = QComboBox()
         self.animation.addItems(TEXT_ANIMATIONS)
@@ -97,6 +154,38 @@ class OverlayPanel(QWidget):
         self.font_size.setSuffix(" px")
         self.font_size.valueChanged.connect(self._on_font_size)
         form.addRow("Co chu", self.font_size)
+
+        # The faces are grouped by mood rather than by family name, because
+        # the choice being made is "this line is a joke", not "this line is
+        # Bangers".  The mood is written into the item text because Qt has no
+        # grouped combo box, and the key travels in the item data so the
+        # script keeps a name rather than a file path.
+        self.font = QComboBox()
+        for _mood_key, mood_label, faces in fonts_by_mood():
+            for face in faces:
+                self.font.addItem(f"{mood_label} · {face.label}", face.key)
+        self.font.currentIndexChanged.connect(self._on_font)
+        form.addRow("Font chu", self.font)
+
+        # The box the caption sits in.  A speech bubble with a tail is the
+        # difference between a caption and somebody talking, and it costs
+        # nothing here: the box is drawn into the same layer as the words.
+        self.frame = QComboBox()
+        self.frame.addItems(TEXT_FRAMES)
+        self.frame.currentTextChanged.connect(self._on_frame)
+        form.addRow("Khung chu", self.frame)
+
+        frame_colours = QHBoxLayout()
+        self.frame_fill_button = QPushButton()
+        self.frame_fill_button.clicked.connect(self._on_pick_frame_fill)
+        frame_colours.addWidget(self.frame_fill_button)
+        self.frame_stroke_button = QPushButton()
+        self.frame_stroke_button.clicked.connect(self._on_pick_frame_stroke)
+        frame_colours.addWidget(self.frame_stroke_button)
+        frame_colours.addWidget(QLabel("Mau khung / vien"))
+        frame_widget = QWidget()
+        frame_widget.setLayout(frame_colours)
+        form.addRow("Khong mau", frame_widget)
 
         colors = QHBoxLayout()
         self.color_button = QPushButton()
@@ -146,6 +235,8 @@ class OverlayPanel(QWidget):
 
         self._colour = "#FFFFFF"
         self._stroke = "#000000"
+        self._frame_fill = "#FFFFFF"
+        self._frame_stroke = "#101010"
 
     # -- populate ---------------------------------------------------------
     def reload(self) -> None:
@@ -164,9 +255,24 @@ class OverlayPanel(QWidget):
         self.group.setEnabled(overlay is not None)
         if overlay is not None:
             self.text_edit.setText(overlay.text)
+            self.image_edit.setText(overlay.image_file or "")
+            self.image_height.setValue(int(round(overlay.image_height * 100)))
+            self.image_height.setEnabled(bool(overlay.image_file))
             self.position.setCurrentText(overlay.position)
+            self.free_position.setChecked(
+                overlay.x is not None and overlay.y is not None
+            )
+            self.free_x.setValue(overlay.x if overlay.x is not None else 0.5)
+            self.free_y.setValue(overlay.y if overlay.y is not None else 0.5)
+            self.free_x.setEnabled(self.free_position.isChecked())
+            self.free_y.setEnabled(self.free_position.isChecked())
             self.animation.setCurrentText(overlay.animation)
             self.font_size.setValue(overlay.font_size)
+            self._select_font(overlay.font)
+            self.frame.setCurrentText(overlay.frame)
+            self._frame_fill = overlay.frame_fill
+            self._frame_stroke = overlay.frame_stroke
+            self._paint_frame_buttons()
             self._colour = overlay.color
             self._stroke = overlay.stroke_color
             self._paint_colour_buttons()
@@ -174,6 +280,29 @@ class OverlayPanel(QWidget):
             self.start.setValue(overlay.start_offset_ms)
             self.end.setValue(overlay.end_offset_ms)
         self._suppress = False
+
+    def _select_font(self, reference: str) -> None:
+        """
+        Show a caption's font, adding it to the list if it is not a bundled one.
+
+        A project may name any font file, and every project written before
+        the catalogue existed names one -- a caption whose font is not in the
+        picker must still show its own name rather than silently snapping to
+        whichever face happened to be first.
+        """
+        index = self.font.findData(reference)
+        if index < 0:
+            self.font.addItem(reference, reference)
+            index = self.font.findData(reference)
+        self.font.setCurrentIndex(index)
+
+    def _paint_frame_buttons(self) -> None:
+        self.frame_fill_button.setStyleSheet(
+            f"background: {self._frame_fill}; color: #202020;"
+        )
+        self.frame_stroke_button.setStyleSheet(
+            f"background: {self._frame_stroke}; color: #ffffff;"
+        )
 
     def _paint_colour_buttons(self) -> None:
         self.color_button.setStyleSheet(
@@ -258,6 +387,75 @@ class OverlayPanel(QWidget):
             self.list.item(row).setText(overlay.text or "(chua chong)")
         self._dirty()
 
+    def _on_image(self) -> None:
+        overlay = self._current()
+        if overlay is None or self._suppress:
+            return
+        self._apply_image(overlay, self.image_edit.text().strip())
+        self._dirty()
+
+    def _on_pick_image(self) -> None:
+        overlay = self._current()
+        if overlay is None:
+            return
+        start = ""
+        if overlay.image_file and self.canvas.library.workspace.is_dir():
+            start = str(
+                self.canvas.library.workspace / overlay.image_file
+            )
+        chosen, _selected = QFileDialog.getOpenName(
+            self, "Chon anh hoac GIF", start
+        )
+        if not chosen:
+            return
+        try:
+            relative = Path(chosen).resolve().relative_to(
+                self.canvas.library.workspace.resolve()
+            )
+        except ValueError:
+            relative = Path(chosen)
+        self.image_edit.setText(str(relative))
+        self._apply_image(overlay, str(relative))
+        self._dirty()
+
+    def _on_image_height(self, value: int) -> None:
+        overlay = self._current()
+        if overlay is None or self._suppress:
+            return
+        overlay.image_height = max(value, 2) / 100.0
+        self._dirty()
+
+    def _apply_image(self, overlay: TextOverlay, reference: str) -> None:
+        overlay.image_file = reference or None
+        self.image_height.setEnabled(bool(reference))
+
+    def _on_free_position(self, checked: bool) -> None:
+        overlay = self._current()
+        if overlay is None:
+            return
+        self.free_x.setEnabled(checked)
+        self.free_y.setEnabled(checked)
+        if self._suppress:
+            return
+        if checked:
+            # Switching on places the caption where it already sits, so the
+            # tick box moves it nowhere; only from here on does dragging
+            # count.
+            overlay.x = self.free_x.value()
+            overlay.y = self.free_y.value()
+        else:
+            overlay.x = None
+            overlay.y = None
+        self._dirty()
+
+    def _on_free_position_value(self, _value: float) -> None:
+        overlay = self._current()
+        if overlay is None or self._suppress or not self.free_position.isChecked():
+            return
+        overlay.x = self.free_x.value()
+        overlay.y = self.free_y.value()
+        self._dirty()
+
     def _on_position(self, value: str) -> None:
         overlay = self._current()
         if overlay is None or self._suppress:
@@ -277,6 +475,49 @@ class OverlayPanel(QWidget):
         if overlay is None or self._suppress:
             return
         overlay.font_size = value
+        self._dirty()
+
+    def _on_font(self, _index: int) -> None:
+        overlay = self._current()
+        reference = self.font.currentData()
+        if overlay is None or self._suppress or not reference:
+            return
+        overlay.font = str(reference)
+        self._dirty()
+
+    def _on_frame(self, value: str) -> None:
+        overlay = self._current()
+        if overlay is None or self._suppress:
+            return
+        overlay.frame = value
+        self._dirty()
+
+    def _on_pick_frame_fill(self) -> None:
+        overlay = self._current()
+        if overlay is None:
+            return
+        colour = QColorDialog.getColor(
+            QColor(overlay.frame_fill), self, "Mau cua khung chu"
+        )
+        if not colour.isValid():
+            return
+        overlay.frame_fill = colour.name()
+        self._frame_fill = overlay.frame_fill
+        self._paint_frame_buttons()
+        self._dirty()
+
+    def _on_pick_frame_stroke(self) -> None:
+        overlay = self._current()
+        if overlay is None:
+            return
+        colour = QColorDialog.getColor(
+            QColor(overlay.frame_stroke), self, "Vien cua khung chu"
+        )
+        if not colour.isValid():
+            return
+        overlay.frame_stroke = colour.name()
+        self._frame_stroke = overlay.frame_stroke
+        self._paint_frame_buttons()
         self._dirty()
 
     def _on_stroke_width(self, value: int) -> None:

@@ -30,6 +30,7 @@ from autovid.application.images import ImagesStage  # noqa: E402
 from autovid.infrastructure.image.fonts import (  # noqa: E402
     find_system_font,
     largest_fitting_size,
+    measure_block,
     measure_text,
     resolve_font,
 )
@@ -440,10 +441,11 @@ class ImagesStageTest(unittest.TestCase):
         overlay = result.scenes[0].overlays[0]
         self.assertFalse(overlay.fits)
         self.assertLess(overlay.recommended_font_size, overlay.font_size)
-        width, height = measure_text(
+        width, height = measure_block(
             overlay.text,
             overlay.font.path,
             overlay.recommended_font_size,
+            max_width=overlay.allowed_width,
             stroke_width=overlay.stroke_width,
         )
         self.assertLessEqual(width, overlay.allowed_width)

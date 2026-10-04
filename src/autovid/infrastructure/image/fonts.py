@@ -18,6 +18,7 @@ from pathlib import Path
 
 from PIL import ImageFont
 
+from autovid.domain.fonts import font_reference
 from autovid.paths import resolve_asset
 
 # Checked in order, then a directory scan as a last resort.
@@ -103,13 +104,19 @@ def resolve_font(reference: str, workspace: Path) -> FontResolution:
     """
     Resolve an overlay's font, falling back to a system font if needed.
 
+    A reference is either a path or one of the catalogue's keys (see
+    `domain/fonts.py`); the key is looked up *after* the literal path, so a
+    project that happens to own a file called `assets/fonts/bangers.ttf`
+    still gets its own file rather than the bundled Bangers.
+
     A `FontResolution` with `path is None` means neither the requested font
     nor any fallback exists, which is the one case where overlays cannot be
     rendered at all.
     """
-    resolved = resolve_asset(reference, workspace)
-    if resolved is not None:
-        return FontResolution(reference, resolved, used_fallback=False)
+    for candidate in (reference, font_reference(reference)):
+        resolved = resolve_asset(candidate, workspace)
+        if resolved is not None:
+            return FontResolution(reference, resolved, used_fallback=False)
 
     fallback = find_system_font()
     return FontResolution(reference, fallback, used_fallback=True)
@@ -142,6 +149,65 @@ def measure_text(
     return width + 2 * stroke_width, height + 2 * stroke_width
 
 
+def wrap_lines(
+    text: str,
+    font,
+    max_width: int | None,
+    *,
+    stroke_width: int = 0,
+) -> list[str]:
+    """
+    Break `text` into lines no wider than `max_width`, stroke included.
+
+    Wrapping happens at spaces where it can and inside the word where it
+    cannot, because a caption cut mid-word still reads as the same words
+    while a caption with half a word on each of two lines does not.
+
+    Explicit newlines are honoured: a caption that is two lines on purpose
+    must stay two lines however wide the frame is.
+    """
+    if max_width is None or max_width <= 0:
+        return text.split("\n")
+
+    # The stroke sits outside the glyphs, so the glyphs have this much room.
+    room = max(int(max_width) - 2 * stroke_width, 1)
+    lines: list[str] = []
+    for paragraph in text.split("\n"):
+        if not paragraph:
+            lines.append("")
+            continue
+
+        current = ""
+        for original in paragraph.split(" "):
+            # `word` is the part of this word still to be placed; each pass
+            # through the inner loop consumes the front of it, which is what
+            # makes a word longer than a whole line terminate rather than
+            # re-offer the same word for ever.
+            word = original
+            while font.getlength(word) > room:
+                cut = len(word)
+                while cut > 1 and font.getlength(word[:cut]) > room:
+                    cut -= 1
+                piece = word[:cut]
+                if current:
+                    lines.append(f"{current} {piece}")
+                    current = ""
+                else:
+                    lines.append(piece)
+                word = word[cut:]
+
+            candidate = f"{current} {word}".strip()
+            if current and font.getlength(candidate) > room:
+                lines.append(current)
+                current = word
+            else:
+                current = candidate
+
+        lines.append(current)
+
+    return lines or [""]
+
+
 def overlay_allowed_area(
     position: str, frame_size: tuple[int, int]
 ) -> tuple[int, int]:
@@ -155,6 +221,50 @@ def overlay_allowed_area(
         * POSITION_HEIGHT_FRACTION.get(position, OVERLAY_HEIGHT_FRACTION)
     )
     return allowed_width, allowed_height
+
+
+def measure_block(
+    text: str,
+    font_path: Path | None,
+    font_size: int,
+    *,
+    max_width: int,
+    stroke_width: int = 0,
+    font=None,
+) -> tuple[int, int]:
+    """
+    The box the caption actually occupies once it has wrapped.
+
+    Measuring a single line answers the wrong question as soon as a caption
+    is long enough to wrap: the width comes back fine and the *height* is
+    what runs out, so the size that "fits" is decided by the wrong side of
+    the frame.  This is the same `wrap_lines` the renderer uses, so the
+    number reported is the number drawn.
+    """
+    if font is None:
+        if font_path is None:
+            raise ValueError("A font path or font object is required")
+        font = ImageFont.truetype(str(font_path), font_size)
+
+    lines = wrap_lines(text, font, max_width, stroke_width=stroke_width)
+    width = 1
+    first_top: int | None = None
+    last_bottom = 0
+    for line in lines:
+        left, top, right, bottom = font.getbbox(line)
+        width = max(width, right - left + 2 * stroke_width)
+        if first_top is None or top < first_top:
+            first_top = top
+        last_bottom = max(last_bottom, bottom)
+
+    ascent, descent = font.getmetrics()
+    line_height = ascent + descent
+    # Ink to ink, exactly as `layout_text` measures it: glyphs do not fill
+    # their line box, so measuring from the ascender would promise a caption
+    # more room than it takes.
+    ink = max(last_bottom - (first_top or 0), 1)
+    height = ink + line_height * (len(lines) - 1) + 2 * stroke_width
+    return width, height
 
 
 def fit_overlay_font_size(
@@ -177,8 +287,12 @@ def fit_overlay_font_size(
         return requested_size
 
     allowed_width, allowed_height = overlay_allowed_area(position, frame_size)
-    width, height = measure_text(
-        text, font_path, requested_size, stroke_width=stroke_width
+    width, height = measure_block(
+        text,
+        font_path,
+        requested_size,
+        max_width=allowed_width,
+        stroke_width=stroke_width,
     )
     if width <= allowed_width and height <= allowed_height:
         return requested_size
@@ -205,9 +319,10 @@ def largest_fitting_size(
     min_size: int = 12,
 ) -> int:
     """
-    Largest font size at or below `start_size` that keeps the text within
-    the given box.  Returns `min_size` when even that does not fit, so the
-    caller can still report a number and flag the overlay.
+    Largest font size at or below `start_size` that keeps the caption within
+    the given box once it has wrapped.  Returns `min_size` when even that
+    does not fit, so the caller can still report a number and flag the
+    overlay.
     """
     if font_path is None:
         return min_size
@@ -215,8 +330,13 @@ def largest_fitting_size(
     size = start_size
     while size > min_size:
         font = ImageFont.truetype(str(font_path), size)
-        width, height = measure_text(
-            text, font_path, size, stroke_width=stroke_width, font=font
+        width, height = measure_block(
+            text,
+            font_path,
+            size,
+            max_width=max_width,
+            stroke_width=stroke_width,
+            font=font,
         )
         if width <= max_width and height <= max_height:
             return size

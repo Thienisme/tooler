@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from autovid.domain.fonts import DEFAULT_FONT_KEY
+
 # --------------------------------------------------------------------------
 # Allowed enum values
 # --------------------------------------------------------------------------
@@ -281,6 +283,13 @@ TEXT_POSITIONS = frozenset(
     }
 )
 
+# The box a caption is drawn in, which is what turns a caption into
+# somebody talking.  `speech` is the rounded box with a tail, `thought` the
+# cloud of puffs, `shout` the starburst; all three are drawn with PIL into
+# the same layer as the text (see infrastructure/video/text.py), so they
+# cost nothing in ffmpeg and cannot drift from the words they wrap.
+TEXT_FRAMES = frozenset({"none", "speech", "thought", "shout"})
+
 TTS_ENGINES = frozenset({"vieneu"})
 
 # "sentence" synthesizes each sentence separately so that the auto-pause
@@ -396,6 +405,8 @@ class TransitionIn:
 @dataclass(frozen=True)
 class TextOverlay:
     text: str
+    # Every caption has a font; one with no words never uses it, so the
+    # default stays cheap and every existing script keeps working.
     font: str
     font_size: int
     color: str
@@ -406,6 +417,25 @@ class TextOverlay:
     end_offset_ms: int
     animation: str
     animation_duration_ms: int
+    # A free position, as fractions of the frame, measured at the **centre**
+    # of the caption's text block.  None means "use `position`", which is
+    # what every caption written before this existed does; setting both is
+    # how an author puts a bubble beside the character it belongs to.
+    x: float | None = None
+    y: float | None = None
+    # A caption may be a picture instead of words: a meme, a reaction face, a
+    # GIF.  `image_height` is a fraction of the frame height, because the
+    # width follows from the picture's own aspect ratio -- nobody has ever
+    # wanted a caption squashed to a fixed box.
+    image_file: str | None = None
+    image_height: float = 0.3
+    # The box the caption sits in.  `frame_fill`/`frame_stroke` are the
+    # bubble's own colours: a caption's text stroke and a bubble's outline
+    # want different colours far more often than not -- white words with a
+    # black edge, inside a white bubble with a black edge of its own.
+    frame: str = "none"
+    frame_fill: str = "#FFFFFF"
+    frame_stroke: str = "#101010"
 
 
 @dataclass(frozen=True)
@@ -893,6 +923,23 @@ def _parse_transition(parser: _Parser, data: Any, where: str) -> TransitionIn:
     )
 
 
+def _optional_fraction(value: Any, where: str) -> float | None:
+    """A 0..1 coordinate that may simply be absent.
+
+    A caption that has a position has both coordinates; one that has only
+    one is told so rather than quietly landing in a corner it did not ask
+    for.
+    """
+    if value is _MISSING or value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ScriptSchemaError([f"{where}: must be a number between 0 and 1"])
+    number = float(value)
+    if not 0.0 <= number <= 1.0:
+        raise ScriptSchemaError([f"{where}: must be between 0 and 1, got {value}"])
+    return number
+
+
 def _parse_text_overlay(
     parser: _Parser, data: Any, where: str
 ) -> TextOverlay | None:
@@ -900,11 +947,20 @@ def _parse_text_overlay(
     if raw is None:
         return None
 
-    text = parser.string(
-        parser.required(raw, "text", where), f"{where}.text"
+    # A caption may be a picture instead of words: a meme, a reaction face, a
+    # GIF.  Which one it is decides whether empty text is a mistake or the
+    # whole point, so the picture is read first.
+    image_file = parser.string(
+        raw.get("image_file", _MISSING), f"{where}.image_file"
     )
-    if text is None:
-        # Without text the overlay is meaningless; the error is recorded.
+    text = parser.string(
+        parser.required(raw, "text", where),
+        f"{where}.text",
+        allow_empty=image_file is not None,
+    )
+    if text is None and image_file is None:
+        # Neither words nor a picture: the error is recorded and the
+        # overlay is meaningless.
         return None
 
     start = parser.integer(
@@ -926,12 +982,20 @@ def _parse_text_overlay(
             f"must be greater than start_offset_ms ({start}), got {end}",
         )
 
+    free_x = _optional_fraction(raw.get("x", _MISSING), f"{where}.x")
+    free_y = _optional_fraction(raw.get("y", _MISSING), f"{where}.y")
+    if (free_x is None) != (free_y is None):
+        parser.fail(
+            f"{where}.{'x' if free_x is None else 'y'}",
+            "a caption with a free position needs both x and y, or neither",
+        )
+
     return TextOverlay(
         text=text,
         font=parser.string(
             raw.get("font", _MISSING),
             f"{where}.font",
-            default="assets/fonts/handwriting.ttf",
+            default=DEFAULT_FONT_KEY,
         ),
         font_size=parser.integer(
             raw.get("font_size", _MISSING),
@@ -972,6 +1036,32 @@ def _parse_text_overlay(
             f"{where}.animation_duration_ms",
             default=300,
             minimum=0,
+        ),
+        x=free_x,
+        y=free_y,
+        image_file=image_file,
+        image_height=parser.number(
+            raw.get("image_height", _MISSING),
+            f"{where}.image_height",
+            default=0.3,
+            minimum=0.02,
+            maximum=1.0,
+        ),
+        frame=parser.enum(
+            raw.get("frame", _MISSING),
+            f"{where}.frame",
+            TEXT_FRAMES,
+            default="none",
+        ),
+        frame_fill=parser.string(
+            raw.get("frame_fill", _MISSING),
+            f"{where}.frame_fill",
+            default="#FFFFFF",
+        ),
+        frame_stroke=parser.string(
+            raw.get("frame_stroke", _MISSING),
+            f"{where}.frame_stroke",
+            default="#101010",
         ),
     )
 

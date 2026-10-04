@@ -43,6 +43,10 @@ found by rendering and measuring frames rather than by reading the code:
 * `overlay` has no notion of when a layer should be visible, so a layer
   with no fade sits on screen for the whole clip unless it is gated with
   `enable`.  Every overlay is gated, whether or not it fades.
+* An **animated overlay is looped differently**.  The `gif` demuxer has no
+  `-framerate` input option -- `ffmpeg -framerate 30 -i x.gif` fails with
+  "Option framerate not found" -- so a GIF is looped with `-stream_loop -1`
+  and resampled to the scene's rate by an `fps` filter inside the chain.
 """
 
 from __future__ import annotations
@@ -140,6 +144,14 @@ class OverlayLayer:
     end_s: float
     animation: str = "fade_in"
     animation_duration_s: float = 0.3
+    # A caption is baked full-frame and lands at 0:0; a picture is placed by
+    # `box` (x, y, width, height in output pixels) and scaled on the way in,
+    # because its size is the author's choice rather than the frame's.
+    media: str = "text"
+    box: tuple[int, int, int, int] | None = None
+    # A GIF arrives at whatever rate the file happens to carry and keeps it;
+    # only the loop that keeps it running past its last frame is special.
+    animated: bool = False
 
 
 @dataclass(frozen=True)
@@ -380,6 +392,30 @@ def build_overlay_block(
 
     source = f"[ov{index}]"
     output = f"[v{index}]"
+
+    if layer.media == "image" and layer.box is not None:
+        x_px, y_px, width_px, height_px = layer.box
+        # An animated overlay keeps the timing the file carries: resampling
+        # it to the scene rate would make a hand-drawn GIF play faster than
+        # it was drawn, and `overlay` holds the last frame of a slow source
+        # until the next one arrives, which is what a GIF is supposed to do.
+        chain = [f"scale={max(width_px, 2)}:{max(height_px, 2)}", "format=rgba"]
+        chain.extend(_overlay_animation_filters(layer))
+        enable = (
+            f":enable='between(t,{_number(layer.start_s)},"
+            f"{_number(layer.end_s)})'"
+        )
+        if layer.animation == "slide_in":
+            overlay = (
+                f"overlay=x='{_slide_x_expression(layer)}':"
+                f"y={y_px}:format=auto{enable}"
+            )
+        else:
+            overlay = f"overlay={x_px}:{y_px}:format=auto{enable}"
+        return [
+            f"[{input_index}:v]{','.join(chain)}{source}",
+            f"{background}{source}{overlay}{output}",
+        ]
 
     chain = ["format=rgba"]
     chain.extend(_overlay_animation_filters(layer))

@@ -41,7 +41,7 @@ from autovid.domain.script import Script, Scene
 from autovid.infrastructure.image.fonts import (
     FontResolution,
     largest_fitting_size,
-    measure_text,
+    measure_block,
     overlay_allowed_area,
     resolve_font,
 )
@@ -376,6 +376,19 @@ class ImagesStage:
         narration_ms = self._narration_ms.get(scene.id)
 
         for position, overlay in enumerate(scene.text_overlays):
+            if overlay.image_file:
+                # A picture has no font to measure and no size to fit; the
+                # only thing worth reporting about it is whether it is there.
+                if resolve_asset(overlay.image_file, self.paths.workspace) is None:
+                    self.issues.error(
+                        "overlay_image_missing",
+                        f"overlay {position} wants '{overlay.image_file}', "
+                        f"which is not in the project",
+                        scene_id=scene.id,
+                        unit_index=position,
+                    )
+                continue
+
             font = resolve_font(overlay.font, self.paths.workspace)
 
             if font.path is None:
@@ -401,10 +414,11 @@ class ImagesStage:
                 overlay.position, frame_size
             )
 
-            width, height = measure_text(
+            width, height = measure_block(
                 overlay.text,
                 font.path,
                 overlay.font_size,
+                max_width=allowed_width,
                 stroke_width=overlay.stroke_width,
             )
             fits = width <= allowed_width and height <= allowed_height

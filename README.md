@@ -302,7 +302,7 @@ yêu cầu chừa lề trên cho overlay chữ và **không render chữ** vào 
 |---|---|
 | `ken_burns.type` | `zoom_in`, `zoom_out`, `pan_left`, `pan_right`, `pan_up`, `pan_down`, `none`; scale 1.0–1.5 (pan cần ≥ 1.02 mới thấy chuyển động) |
 | `transition_in.type` | `cut`, `fade`, `fade_fast`, `fade_slow`, `dissolve`, `slide_left/right/up/down`, `wipe_left/right/up/down`, `zoom`, `whip_pan`, `pixelize`, `blur`, `circle_open/close`, `squeeze_h/v`, `flash_white/black`, `diag_tl/br`; `duration` ≤ 0.5s |
-| `text_overlays[]` | `text`, `font`, `font_size`, `color`, `stroke_color`, `stroke_width`, `position`, `start_offset_ms`, `end_offset_ms`, `animation` (`fade_in`/`pop`/`typewriter`/`slide_in`/`none`), `animation_duration_ms`; tối đa 2 overlay cùng lúc, đọc được ≥ 2000ms, ≥ 40px @1080p |
+| `text_overlays[]` | `text`, `font` (key trong `assets/fonts/` **hoặc** đường dẫn tới file bất kỳ), `font_size`, `color`, `stroke_color`, `stroke_width`, `position`, `start_offset_ms`, `end_offset_ms`, `animation` (`fade_in`/`pop`/`typewriter`/`slide_in`/`none`), `animation_duration_ms`, `frame` (`none`/`speech`/`thought`/`shout`) + `frame_fill`/`frame_stroke`, `x`/`y` (0–1, tâm của chữ; bỏ trống = dùng `position`), `image_file` + `image_height` (dán **ảnh hoặc GIF** thay cho chữ); tối đa 2 overlay cùng lúc, đọc được ≥ 2000ms, ≥ 40px @1080p |
 | `mouth` | `images` (1–4 patch, **ảnh đầu = miệng đóng**), `x`/`y`/`size` (tỉ lệ so với ảnh gốc đã trim), `period_s`, `flip`. Míp môi **theo giọng đọc thật** (từ stage 2): đang nói mới dap, ngắt nghỉ giữ patch miệng đóng; khoảng lặng ≤ 0.15s coi là lấy hơi nên không nhắm |
 | `sfx[]` | `file`, `time_offset_ms` (tính từ đầu scene), `volume` ≤ 0.8; cách nhau ≥ 5s |
 
@@ -420,7 +420,7 @@ chạy (nhân vật vào – đi – ra, punch-in, chữ hiện/ẩn) mà không
 | **Thu vien anh** | 3 danh sách, tất cả **kéo được vào canvas** hoặc bấm đúp: Ảnh nền (`images/backgrounds/`), nhân vật (`assets/characters/`, `assets/sprites/`, `characters/`), và **Nhân vật kể chuyện**. Danh sách kể chuyện lấy từ **hai** nguồn: **thư mục `assets/narrators/`** (bỏ ảnh vào là xong — tên file thành tên nhân vật, ghi vào `story_frame.image_file`) và **registry** `assets/characters/characters.json` (key `story_host`, `ke_su`, … — dùng khi nhân vật cần miệng đóng/mở hoặc poses). Thư mục của project được đọc trước thư mục gốc repo; ảnh trùng tên với registry chỉ hiện một lần. Bấm **Làm mới** để quét lại |
 | **Khung hinh** | Khung kể chuyện dùng chung: bật/tắt, kiểu khung, hình học, người dẫn (chọn từ danh sách *Thu vien anh*, hoặc từ thư mục `assets/narrators/`). Cảnh báo nếu khung che mất chỗ của người dẫn. Chọn **nhân vật kể chuyện** từ list *Thu vien anh* (kéo vào canvas hoặc bấm đúp) → ghi vào `story_frame.use` và tự bật khung + người dẫn; style/vị trí giữ nguyên |
 | **Scene / Nhan vat** | Ken Burns, chuyển cảnh, khung riêng của scene; và `enter`/`idle`/`exit`/vị trí của nhân vật đang chọn. Nhân vật kéo vào mặc định `fade_in` 400ms; chọn kiểu vào mà "Thoi luong" đang 0ms thì tự điền 400ms (0ms = không hiện hiệu ứng gì). Ở mục **Dung im**, chọn `lean` là nhân vật đứng yên lắc cả người sang trái 30 độ rồi sang phải 30 độ; **Bien do** tự đổi đơn vị px → ° và lấy sẵn giá trị thấy được (30°), còn biên độ bạn tự chỉnh thì giữ nguyên khi đổi kiểu |
-| **Chu de them** | Chữ đốt vào hình (`text_overlays`): nội dung, vị trí 7 chỗ, kiểu hiện, cỡ chữ, màu + viền, cửa sổ thời gian. Nhiều chữ trên một scene |
+| **Chu de them** | Chữ đốt vào hình (`text_overlays`): nội dung, **font** (18 kiểu chia theo *tâm* — đọc dễ / hài hước / thư pháp), **cỡ chữ**, màu + viền, cửa sổ thời gian, kiểu hiện, **khung chữ** (không / lời thoại / suy nghĩ / la hét) với màu riêng, **toạ độ tự do** (kéo thẳng trên canvas, hoặc gõ x/y), và **dán ảnh/GIF** thay cho chữ (cao ảnh theo % khung; GIF giữ nhịp riêng của file) |
 | **Punch-in** | Cú zoom giật cả scene (`impact`): neo theo câu hoặc theo mili giây, cường độ, rung màn hình, thời lượng, flash trắng/đen |
 | **Di chuyen** | Đường đi của nhân vật đang chọn (`moves`): thêm/bớt chặng, neo theo câu, đi bao lâu, **tốc độ** (0.2–3.0x), **độ nghiêng** (0–70 độ), kiểu nhanh dần, lật hướng. Thanh **Đế nơi nhanh** đặt thẳng vị trí đến (Trái/Giữa/Phải…) mà không phải gõ số phần nghìn. Danh sách hiện **thời gian đi thật** sau khi áp tốc độ, không chỉ `duration_ms`. Canvas vẽ đường đứt đoạn + chấm tròn ở mỗi chặng, bấm vào chấm để chọn và kéo để dời |
 | **Video** | Tiêu đề, tác giả, độ phân giải, fps |
@@ -738,7 +738,7 @@ nên pipeline vẫn time-stretch bằng ffmpeg `atempo` như cũ — không bị
 PYTHONPATH="tests:src" python -m unittest discover -s tests -p "test_*.py"
 ```
 
-612 test, gồm stage1–stage7 của autovid, toàn bộ studio và các tool. Trên máy thiếu `libass`
+705 test, gồm stage1–stage7 của autovid, toàn bộ studio và các tool. Trên máy thiếu `libass`
 (ffmpeg build không có filter `subtitles`) thì đúng một test fail:
 `test_autovid_stage7.TestAttaching.test_burn_in_re_encodes_the_picture_and_has_no_soft_track`
 — đốt phụ đề vào hình không làm được, không liên quan tới phần còn lại.

@@ -57,7 +57,9 @@ from autovid.infrastructure.ffmpeg import (
     run,
 )
 from autovid.infrastructure.image.fonts import (
+    OVERLAY_WIDTH_FRACTION,
     fit_overlay_font_size,
+    overlay_allowed_area,
     resolve_font,
 )
 from autovid.infrastructure.video.filters import (
@@ -78,12 +80,18 @@ from autovid.infrastructure.video.sprites import (
     sprite_transparency,
 )
 from autovid.infrastructure.video.text import (
+    TEXT_MARGIN_FRACTION,
     render_text_layer,
     render_typewriter_layers,
 )
 from autovid.paths import Paths, read_json, resolve_asset, write_json
 
 from PIL import Image
+
+# A picture overlay: how far the frame edge keeps it, and which files carry
+# their own timing.  Everything else is composited as a still.
+OVERLAY_MARGIN_FRACTION = TEXT_MARGIN_FRACTION
+ANIMATED_IMAGE_SUFFIXES = frozenset({".gif", ".webp", ".apng"})
 
 # Encoder settings for the per-scene clips: the spec's delivery target.
 DEFAULT_PRESET = "medium"
@@ -144,6 +152,12 @@ class OverlaySpan:
     end_s: float
     animation: str
     animation_duration_s: float
+    # A baked caption is a full-frame PNG the caller loops in; a picture is
+    # the author's own file, placed by `box`, and a GIF has to be looped the
+    # other way (see infrastructure/video/filters.py).
+    media: str = "text"
+    box: tuple[int, int, int, int] | None = None
+    animated: bool = False
 
     @property
     def duration_s(self) -> float:
@@ -860,6 +874,9 @@ class AssemblyStage:
                     end_s=span.end_s,
                     animation=span.animation,
                     animation_duration_s=span.animation_duration_s,
+                    media=span.media,
+                    box=span.box,
+                    animated=span.animated,
                 )
                 for span in spans
             ],
@@ -916,6 +933,14 @@ class AssemblyStage:
                 ]
             )
         for span in spans:
+            if span.animated:
+                # The gif demuxer has no -framerate of its own; -stream_loop
+                # plus an `fps` filter inside the chain is the way to keep a
+                # GIF going for the length of the clip.
+                inputs.extend(
+                    ["-stream_loop", "-1", "-i", str(span.path)]
+                )
+                continue
             inputs.extend(
                 [
                     "-loop",
@@ -1234,7 +1259,24 @@ class AssemblyStage:
                 overlay.animation_duration_ms / 1000.0, visible_s / 2
             )
 
-            if overlay.animation == "typewriter":
+            if overlay.image_file:
+                # A picture needs no font and no baking: it goes in as it is.
+                plan.spans = self._image_span(
+                    overlay,
+                    start_s=plan.start_s,
+                    end_s=plan.end_s,
+                    window=requested_window,
+                    scene_id=scene.id,
+                )
+                if plan.spans:
+                    plan.font = overlay.image_file
+                else:
+                    plan.dropped = True
+                    plan.note = "image not found"
+                plans.append(plan)
+                continue
+
+            if overlay.animation == "typewriter" and not overlay.image_file:
                 plan.spans = self._typewriter_spans(
                     overlay=overlay,
                     plan=plan,
@@ -1256,6 +1298,11 @@ class AssemblyStage:
                 position=overlay.position,
                 frame_size=self.frame_size,
                 destination=destination,
+                max_width=self._overlay_width(overlay),
+                frame=overlay.frame,
+                frame_fill=overlay.frame_fill,
+                frame_stroke=overlay.frame_stroke,
+                position_xy=_overlay_centre(overlay),
             )
             plan.spans = [
                 OverlaySpan(
@@ -1269,6 +1316,44 @@ class AssemblyStage:
             plans.append(plan)
 
         return plans
+
+    def _overlay_width(self, overlay) -> int:
+        """
+        The width a caption may occupy, in pixels of the delivery frame.
+
+        This is the same area the images stage reports on and the same one
+        `fit_overlay_font_size` shrinks to, so a caption that had to wrap is
+        wrapped at the width that was promised for it.
+        """
+        allowed_width, _height = overlay_allowed_area(
+            overlay.position, self.frame_size
+        )
+        if overlay.x is not None and overlay.y is not None:
+            # A caption placed by hand is not tied to a corner's half, so it
+            # may use the whole width the frame offers.
+            return int(self.frame_size[0] * OVERLAY_WIDTH_FRACTION)
+        return allowed_width
+
+    def _image_span(
+        self,
+        overlay,
+        *,
+        start_s: float,
+        end_s: float,
+        window: float,
+        scene_id: int | None,
+    ) -> list[OverlaySpan]:
+        """This stage's view of the shared picture-overlay planner."""
+        return _image_span(
+            overlay,
+            frame_size=self.frame_size,
+            workspace=self.paths.workspace,
+            issues=self.issues,
+            start_s=start_s,
+            end_s=end_s,
+            window=window,
+            scene_id=scene_id,
+        )
 
     def _typewriter_spans(
         self,
@@ -1304,6 +1389,11 @@ class AssemblyStage:
             steps=min(TYPEWRITER_STEPS, max(2, len(overlay.text))),
             destination_dir=self.overlay_cache,
             stem=key,
+            max_width=self._overlay_width(overlay),
+            frame=overlay.frame,
+            frame_fill=overlay.frame_fill,
+            frame_stroke=overlay.frame_stroke,
+            position_xy=_overlay_centre(overlay),
         )
 
         reveal_end = plan.start_s + reveal_s
@@ -1711,6 +1801,124 @@ def _motion_dict(scene: Scene) -> dict:
     }
 
 
+def _overlay_centre(overlay) -> tuple[float, float] | None:
+    """A caption's free position, or None when it uses `position`.
+
+    The schema insists on both coordinates or neither, so there is no half
+    placed caption to explain here.
+    """
+    if overlay.x is None or overlay.y is None:
+        return None
+    return (overlay.x, overlay.y)
+
+
+def _image_span(
+    *,
+    overlay,
+    frame_size: tuple[int, int],
+    workspace: Path,
+    issues,
+    start_s: float,
+    end_s: float,
+    window: float,
+    scene_id: int | None,
+) -> list[OverlaySpan]:
+    """
+    A caption that is a picture: one span over the author's own file.
+
+    Nothing is baked, which is the whole appeal -- the GIF keeps its own
+    frames and the picture keeps its own colours.  What is decided here is
+    only *where* it lands and how big it is, from the same position settings
+    a caption uses, so the two kinds sit together on a stage without looking
+    like two different systems.
+    """
+    asset = resolve_asset(overlay.image_file, workspace)
+    if asset is None:
+        issues.error(
+            "overlay_image_missing",
+            f"overlay wants '{overlay.image_file}', which is not in the "
+            f"project; nothing was pasted onto the picture",
+            scene_id=scene_id,
+            unit_index=None,
+        )
+        return []
+
+    try:
+        with Image.open(asset) as image:
+            image_width, image_height = image.size
+    except (OSError, ValueError):
+        issues.error(
+            "overlay_image_unreadable",
+            f"overlay wants '{overlay.image_file}', which is not an image "
+            f"ffmpeg can read",
+            scene_id=scene_id,
+            unit_index=None,
+        )
+        return []
+
+    if image_width <= 0 or image_height <= 0:
+        return []
+
+    height_px = max(int(frame_size[1] * overlay.image_height), 8)
+    width_px = max(int(height_px * image_width / image_height), 8)
+    x_px, y_px = _image_origin(
+        overlay, frame_size=frame_size, width=width_px, height=height_px
+    )
+    # A typewriter reveal is a property of text; a picture has nothing to
+    # type, so it falls back to the fade the author would get anyway.
+    animation = overlay.animation
+    if animation == "typewriter":
+        animation = "fade_in"
+
+    return [
+        OverlaySpan(
+            path=asset,
+            start_s=start_s,
+            end_s=end_s,
+            animation=animation,
+            animation_duration_s=window,
+            media="image",
+            box=(x_px, y_px, width_px, height_px),
+            animated=asset.suffix.lower() in ANIMATED_IMAGE_SUFFIXES,
+        )
+    ]
+
+
+def _image_origin(
+    overlay, *, frame_size: tuple[int, int], width: int, height: int
+) -> tuple[int, int]:
+    """
+    Where a picture lands: its centre at `x`/`y`, or on a named edge.
+
+    The same seven positions a caption uses, so "bottom" means the same
+    thing whether the thing at the bottom is words or a reaction face.
+    """
+    frame_width, frame_height = frame_size
+    if overlay.x is not None and overlay.y is not None:
+        return (
+            int(overlay.x * frame_width - width / 2),
+            int(overlay.y * frame_height - height / 2),
+        )
+
+    margin_x = frame_width * OVERLAY_MARGIN_FRACTION
+    margin_y = frame_height * OVERLAY_MARGIN_FRACTION
+    position = overlay.position
+    if position.endswith("_left"):
+        left = int(margin_x)
+    elif position.endswith("_right"):
+        left = int(frame_width - margin_x - width)
+    else:
+        left = int((frame_width - width) / 2)
+
+    if position.startswith("top"):
+        top = int(margin_y)
+    elif position.startswith("bottom"):
+        top = int(frame_height - margin_y - height)
+    else:
+        top = int((frame_height - height) / 2)
+    return left, top
+
+
 def _overlay_key(
     scene: Scene,
     index: int,
@@ -1730,6 +1938,13 @@ def _overlay_key(
             "stroke_colour": overlay.stroke_color,
             "stroke_width": overlay.stroke_width,
             "position": overlay.position,
+            # The box is part of the layer's identity: a speech bubble and a
+            # plain caption are the same pixels of text in different frames,
+            # and a retuned bubble must not reuse the last one's cache entry.
+            "bubble": overlay.frame,
+            "bubble_fill": overlay.frame_fill,
+            "bubble_stroke": overlay.frame_stroke,
+            "at": [overlay.x, overlay.y],
             "frame": list(frame_size),
         },
         sort_keys=True,

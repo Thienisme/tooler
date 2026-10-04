@@ -18,6 +18,7 @@ Sau đó tôi dựng workspace và chạy 7 stage (voice → ảnh → video →
 | 7 | **Tiêu đề chương** | ⬜ | trong text | Dòng `[[ Tên chương ]]` hoặc `Chương 3` → thành tiêu đề overlay + ngắt nhịp |
 | 8 | **Phụ đề** | ⬜ | text | Mặc định có (soft sub, bật/tắt được trên player) |
 | 9 | **Nhân vật hoạt hình** | ⬜ | 1–n file PNG **nền trong suốt** | Nhân vật chính dẫn chuyện (bay vào, trượt vào, nhún nhảy, biến mất). Xem mục 4 |
+| 10 | **Chữ / ảnh đè lên hình** | ⬜ | chỉnh trong Studio hoặc `script.json` | Chọn font, bọc khung lời thoại, kéo chữ đi đâu cũng được, dán ảnh/GIF thay chữ. Xem mục 5 |
 
 **Mẫu tin nhắn (copy-paste):**
 
@@ -30,6 +31,7 @@ Nhạc: (tên file hoặc "không")
 SFX: (có/không, file + vị trí)
 Phụ đề: có/không
 Nhân vật: (file PNG trong suốt, hoặc "không")
+Chữ đè hình: (tiêu đề chương, trích dẫn la hét, meme — hoặc "không")
 File lời kể: <đường dẫn>.txt
 Thư mục ảnh: <đường dẫn>
 ```
@@ -178,7 +180,78 @@ Nếu chưa muốn nhân vật, thêm `--no-characters` khi chạy `assembly` đ
 
 ---
 
-## 5. Nhạc và SFX
+## 5. Chữ và ảnh đè lên hình (overlay)
+
+Lớp chữ này **không nằm trong ảnh** — nó được vẽ riêng rồi đắp lên video, nên bạn đổi lại bao giờ cũng được,
+không phải vẽ/generate lại ảnh nào. Cách nhanh nhất là mở Studio (`.venv/bin/python studio.py projects/<topic-id>/script.json`),
+chọn scene ở tab **Chủ đề thêm** rồi bấm thẳng vào chữ trên canvas để kéo đi.
+
+### 5.1 Chọn font — 18 kiểu chia theo tâm
+
+| Tâm | Key dùng trong `script.json` |
+|---|---|
+| **Đọc dễ** | `be-vietnam-pro` (mặc định), `bitter`, `marmelad` |
+| **Hài hước** | `quicksand`, `nunito`, `itim`, `coiny`, `bungee`, `boogaloo`, `rowdies`, `bangers` |
+| **Thư pháp** | `pacifico`, `lobster`, `patrick-hand`, `patrick-hand-sc`, `sriracha`, `indie-flower`, `handwriting` |
+
+Tất cả đều **có đủ dấu tiếng Việt** (đã kiểm bằng `python tools/check_font_coverage.py`), giấy phép nằm ở
+`assets/fonts/licenses/`. Có thể trỏ tới file `.ttf` bất kỳ bằng đường dẫn thay cho key.
+
+### 5.2 Bọc chữ vào khung lời thoại
+
+`frame` chọn hình dạng, vẽ cùng lớp với chữ nên không bao giờ lệch chữ:
+`none` (chữ trần) · `speech` (bong bóng có đuôi) · `thought` (mây suy nghĩ) · `shout` (bụi sao la hét).
+Màu trong khung lấy ở `frame_fill` / `frame_stroke`. Chữ dài tự **xuống dòng** trong khung, không tràn.
+
+### 5.3 Đặt chữ ở đâu cũng được
+
+- Không khai báo gì → chữ nằm theo `position`: `center`/`top`/`bottom`/`top_left`/`top_right`/`bottom_left`/`bottom_right`.
+- Muốn tự do: `"x": 0.72, "y": 0.28` — **phải có cả hai**, là phần trăm khung hình tính từ **tâm khối chữ**
+  (đặt cạnh mép sẽ tràn ra ngoài). Khi đã có `x`/`y` thì chữ được phép dùng hết chiều ngang khung.
+- Trong Studio: bật **Toạ độ tự do** rồi kéo chữ thẳng trên canvas, hoặc gõ số vào ô X / Y.
+
+### 5.4 Dán ảnh hoặc GIF thay cho chữ
+
+Khi overlay có `"image_file"`, chữ trong `text` bị bỏ qua và ảnh được đắp vào video. Nhớ để
+`"text": ""` (khoá trường này vẫn bắt buộc phải có mặt):
+
+```json
+{"text": "", "image_file": "assets/overlays/meme.gif", "image_height": 0.35,
+ "start_offset_ms": 4000, "end_offset_ms": 6500}
+```
+
+`image_height` = **chiều cao ảnh tính theo % chiều cao khung** (0.02–1.0); chiều ngang giữ nguyên tỉ lệ gốc.
+Ảnh động **giữ nguyên nhịp của file** và lặp vô hạn suốt đoạn overlay đang hiện.
+Thiếu file thì `validate` báo `overlay_image_missing` và bỏ lớp đó.
+
+### 5.5 Ví dụ `script.json`
+
+```json
+"text_overlays": [
+  {
+    "text": "Không ai ngờ được đêm đó là đêm cuối.",
+    "font": "patrick-hand", "font_size": 64,
+    "color": "#FFFFFF", "stroke_color": "#000000", "stroke_width": 4,
+    "frame": "speech", "frame_fill": "#FFFFFF", "frame_stroke": "#101010",
+    "x": 0.68, "y": 0.30,
+    "start_offset_ms": 0, "end_offset_ms": 3200,
+    "animation": "pop", "animation_duration_ms": 400
+  },
+  {
+    "text": "",
+    "image_file": "assets/overlays/meme.gif", "image_height": 0.35,
+    "start_offset_ms": 4000, "end_offset_ms": 6500,
+    "animation": "fade_in"
+  }
+]
+```
+
+Luật đang áp: tối đa **2 overlay cùng lúc**, mỗi overlay phải hiện ≥ 2000ms, cỡ chữ ≥ 40px @1080p.
+Vi phạm thì `validate` **cảnh báo** kèm tên scene trong `output/validation_report.json` (không dừng render).
+
+---
+
+## 6. Nhạc và SFX
 
 - **Nhạc**: 1 file, nên dài ≥ video. Nhạc ngắn hơn sẽ bị loop và **có thể nghe thấy mối nối**
   (cảnh báo `background_music_looped`). Mức mặc định 0.12 (≈ 1/8 giọng đọc); > 0.3 là bị cảnh báo.
@@ -191,7 +264,7 @@ Nếu chưa muốn nhân vật, thêm `--no-characters` khi chạy `assembly` đ
 
 ---
 
-## 6. Quy trình từ nội dung → video
+## 7. Quy trình từ nội dung → video
 
 ```bash
 # 0. Môi trường (1 lần)
@@ -226,7 +299,7 @@ S=projects/<id>-autovid/script.json
 
 ---
 
-## 7. Checklist nghiệm thu trước khi đăng
+## 8. Checklist nghiệm thu trước khi đăng
 
 - [ ] `output/quality_report.json` → `"status": "pass"`, `errors: 0`.
 - [ ] `totals.issues` không còn `image_upscaled` (ảnh đủ nét) — nếu còn, thay ảnh ≥ 1920×1080.
@@ -235,4 +308,5 @@ S=projects/<id>-autovid/script.json
 - [ ] Nghe 30s đầu, 30s giữa, 30s cuối (fade out 3s) — không vỡ tiếng, nhạc không lấn giọng.
 - [ ] Xem lại đúng chỗ chuyển cảnh có transition (fade) — không bị "nhảy" hình.
 - [ ] Nhân vật (nếu có): hiện/ẩn **đúng lúc câu thoại**, không đè lên chữ overlay, SFX khớp lúc tiếp đất.
+- [ ] Chữ đè hình (nếu có): không tràn khung, không đè lên mặt nhân vật, GIF chạy đều, chữ đọc được ở trên điện thoại.
 - [ ] Thời lượng nằm trong 8–20 phút (nếu không thấy cảnh báo `runtime_short`/`runtime_long`).

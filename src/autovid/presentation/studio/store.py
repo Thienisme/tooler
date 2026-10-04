@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from autovid.domain.fonts import DEFAULT_FONT_KEY
+
 # The keys the UI owns.  Anything else in the file (tts_config, audio_config,
 # pacing) is preserved verbatim so opening a project in the studio and saving
 # it back does not quietly drop settings the author made elsewhere.
@@ -47,6 +49,16 @@ def _as_float(value: Any, fallback: float) -> float:
         return float(value)
     except (TypeError, ValueError):
         return fallback
+
+
+def _as_optional_float(value: Any) -> float | None:
+    """A coordinate that may be absent, and must not be invented."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 @dataclass
@@ -317,7 +329,7 @@ class TextOverlay:
     """
 
     text: str = ""
-    font: str = "assets/fonts/handwriting.ttf"
+    font: str = DEFAULT_FONT_KEY
     font_size: int = 72
     color: str = "#FFFFFF"
     stroke_color: str = "#000000"
@@ -327,6 +339,23 @@ class TextOverlay:
     end_offset_ms: int = 4000
     animation: str = "fade_in"
     animation_duration_ms: int = 400
+    # A free position at the centre of the caption's text block, as
+    # fractions of the frame.  None means "use `position`"; both are set or
+    # neither is, which the schema insists on so a caption never lands
+    # somewhere nobody asked for.
+    x: float | None = None
+    y: float | None = None
+    # A picture instead of words: a meme, a reaction face, a GIF.
+    # `image_height` is a fraction of the frame height; the width follows
+    # from the picture's own shape.
+    image_file: str | None = None
+    image_height: float = 0.3
+    # The box the caption sits in -- `none`, `speech`, `thought`, `shout`.
+    # Written only when it is not the default, so a project saved before
+    # captions had frames does not grow a key nobody asked for.
+    frame: str = "none"
+    frame_fill: str = "#FFFFFF"
+    frame_stroke: str = "#101010"
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TextOverlay:
@@ -334,7 +363,7 @@ class TextOverlay:
         end = int(data.get("end_offset_ms") or 0)
         return cls(
             text=str(data.get("text") or ""),
-            font=str(data.get("font") or "assets/fonts/handwriting.ttf"),
+            font=str(data.get("font") or DEFAULT_FONT_KEY),
             font_size=int(data.get("font_size") or 72),
             color=str(data.get("color") or "#FFFFFF"),
             stroke_color=str(data.get("stroke_color") or "#000000"),
@@ -348,10 +377,23 @@ class TextOverlay:
             animation_duration_ms=int(
                 data.get("animation_duration_ms") or 400
             ),
+            frame=str(data.get("frame") or "none"),
+            frame_fill=str(data.get("frame_fill") or "#FFFFFF"),
+            frame_stroke=str(data.get("frame_stroke") or "#101010"),
+            x=_as_optional_float(data.get("x")),
+            y=_as_optional_float(data.get("y")),
+            image_file=(
+                str(data["image_file"])
+                if data.get("image_file")
+                else None
+            ),
+            image_height=_as_float(
+                data.get("image_height"), 0.3
+            ) if data.get("image_height") is not None else 0.3,
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "text": self.text,
             "font": self.font,
             "font_size": self.font_size,
@@ -364,6 +406,17 @@ class TextOverlay:
             "animation": self.animation,
             "animation_duration_ms": self.animation_duration_ms,
         }
+        if self.frame != "none":
+            data["frame"] = self.frame
+            data["frame_fill"] = self.frame_fill
+            data["frame_stroke"] = self.frame_stroke
+        if self.x is not None and self.y is not None:
+            data["x"] = round(self.x, 4)
+            data["y"] = round(self.y, 4)
+        if self.image_file:
+            data["image_file"] = self.image_file
+            data["image_height"] = round(self.image_height, 4)
+        return data
 
 
 @dataclass
