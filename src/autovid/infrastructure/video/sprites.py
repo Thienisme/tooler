@@ -37,7 +37,10 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 from autovid.domain.characters import CharacterCue
-from autovid.domain.script import CharacterIdle
+from autovid.domain.script import (
+    IDLE_DEGREE_LIMITS_DEGREES,
+    CharacterIdle,
+)
 
 # Headroom around the character inside its box.
 FRAME_PAD = 1.10
@@ -162,6 +165,25 @@ class CharacterLayer:
     # would be fifty inputs a scene), ONE layer per distinct artwork shows
     # itself during every listed window through a summed enable expression.
     show_windows: tuple[tuple[float, float], ...] = ()
+    # Where the cue's walk wants the sprite, relative to `box_x`/`box_y` in
+    # output pixels.  One expression covering every stop, added to the
+    # position the way the entrance travel is.
+    walk_x: str = ""
+    walk_y: str = ""
+    # The stretches of this cue where the character faces the other way.
+    # Each entry is (start_s, end_s, facing) and the windows are *disjoint
+    # and exhaustive* over the cue: `facing` is what the sprite shows for
+    # that whole stretch, so the renderer can simply flip inside those
+    # windows.  A window that only covered the walk itself would put the
+    # character back the way it started the moment it arrived, which reads
+    # as the turn being cancelled.
+    walk_flips: tuple[tuple[float, float, bool], ...] = ()
+    # The rotation, in radians, that the body leans into the direction of
+    # travel while a walk is under way.  Zero outside every walk, so the
+    # character stands upright the rest of the cue.  Additive with the spin
+    # and the tilt idle: they are all rotations of the same sprite, and
+    # adding them is what keeps an entrance from cancelling the lean.
+    walk_angle: str = ""
 
     @property
     def box_w(self) -> int:
@@ -174,7 +196,10 @@ class CharacterLayer:
     @property
     def tilts(self) -> bool:
         """Whether the idle oscillates rotation (the box never moves for it)."""
-        return self.idle is not None and self.idle.type == "tilt"
+        return (
+            self.idle is not None
+            and self.idle.type in IDLE_DEGREE_LIMITS_DEGREES
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -197,6 +222,15 @@ class CharacterLayer:
             "idle_period_s": self.idle.period_s if self.idle else 0.0,
             "position": [self.box_x, self.box_y],
             "box": [self.frame.box_w, self.frame.box_h],
+            # The walk changes the position expression without changing any
+            # artwork, so it belongs in the cache signature: without it a
+            # retimed walk would silently reuse the previous clip.
+            "walk_x": self.walk_x,
+            "walk_y": self.walk_y,
+            "walk_flips": [list(w) for w in self.walk_flips],
+            # The lean changes the rotate expression without touching the
+            # position, so a retuned sway must invalidate the cached clip too.
+            "walk_angle": self.walk_angle,
             # The hide windows change the enable expression without touching
             # anything else in the layer, so they belong in the signature a
             # filtergraph cache keys on.
@@ -214,17 +248,34 @@ class CharacterLayer:
         return _position_expression(self, axis="y")
 
     def angle_expression(self) -> str | None:
-        """Rotation in radians, or None when the layer never rotates."""
+        """Rotation in radians, or None when the layer never rotates.
+
+        A layer can be rotating for more than one reason at once -- spinning
+        in through the door while leaning into its first stride, say -- so
+        the reasons are summed rather than chosen between.  Only a layer that
+        would genuinely never turn returns None, which is what tells the
+        filter graph it can leave the `rotate` out entirely.
+        """
+        terms: list[str] = []
         if self.spin != "none" and self.spin_s > 0:
             progress = _progress(self.start_s, self.spin_s)
             if self.spin == "in":
                 # A whole turn that lands facing the viewer.
-                return f"-2*PI*(1-{progress})"
-            return f"2*PI*{progress}"
-
-        if self.tilts:
-            return _tilt_expression(self)
-        return None
+                terms.append(f"-2*PI*(1-{progress})")
+            else:
+                terms.append(f"2*PI*{progress}")
+        elif self.tilts:
+            # A rotational idle is the resting posture; an in-flight spin owns
+            # the angle outright, so summing them would fight for the same
+            # frame.
+            rotation = _tilt_expression(self) or _lean_expression(self)
+            if rotation:
+                terms.append(rotation)
+        if self.walk_angle:
+            terms.append(self.walk_angle)
+        if not terms:
+            return None
+        return "+".join(terms)
 
 
 def _number(value: float) -> str:
@@ -238,11 +289,220 @@ def _progress(start_s: float, duration_s: float) -> str:
     return f"min(max((t-{_number(start_s)})/{_number(duration)},0),1)"
 
 
+def _ease(progress: str, kind: str) -> str:
+    """
+    Smooth a clamped progress term.
+
+    A walk only reads as a walk if it starts and stops gently; a linear
+    slide looks like the sprite being dragged across the screen.
+
+    The two curves are genuinely different, which for a while they were not:
+
+    * `in_out` is the true smoothstep `3p^2-2p^3`, whose slope is zero at
+      *both* ends.  The character eases off the mark and plants the final
+      foot, which is the walk that reads as steps rather than as a shove.
+    * `out` is the quadratic ease-out `1-(1-p)^2`: it leaves at speed and
+      decelerates into place, for a character that hurries across the stage
+      and then sets its feet.
+
+    An earlier version used `3p-3p^2+p^3` for `in_out` and `1-(1-p)^3` for
+    `out`.  Those are the *same* curve -- the second expands to exactly the
+    first -- so the two options did nothing different at all.  Worse, the
+    curve they shared has a slope of 3.0 at p=0, so every walk in the
+    project lurched off its mark at three times the average speed and
+    crawled the rest of the way.  That, rather than the duration, is why a
+    walk read as the character being hurried across the stage.
+    """
+    if kind == "linear":
+        return progress
+    if kind == "out":
+        # Front-loaded: leaves at speed, decelerates to a stop.
+        return f"(1-pow(1-{progress},2))"
+    # Smoothstep: slope zero at p=0 and at p=1.
+    return f"(3*pow({progress},2)-2*pow({progress},3))"
+
+
+def _walk_expression(
+    cue,
+    *,
+    axis: str,
+    frame_size: tuple[int, int],
+    box_w: int,
+) -> str:
+    """
+    The offset a cue's walk adds to its position, in output pixels.
+
+    Each stop contributes the distance from the previous stop, ramped by its
+    own eased progress.  Summing the ramps is what makes a multi-stop walk
+    work: before its stop a term reads zero, during it eases in, and after
+    it holds -- so the character walks a path through every place in turn
+    without the expression ever needing to know which stop is "current".
+
+    The horizontal distance is measured between sprite *centres*, while the
+    box was placed from the cue's starting x, so once every ramp has
+    completed the sum telescopes onto the last stop's position.
+    """
+    stops = tuple(getattr(cue, "moves", ()) or ())
+    if not stops:
+        return ""
+
+    frame_w, frame_h = frame_size
+    origin_x = cue.x * frame_w - box_w / 2.0
+    origin_y = cue.y * frame_h
+
+    terms: list[str] = []
+    previous_x = origin_x
+    previous_y = origin_y
+    for stop in stops:
+        if axis == "x":
+            target = stop.x * frame_w - box_w / 2.0
+            distance = target - previous_x
+            previous_x = target
+        else:
+            # Only a stop that names its own ground line moves vertically;
+            # otherwise the character walks along the floor it started on.
+            target = origin_y if stop.y is None else stop.y * frame_h
+            distance = target - previous_y
+            previous_y = target
+
+        if abs(distance) < 0.5:
+            continue
+        ramp = _ease(_progress(stop.start_s, stop.duration_s), stop.ease)
+        magnitude = _number(abs(distance))
+        sign = "-" if distance < 0 else ""
+        terms.append(f"{sign}{magnitude}*({ramp})")
+
+    if not terms:
+        return ""
+    return "+".join(terms)
+
+
+def _walk_angle_expression(cue) -> str:
+    """
+    The rotation that makes a sliding sprite read as walking.
+
+    A cut-out dragged across the floor looks like a sticker being moved; a
+    body that leans the way it is travelling looks like a person taking a
+    step.  So each stop contributes a lean into its own direction of travel,
+    scaled by the stop's own `sway_deg`.
+
+    Three details make it read as a step rather than a tilt:
+
+    * The lean rises and falls with a `sin` envelope over the stop, so the
+      character eases into the stride and stands back up on arrival.  It is
+      not simply proportional to the eased position progress: that curve
+      starts and ends at zero, so a lean built on it would never reach the
+      angle the author asked for.
+    * The lean grows with the square root of how far the walk is, because a
+      character crossing the whole stage takes longer strides and leans more
+      than one shifting a hand's width.
+    * The lean is authored in *screen* space but the `rotate` filter runs
+      before the turn's `hflip`, so a character showing its mirrored
+      artwork has to lean the opposite way in baked space to appear to lean
+      into its own direction of travel on screen.  Facing it wrong makes the
+      character lean back the way it came, which is the one thing this
+      effect must never do.
+    """
+    stops = tuple(getattr(cue, "moves", ()) or ())
+    if not stops:
+        return ""
+
+    baked_facing = bool(getattr(cue, "flip", False))
+    terms: list[str] = []
+
+    # The horizontal distance is measured in frame fractions, the same unit
+    # the position expression walks in, so the two agree on how far is far.
+    previous_x = cue.x
+    facing = baked_facing
+    for stop in stops:
+        # The turn happens *when the stop begins*, so this stop's own facing
+        # is the one its walk is drawn in -- it has to be applied before the
+        # lean is signed, not after.
+        if stop.flip is not None:
+            facing = bool(stop.flip)
+        distance = stop.x - previous_x
+        previous_x = stop.x
+        if abs(distance) < 0.01 or stop.sway_rad <= 0.0:
+            continue
+        progress = _progress(stop.start_s, stop.duration_s)
+        # The lean has to be zero outside the walk and zero at both ends of
+        # it, or a finished walk would leave the character standing at an
+        # angle -- and because these terms sum, every later stop would tilt
+        # it further.  `sin(PI*p)` is the cheapest envelope that does both
+        # and peaks at exactly 1, which is what makes `sway_deg` mean the
+        # angle the author actually asked for instead of a fraction of it.
+        envelope = f"sin(PI*{progress})"
+        # Longer walks lean further, but with diminishing returns -- sqrt
+        # keeps a full-stage crossing from looking like a bow.
+        reach = min(1.0, (abs(distance) / 0.4) ** 0.5)
+        # `facing != baked` is exactly the stretch the renderer mirrors, and
+        # `hflip` runs after `rotate`, so the baked-space lean is the
+        # screen-space one inverted.
+        screen_sign = 1.0 if distance > 0 else -1.0
+        baked_sign = -screen_sign if facing != baked_facing else screen_sign
+        terms.append(
+            f"{_number(stop.sway_rad * reach * baked_sign)}*({envelope})"
+        )
+
+    if not terms:
+        return ""
+    return "+".join(terms)
+
+
+def _walk_flip_windows(
+    stops: tuple, *, start_s: float, end_s: float, baked_facing: bool
+) -> tuple[tuple[float, float, bool], ...]:
+    """
+    The stretches of the cue where the character faces the other way.
+
+    A stop may name its own facing, which is what turns a character around
+    as it walks past someone.  The turn happens *when the stop begins* and
+    then holds: a flip window that ended with the walk would put the
+    character back where it started facing the instant it arrived, so the
+    turn would look like it had been cancelled.
+
+    The artwork is already baked at `baked_facing` (the cue's own `flip`),
+    so only the stretches that ask for the *opposite* facing are returned --
+    a window that agreed with the baked artwork would flip it the wrong way.
+    """
+    turn_stops = [stop for stop in stops if stop.flip is not None]
+    if not turn_stops or end_s <= start_s:
+        return ()
+
+    # Every instant of the cue is governed by the facing asked for by the
+    # last turn stop at or before it, so the turn stops -- plus the cue's
+    # own ends -- are the boundaries of the answer.
+    edges = [float(start_s)]
+    for stop in turn_stops:
+        edges.append(max(min(float(stop.start_s), end_s), start_s))
+    edges.append(float(end_s))
+
+    windows: list[tuple[float, float, bool]] = []
+    for index in range(len(edges) - 1):
+        window_start, window_end = edges[index], edges[index + 1]
+        if window_end <= window_start:
+            continue
+        facing = baked_facing
+        for stop in turn_stops:
+            if stop.start_s <= window_start:
+                facing = bool(stop.flip)
+        if facing == baked_facing:
+            continue
+        windows.append(
+            (round(window_start, 4), round(window_end, 4), True)
+        )
+
+    return tuple(windows)
+
+
 def _position_expression(layer: CharacterLayer, *, axis: str) -> str:
     terms = [str(layer.box_x if axis == "x" else layer.box_y)]
     travel = _travel_expression(layer, axis=axis)
     if travel:
         terms.append(travel)
+    walk = layer.walk_x if axis == "x" else layer.walk_y
+    if walk:
+        terms.append(walk)
     idle = _idle_expression(layer, axis=axis)
     if idle:
         terms.append(idle)
@@ -324,6 +584,31 @@ def _tilt_expression(layer: CharacterLayer) -> str | None:
     # The 0.5 matches the bob: `1-cos` swings 0..2, so halving it makes
     # `amplitude` the actual peak of the sway, not half of it.
     return f"{radians:.6f}*0.5*(1-cos(2*PI*(t-{origin})/{period}))"
+
+
+def _lean_expression(layer: CharacterLayer) -> str | None:
+    """
+    The standing sway for a `lean` idle, in radians.
+
+    This is the whole body pivoting on its feet, so it swings symmetrically:
+    `amplitude_px` carries degrees (the schema caps them at forty-five) and
+    `sin` puts zero at the cue start and half a cycle away -- the character
+    is upright whenever it arrives, and upright again halfway through, which
+    is what makes it read as standing there rather than as drifting.  A
+    one-sided curve would leave the character cocked over while it waits.
+
+    `period_s` is the full there-and-back cycle, exactly as for `bob`.
+    """
+    idle = layer.idle
+    if idle is None or idle.type != "lean":
+        return None
+    degrees = max(idle.amplitude_px, 0)
+    if degrees <= 0:
+        return None
+    origin = _number(layer.idle_origin_s)
+    period = _number(max(idle.period_s, 0.2))
+    radians = degrees * math.pi / 180.0
+    return f"{radians:.6f}*sin(2*PI*(t-{origin})/{period})"
 
 
 def _idle_expression(layer: CharacterLayer, *, axis: str) -> str:
@@ -749,7 +1034,7 @@ class SpritePlanner:
                         geometry=geometry,
                     )
                 )
-            return layers
+            return self._apply_walk(cue, layers, frame_size, box[0])
 
         if variants:
             layers.extend(
@@ -811,9 +1096,53 @@ class SpritePlanner:
                 )
             )
 
-        return layers
+        return self._apply_walk(cue, layers, frame_size, box[0])
 
     # -- internals --------------------------------------------------------
+
+    def _apply_walk(
+        self,
+        cue: CharacterCue,
+        layers: list[CharacterLayer],
+        frame_size: tuple[int, int],
+        box_w: int,
+    ) -> list[CharacterLayer]:
+        """
+        Give every layer of this cue its walk expression.
+
+        The walk is a property of the cue, not of one layer: a character
+        that walks while it changes pose must keep walking through the
+        swap, or it teleports on every frame change.  Applying it once to
+        the finished stack is what guarantees the whole cue moves as one
+        body -- and it keeps the entrance, the pose stack and the exit from
+        drifting out of step with each other.
+        """
+        stops = tuple(getattr(cue, "moves", ()) or ())
+        if not stops:
+            return layers
+
+        walk_x = _walk_expression(cue, axis="x", frame_size=frame_size, box_w=box_w)
+        walk_y = _walk_expression(cue, axis="y", frame_size=frame_size, box_w=box_w)
+        walk_angle = _walk_angle_expression(cue)
+        walk_flips = _walk_flip_windows(
+            stops,
+            start_s=cue.start_s,
+            end_s=cue.end_s,
+            baked_facing=bool(getattr(cue, "flip", False)),
+        )
+
+        # The layer is a frozen dataclass, so a layer that walks is a new
+        # one; the caller's list is rebuilt rather than mutated in place.
+        return [
+            replace(
+                layer,
+                walk_x=walk_x,
+                walk_y=walk_y,
+                walk_flips=walk_flips,
+                walk_angle=walk_angle,
+            )
+            for layer in layers
+        ]
 
     def _variant_layers(
         self,

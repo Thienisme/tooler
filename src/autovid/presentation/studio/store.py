@@ -25,6 +25,12 @@ PRESERVED_TOP_LEVEL = ("tts_config", "audio_config", "pacing")
 
 DEFAULT_RESOLUTION = (1920, 1080)
 
+# What an entrance lasts when the author picks an effect but has not yet
+# typed a length.  The schema's own default for a character that says
+# nothing about `enter`, kept here so the studio hands the pipeline the
+# same number the parser would have filled in.
+DEFAULT_ENTER_DURATION_MS = 400
+
 # The schema requires a narration voice.  The studio does not edit audio,
 # but it must not hand back a file the validator rejects, so a project
 # written without one gets this default rather than an error the author
@@ -103,6 +109,15 @@ class Transition:
         return {"type": self.type, "duration": round(self.duration, 3)}
 
 
+# The idle a character dragged onto the stage arrives with: standing still.
+# The amplitude is the same placeholder either way -- four, read as pixels
+# for a positional idle and as degrees for `tilt`/`lean` -- because it is
+# only there so the spin box is never empty.  Picking an idle type in the
+# inspector swaps in a value that can actually be seen.
+DEFAULT_IDLE_AMPLITUDE_PX = 4
+DEFAULT_IDLE_PERIOD_S = 3.0
+
+
 @dataclass
 class Placement:
     """One character on the stage: where it stands and how it moves."""
@@ -112,12 +127,16 @@ class Placement:
     y: float = 0.86
     height: float = 0.3
     flip: bool = False
-    enter_type: str = "none"
-    enter_duration_ms: int = 0
+    # A character dragged onto the stage arrives with a quiet fade rather
+    # than popping into existence: the domain's own default when a script
+    # says nothing about `enter`, so the studio and the parser agree.
+    enter_type: str = "fade_in"
+    enter_duration_ms: int = DEFAULT_ENTER_DURATION_MS
     enter_from: str = "bottom"
+    moves: list[Move] = field(default_factory=list)
     idle_type: str = "none"
-    idle_amplitude_px: int = 4
-    idle_period_s: float = 3.0
+    idle_amplitude_px: int = DEFAULT_IDLE_AMPLITUDE_PX
+    idle_period_s: float = DEFAULT_IDLE_PERIOD_S
     exit_type: str = "none"
     exit_duration_ms: int = 300
     exit_to: str = "bottom"
@@ -131,18 +150,34 @@ class Placement:
         exit_ = data.get("exit") or {}
         at_sentence = data.get("at_sentence")
         for_sentences = data.get("for_sentences")
+        enter_kind = str(enter.get("type") or "fade_in")
+        # An entrance of zero milliseconds renders as no entrance, so a
+        # document that asks for an effect without a length gets the
+        # default rather than a silent no-op.
+        enter_ms = int(enter.get("duration_ms") or 0)
+        if enter_kind != "none" and enter_ms <= 0:
+            enter_ms = DEFAULT_ENTER_DURATION_MS
         return cls(
             image_file=str(data.get("image_file") or ""),
             x=_as_float(data.get("x"), 0.5),
             y=_as_float(data.get("y"), 0.86),
             height=_as_float(data.get("height"), 0.3),
             flip=bool(data.get("flip", False)),
-            enter_type=str(enter.get("type") or "none"),
-            enter_duration_ms=int(enter.get("duration_ms") or 0),
+            enter_type=enter_kind,
+            enter_duration_ms=enter_ms,
             enter_from=str(enter.get("from") or "bottom"),
+            moves=[
+                Move.from_dict(item)
+                for item in data.get("moves") or []
+                if isinstance(item, dict)
+            ],
             idle_type=str(idle.get("type") or "none"),
-            idle_amplitude_px=int(idle.get("amplitude_px") or 4),
-            idle_period_s=_as_float(idle.get("period_s"), 3.0),
+            idle_amplitude_px=int(
+                idle.get("amplitude_px") or DEFAULT_IDLE_AMPLITUDE_PX
+            ),
+            idle_period_s=_as_float(
+                idle.get("period_s"), DEFAULT_IDLE_PERIOD_S
+            ),
             exit_type=str(exit_.get("type") or "none"),
             exit_duration_ms=int(exit_.get("duration_ms") or 300),
             exit_to=str(exit_.get("to") or "bottom"),
@@ -170,6 +205,8 @@ class Placement:
             data["enter"]["duration_ms"] = self.enter_duration_ms
             if self.enter_type in ("slide_in", "fly_in"):
                 data["enter"]["from"] = self.enter_from
+        if self.moves:
+            data["moves"] = [item.to_dict() for item in self.moves]
         data["idle"] = {
             "type": self.idle_type,
             "amplitude_px": self.idle_amplitude_px,
@@ -189,7 +226,12 @@ class StoryFrame:
 
     enabled: bool = False
     style: str = "border"
+    # The narrator is named either by a registry key (`use`, which carries
+    # the mouth flap and poses with it) or by the picture itself
+    # (`image_file`, a file dropped in `assets/narrators/`).  The schema
+    # accepts both, and the renderer reads whichever is present.
     use: str | None = None
+    image_file: str | None = None
     show_narrator: bool = True
     x: float = 0.02
     y: float = 0.1
@@ -207,6 +249,7 @@ class StoryFrame:
             enabled=bool(data.get("enabled", False)),
             style=str(data.get("style") or "border"),
             use=data.get("use"),
+            image_file=str(data["image_file"]) if data.get("image_file") else None,
             show_narrator=bool(data.get("show_narrator", True)),
             x=_as_float(data.get("x"), 0.02),
             y=_as_float(data.get("y"), 0.1),
@@ -239,6 +282,8 @@ class StoryFrame:
         }
         if self.use:
             data["use"] = self.use
+        if self.image_file:
+            data["image_file"] = self.image_file
         if self.show_narrator:
             data["host_x"] = round(self.host_x, 4)
             data["host_y"] = round(self.host_y, 4)
@@ -372,6 +417,81 @@ class Impact:
         data["duration_ms"] = self.duration_ms
         if self.flash and self.flash != "none":
             data["flash"] = self.flash
+        return data
+
+
+@dataclass
+class Move:
+    """
+    One stop on a character's walk, as the author writes it.
+
+    `at_sentence` is the comfortable way to place a walk -- the character
+    reaches its new place while it is saying the line that sent it there.
+    `at_offset_ms` is the fallback for a script written before the narration
+    has been measured, exactly as `poses` works.
+
+    `speed` retunes the pace without moving the destination, and `sway_deg`
+    is how far the body leans into the direction of travel.  Both default to
+    what a plain walk looks like, so a stop that names neither is unchanged.
+    """
+
+    x: float = 0.5
+    at_sentence: int | None = None
+    at_offset_ms: int | None = None
+    duration_ms: int = 600
+    flip: bool | None = None
+    ease: str = "in_out"
+    speed: float = 1.0
+    sway_deg: float = 8.0
+
+    @property
+    def travel_ms(self) -> int:
+        """How long the walk actually takes, once `speed` is applied.
+
+        `speed` is a divisor: a slower walk (0.5) takes twice as long, and a
+        dash (2.0) half as long.  The panel shows this number, because
+        "speed 2.0" means nothing until you see that it is a 300ms walk.
+        """
+        pace = max(float(self.speed or 1.0), 0.05)
+        return max(0, int(round(self.duration_ms / pace)))
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Move:
+        at_sentence = data.get("at_sentence")
+        at_offset = data.get("at_offset_ms")
+        duration = int(data.get("duration_ms") or 600)
+        # A move with no moment would never happen; give it one rather than
+        # write a block the schema rejects.
+        if at_sentence is None and at_offset is None:
+            at_offset = 0
+        return cls(
+            x=_as_float(data.get("x"), 0.5),
+            at_sentence=int(at_sentence) if at_sentence is not None else None,
+            at_offset_ms=int(at_offset) if at_offset is not None else None,
+            duration_ms=duration,
+            flip=bool(data["flip"]) if "flip" in data else None,
+            ease=str(data.get("ease") or "in_out"),
+            speed=_as_float(data.get("speed"), 1.0),
+            sway_deg=_as_float(data.get("sway_deg"), 8.0),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {"x": round(self.x, 4)}
+        if self.at_sentence is not None:
+            data["at_sentence"] = self.at_sentence
+        else:
+            data["at_offset_ms"] = int(self.at_offset_ms or 0)
+        data["duration_ms"] = self.duration_ms
+        if self.flip is not None:
+            data["flip"] = self.flip
+        if self.ease != "in_out":
+            data["ease"] = self.ease
+        # Only written when they differ from a plain walk, so an untouched
+        # project stays as small as it was.
+        if abs(float(self.speed) - 1.0) > 1e-6:
+            data["speed"] = round(self.speed, 4)
+        if abs(float(self.sway_deg) - 8.0) > 1e-6:
+            data["sway_deg"] = round(self.sway_deg, 4)
         return data
 
 

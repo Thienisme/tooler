@@ -279,6 +279,54 @@ def evaluate(expression: str, *, t: float, on: float = 0.0) -> float:
 
 
 class TestCharacterSchema(unittest.TestCase):
+    def test_a_lean_amplitude_is_read_as_degrees_and_capped(self):
+        """
+        `lean` swings the sprite, so its amplitude is degrees too -- and it
+        gets its own ceiling, because a whole body pivoting on its feet can
+        go much further than a head can before it stops looking relaxed.
+        """
+        script = script_dict(
+            [
+                scene_dict(
+                    characters=[
+                        character_dict(
+                            idle={"type": "lean", "amplitude_px": 30,
+                                  "period_s": 2.6},
+                        )
+                    ]
+                )
+            ]
+        )
+        character = script.scenes[0].characters[0]
+        self.assertEqual(character.idle.type, "lean")
+        self.assertEqual(character.idle.amplitude_px, 30)
+
+        # A `lean` with no amplitude of its own gets the full left/right
+        # thirty: a sway too small to see is the same as no sway at all.
+        defaulted = script_dict(
+            [
+                scene_dict(
+                    characters=[character_dict(idle={"type": "lean"})]
+                )
+            ]
+        )
+        self.assertEqual(
+            defaulted.scenes[0].characters[0].idle.amplitude_px, 30
+        )
+
+        with self.assertRaises(ScriptSchemaError):
+            script_dict(
+                [
+                    scene_dict(
+                        characters=[
+                            character_dict(
+                                idle={"type": "lean", "amplitude_px": 90}
+                            )
+                        ]
+                    )
+                ]
+            )
+
     def test_a_tilt_amplitude_is_read_as_degrees_and_capped(self):
         """`tilt` sways rotation, so its amplitude is degrees, capped hard."""
         script = script_dict(
@@ -1032,6 +1080,83 @@ class TestMotionExpressions(unittest.TestCase):
             min(offsets), -5, "the bob should actually move the character"
         )
 
+    def test_a_lean_sways_both_ways_and_never_moves_the_box(self):
+        """
+        The standing sway: thirty degrees left, thirty degrees right, pivoting
+        on the character's own feet while its box stays exactly where it was.
+        """
+        layers = self.layer_for(
+            enter={"type": "none"},
+            exit={"type": "none"},
+            idle={"type": "lean", "amplitude_px": 30, "period_s": 2.6},
+        )
+        layer = layers[0]
+
+        self.assertEqual(layer.x_expression(), str(layer.box_x))
+        self.assertEqual(layer.y_expression(), str(layer.box_y))
+
+        angle = layer.angle_expression()
+        self.assertIsNotNone(angle)
+        values = [
+            evaluate(angle, t=layer.start_s + step / 20)
+            for step in range(53)
+        ]
+        peak = 30 * math.pi / 180
+        # Upright when it arrives, at both extremes, upright again after one
+        # full cycle -- a sway, not a lean the character cannot hold.
+        self.assertAlmostEqual(values[0], 0.0, places=9)
+        self.assertAlmostEqual(max(values), peak, delta=peak * 0.01)
+        self.assertAlmostEqual(min(values), -peak, delta=peak * 0.01)
+        self.assertAlmostEqual(values[-1], 0.0, places=6)
+
+    def test_a_lean_and_a_walk_lean_are_both_in_the_angle(self):
+        """One sprite turning for two reasons at once is a sum, not a choice."""
+        walk = [{"x": 0.8, "duration_ms": 900, "sway_deg": 12.0, "at_sentence": 1}]
+        leaning = self.layer_for(
+            enter={"type": "none"},
+            exit={"type": "none"},
+            idle={"type": "lean", "amplitude_px": 20, "period_s": 2.6},
+            moves=walk,
+        )[0]
+        walking = self.layer_for(
+            enter={"type": "none"},
+            exit={"type": "none"},
+            idle={"type": "none"},
+            moves=walk,
+        )[0]
+        swaying = self.layer_for(
+            enter={"type": "none"},
+            exit={"type": "none"},
+            idle={"type": "lean", "amplitude_px": 20, "period_s": 2.6},
+        )[0]
+
+        self.assertTrue(leaning.walk_angle)
+        self.assertTrue(walking.walk_angle)
+        for step in range(60):
+            moment = step / 20.0
+            both = evaluate(leaning.angle_expression(), t=moment)
+            self.assertAlmostEqual(
+                both,
+                evaluate(walking.angle_expression(), t=moment)
+                + evaluate(swaying.angle_expression(), t=moment),
+                places=6,
+                msg=f"the two leans stopped adding up at t={moment}",
+            )
+
+    def test_a_lean_changes_the_cache_signature(self):
+        """A retuned lean must not silently reuse the previous clip."""
+        before = self.layer_for(
+            enter={"type": "none"},
+            exit={"type": "none"},
+            idle={"type": "lean", "amplitude_px": 30, "period_s": 2.6},
+        )[0].to_dict()
+        after = self.layer_for(
+            enter={"type": "none"},
+            exit={"type": "none"},
+            idle={"type": "lean", "amplitude_px": 12, "period_s": 2.6},
+        )[0].to_dict()
+        self.assertNotEqual(before, after)
+
     def test_a_tilt_rotates_but_never_moves_the_box(self):
         """A tilt owns rotation: the box stays put, the angle swings."""
         layers = self.layer_for(
@@ -1182,6 +1307,44 @@ class TestCharacterRender(unittest.TestCase):
         return SpritePlanner(self.cache).plan(
             plan.for_scene(1)[0], source=self.source, frame_size=FRAME, fps=FPS
         )
+
+    def test_the_standing_sway_reaches_the_picture(self):
+        """
+        The whole complaint in one test: a character standing still has to
+        move in the finished video, not only in an expression somewhere.
+        """
+        sway = {"type": "lean", "amplitude_px": 30, "period_s": 0.4}
+        common = {
+            "at_sentence": 1,
+            "enter": {"type": "none"},
+            "exit": {"type": "none"},
+        }
+        leaning = self.decode(
+            self.render(
+                self.tmp / "lean.mp4",
+                layers=self.plan_layers(idle=sway, **common),
+            ),
+            "lean",
+        )
+        upright = self.decode(
+            self.render(
+                self.tmp / "none.mp4",
+                layers=self.plan_layers(idle={"type": "none"}, **common),
+            ),
+            "none",
+        )
+
+        # The cycle starts upright, so the two videos are the same picture
+        # (a few dozen pixels of encoder noise is all that may differ).
+        changed, _, _ = self.difference(leaning[0], upright[0])
+        self.assertLess(changed, 80, "the character did not start upright")
+
+        # A quarter of the cycle in, it is at its full thirty degrees.
+        changed, width, _ = self.difference(leaning[1], upright[1])
+        self.assertGreater(
+            changed, 200, "the standing sway never reached the picture"
+        )
+        self.assertGreater(width, 10)
 
     def test_a_character_appears_and_disappears_on_its_cue(self):
         layers = self.plan_layers(

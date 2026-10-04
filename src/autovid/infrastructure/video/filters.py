@@ -434,6 +434,21 @@ def build_sprite_block(
             f"rotate=a='{angle}':ow={layer.box_w}:oh={layer.box_h}:c=none"
         )
 
+    # A walk that turns around asks for the opposite facing.  The box is
+    # baked at the cue's own facing, so the mirror happens here, gated to
+    # the stretches the planner marked -- flipping outside them would undo
+    # the baked artwork, and flipping for only the walk's own duration
+    # would put the character back the way it started the instant it
+    # arrived.
+    if layer.walk_flips:
+        expression = "+".join(
+            f"between(t,{_number(s)},{_number(e)})"
+            for s, e, facing in layer.walk_flips
+            if facing
+        )
+        if expression:
+            chain.append(f"hflip=enable='{expression}'")
+
     # Fades are capped by the layer's own length, not by half of it: a
     # departure layer exists only to fade, so halving its window would
     # silently shorten the effect that was asked for.

@@ -26,6 +26,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from autovid.domain.script import (
+    IDLE_DEGREE_LIMITS_DEGREES,
+    MAX_CHARACTER_IDLE_AMPLITUDE_PX,
+)
+
 from .canvas import (
     ENTER_CHOICES,
     EXIT_CHOICES,
@@ -35,7 +40,31 @@ from .canvas import (
     TRANSITION_CHOICES,
     StageCanvas,
 )
-from .store import Placement, Project, Scene, StoryFrame
+from .store import (
+    DEFAULT_ENTER_DURATION_MS,
+    DEFAULT_IDLE_AMPLITUDE_PX,
+    DEFAULT_IDLE_PERIOD_S,
+    Placement,
+    Project,
+    Scene,
+    StoryFrame,
+)
+
+# What each idle looks like when it is simply switched on: an amplitude and
+# a period, in the unit that idle actually uses.  These are the numbers the
+# renderer's own presets use for the same idles, so picking one here gives
+# the same motion a script would get from `preset`.  `tilt` and `lean` swing
+# the sprite, so theirs are degrees; the rest move it, so theirs are pixels.
+IDLE_DEFAULTS: dict[str, tuple[int, float]] = {
+    "none": (DEFAULT_IDLE_AMPLITUDE_PX, DEFAULT_IDLE_PERIOD_S),
+    "bob": (10, 2.2),
+    "sway": (12, 3.0),
+    "bob_sway": (16, 2.4),
+    "shake": (6, 0.4),
+    "talk": (8, 0.45),
+    "tilt": (8, 3.0),
+    "lean": (30, 2.6),
+}
 
 
 def _spin(minimum: float, maximum: float, step: float, decimals: int = 2):
@@ -173,7 +202,7 @@ class Inspector(QScrollArea):
         self._character_form.addRow("Dung im", self.idle_type)
 
         self.idle_amplitude = QSpinBox()
-        self.idle_amplitude.setRange(0, 120)
+        self.idle_amplitude.setRange(0, MAX_CHARACTER_IDLE_AMPLITUDE_PX)
         self.idle_amplitude.setSuffix(" px")
         self.idle_amplitude.valueChanged.connect(self._on_idle_amplitude)
         self._character_form.addRow("Bien do", self.idle_amplitude)
@@ -262,6 +291,7 @@ class Inspector(QScrollArea):
             self.enter_duration.setValue(placement.enter_duration_ms)
             self.enter_from.setCurrentText(placement.enter_from)
             self.idle_type.setCurrentText(placement.idle_type)
+            self._sync_idle_amplitude()
             self.idle_amplitude.setValue(placement.idle_amplitude_px)
             self.idle_period.setValue(placement.idle_period_s)
             self.exit_type.setCurrentText(placement.exit_type)
@@ -374,6 +404,14 @@ class Inspector(QScrollArea):
         if placement is None or self._suppress:
             return
         placement.enter_type = kind
+        # An entrance with no length renders as no entrance at all: the
+        # travel expression is gated on `travel_s > 0`, so picking
+        # `fly_in` with the duration still at zero would show nothing and
+        # look like the effect was broken.  Fill in the schema's default
+        # instead; a length the author set on a previous effect is kept.
+        if kind != "none" and placement.enter_duration_ms <= 0:
+            placement.enter_duration_ms = DEFAULT_ENTER_DURATION_MS
+            self.enter_duration.setValue(DEFAULT_ENTER_DURATION_MS)
         self._update_enter_fields(kind)
         self._dirty()
 
@@ -396,7 +434,58 @@ class Inspector(QScrollArea):
         if placement is None or self._suppress:
             return
         placement.idle_type = kind
+        self._retune_idle(placement, kind)
         self._dirty()
+
+    def _retune_idle(self, placement: Placement, kind: str) -> None:
+        """
+        Give a freshly picked idle an amplitude and period you can see.
+
+        Only while the amplitude is still the placeholder the placement
+        arrived with: once an author has tuned it, switching type to compare
+        must not throw that away.  Without this, picking "lean" leaves four
+        degrees -- a fifth of a pixel of motion on a phone -- and a character
+        that looks broken is the fastest way to convince someone the whole
+        idle system does nothing.
+        """
+        untouched = placement.idle_amplitude_px in (
+            0,
+            DEFAULT_IDLE_AMPLITUDE_PX,
+        )
+        self._sync_idle_amplitude()
+        if not untouched:
+            return
+        amplitude, period = IDLE_DEFAULTS.get(
+            kind, (DEFAULT_IDLE_AMPLITUDE_PX, DEFAULT_IDLE_PERIOD_S)
+        )
+        placement.idle_amplitude_px = amplitude
+        placement.idle_period_s = period
+        self.idle_amplitude.blockSignals(True)
+        self.idle_amplitude.setValue(amplitude)
+        self.idle_amplitude.blockSignals(False)
+        self.idle_period.blockSignals(True)
+        self.idle_period.setValue(period)
+        self.idle_period.blockSignals(False)
+
+    def _sync_idle_amplitude(self) -> None:
+        """
+        Label the amplitude in the unit this idle actually uses.
+
+        `tilt` and `lean` swing the sprite, so their amplitude is degrees and
+        their limit is the schema's; the rest move it, so it is pixels up to
+        the schema's pixel cap.  Calling a tilt's degrees "px" is how an
+        author ends up tuning four of them, seeing nothing, and blaming the
+        renderer.
+        """
+        kind = self.idle_type.currentText()
+        degrees = kind in IDLE_DEGREE_LIMITS_DEGREES
+        limit = IDLE_DEGREE_LIMITS_DEGREES.get(
+            kind, MAX_CHARACTER_IDLE_AMPLITUDE_PX
+        )
+        self.idle_amplitude.blockSignals(True)
+        self.idle_amplitude.setRange(0, int(limit))
+        self.idle_amplitude.setSuffix(" °" if degrees else " px")
+        self.idle_amplitude.blockSignals(False)
 
     def _on_idle_amplitude(self, value: int) -> None:
         placement = self.canvas.current()

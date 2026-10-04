@@ -15,8 +15,8 @@ gets saved.
 
 from __future__ import annotations
 
-import json
 import math
+from pathlib import Path
 
 from PIL import Image
 from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, Signal
@@ -50,11 +50,16 @@ from autovid.infrastructure.video.filters import (
 )
 
 from .assets import AssetLibrary
+from .preview import SceneTimeline
 from .store import Placement, Project, Scene, StoryFrame
 
 # Mime payload for a library row being dragged onto the stage.
 MIME_BACKGROUND = "application/x-autovid-background"
 MIME_CHARACTER = "application/x-autovid-character"
+# The storyteller lists carry a *registry key*, not a path: the artwork,
+# the mouth flap and the poses all ride in from `characters.json`, so a
+# path would silently drop them.
+MIME_NARRATOR = "application/x-autovid-narrator"
 
 HANDLE = 8  # px, the resize grip in either lower corner
 MIN_SPRITE_FRACTION = 0.04
@@ -101,8 +106,9 @@ class StageCanvas(QWidget):
     changed = Signal()
     selection_changed = Signal(int)
     overlay_changed = Signal(int)
+    move_changed = Signal(int)
 
-    MIMES = (MIME_BACKGROUND, MIME_CHARACTER)
+    MIMES = (MIME_BACKGROUND, MIME_CHARACTER, MIME_NARRATOR)
 
     def __init__(
         self,
@@ -124,6 +130,7 @@ class StageCanvas(QWidget):
         self.also_selected: set[int] = set()
         self.progress: float = 0.0  # where in the scene's Ken Burns we are
         self.selected_overlay: int | None = None
+        self.selected_move: int | None = None
 
         self._pixmaps: dict[str, QPixmap] = {}
         self._drag_index: int | None = None
@@ -169,8 +176,8 @@ class StageCanvas(QWidget):
         )
 
     def sprite_rect(self, placement: Placement) -> QRectF:
-        """Where a character stands, in widget pixels."""
-        centre = self._to_px(placement.x, placement.y)
+        """Where a character stands, in widget pixels, at the scrubbed time."""
+        centre = self._to_px(self._walked_x(placement), placement.y)
         sprite = self._pixmap_for(placement.image_file)
         aspect = (sprite.width() / sprite.height()) if sprite.height() else 1.0
         height = placement.height * self._stage_rect().height()
@@ -178,6 +185,22 @@ class StageCanvas(QWidget):
         return QRectF(
             centre.x() - width / 2, centre.y() - height, width, height
         )
+
+    def _walked_x(self, placement: Placement) -> float:
+        """
+        Where the sprite stands at the scrubbed time, its walk included.
+
+        Drawing, hit-testing and dragging all go through here, so the sprite
+        the author clicks is the sprite they see.  While a drag is in flight
+        the sprite follows the cursor instead: applying the walk to a
+        position being edited would fight the mouse.
+        """
+        timeline = self.timeline()
+        if timeline is None:
+            return placement.x
+        if any(placement is dragged for dragged in self._drag_group):
+            return placement.x
+        return timeline.walk_position(placement, self.progress * timeline.span)[0]
 
     def _pixmap_for(self, relative: str) -> QPixmap:
         if relative in self._pixmaps:
@@ -210,8 +233,53 @@ class StageCanvas(QWidget):
         self.selected = None
         self.also_selected = set()
         self.selected_overlay = None
-        self.progress = 0.0
+        self.selected_move = None
+        self.progress = self._design_progress(scene)
         self.update()
+
+    # -- the preview clock ------------------------------------------------
+    def preview_speed(self) -> float:
+        """The project's TTS speed, so the preview estimates the right length."""
+        config = self.project.preserved.get("tts_config") if self.project else None
+        if isinstance(config, dict):
+            try:
+                return max(0.1, float(config.get("speed") or 1.0))
+            except (TypeError, ValueError):
+                return 1.0
+        return 1.0
+
+    def timeline(self) -> SceneTimeline | None:
+        """The estimated clock for the scene on the stage, if there is one."""
+        if self.scene is None:
+            return None
+        return SceneTimeline(self.scene, self.preview_speed())
+
+    def _design_progress(self, scene: Scene | None) -> float:
+        """
+        Where the scrub parks when a scene is loaded: just after everyone
+        has arrived, so a dragged-in character is on screen rather than
+        hanging off its own entrance animation.
+        """
+        if scene is None:
+            return 0.0
+        timeline = SceneTimeline(scene, self.preview_speed())
+        if timeline.span <= 0:
+            return 0.0
+        return max(0.0, min(1.0, timeline.design_seconds(scene.characters) / timeline.span))
+
+    def select_move(self, index: int | None) -> None:
+        self.selected_move = index
+        self.move_changed.emit(index if index is not None else -1)
+        self.update()
+
+    def current_move(self):
+        """The walk stop the walk panel is editing, if any."""
+        placement = self.current()
+        if placement is None or self.selected_move is None:
+            return None
+        if 0 <= self.selected_move < len(placement.moves):
+            return placement.moves[self.selected_move]
+        return None
 
     def set_progress(self, progress: float) -> None:
         """Scrub the Ken Burns so the author can see the move, not guess."""
@@ -287,10 +355,16 @@ class StageCanvas(QWidget):
         scene = self.scene
         if scene is None or not scene.impact.enabled:
             return (1.0, 0.0, None)
+        timeline = self.timeline()
+        if timeline is None:
+            return (1.0, 0.0, None)
 
         duration = max(0.05, scene.impact.duration_ms / 1000.0)
-        seconds = self.progress * duration * 2.0
-        if seconds > duration:
+        # Time runs from the punch-in's own beat -- the sentence it waits
+        # for, or its offset -- so the preview shows the hit where the
+        # render will put it, not always at the top of the scene.
+        seconds = self.progress * timeline.span - timeline.impact_offset()
+        if seconds < 0.0 or seconds > duration:
             return (1.0, 0.0, None)
 
         peak = min(1.0, max(0.0, seconds / (duration * 0.34)))
@@ -380,9 +454,68 @@ class StageCanvas(QWidget):
             self._paint_artwork(painter, stage, scene)
             self._paint_characters(painter, stage)
 
-        # Overlays sit above everything: a caption is part of the finished
-        # picture, not part of the set dressing.
+        # The route is an authoring aid, not part of the finished picture,
+        # so it is drawn over the stage but under the captions.
+        self._paint_walk(painter, stage)
         self._paint_overlays(painter, stage)
+
+    def _paint_walk(self, painter: QPainter, stage: QRectF) -> None:
+        """
+        Draw the selected character's route: a dotted line from where it
+        stands through every stop in order, each stop marked.
+
+        The plan is easier to judge drawn than read from a list of numbers,
+        and the stops sit at the character's feet so a row in the panel and
+        a mark on the stage refer to the same place.
+        """
+        placement = self.current()
+        if placement is None or not placement.moves:
+            return
+
+        sprite = self._pixmap_for(placement.image_file)
+        height = max(8.0, placement.height * stage.height())
+        width = (
+            height * (sprite.width() / sprite.height())
+            if sprite.height()
+            else height * 0.5
+        )
+
+        def foot_at(x: float) -> QPointF:
+            return QPointF(
+                stage.left() + x * stage.width(),
+                stage.top() + placement.y * stage.height(),
+            )
+
+        points = [foot_at(placement.x)]
+        points.extend(foot_at(move.x) for move in placement.moves)
+
+        painter.save()
+        pen = QPen(QColor("#4ea3ff"), 2, Qt.DashLine)
+        pen.setDashPattern([4, 4])
+        painter.setPen(pen)
+        for start, end in zip(points, points[1:]):
+            painter.drawLine(start, end)
+
+        for index, move in enumerate(placement.moves):
+            centre = foot_at(move.x)
+            radius = 9.0
+            chosen = index == self.selected_move
+            painter.setBrush(
+                QBrush(QColor("#ffc94d") if chosen else QColor("#4ea3ff"))
+            )
+            painter.setPen(QPen(QColor("#ffffff"), 2))
+            painter.drawEllipse(centre, radius, radius)
+            if chosen:
+                # The stop being edited also shows where the sprite will be
+                # standing at that moment, so the author sees the size they
+                # are about to get rather than just a dot on the floor.
+                rect = QRectF(
+                    centre.x() - width / 2, centre.y() - height, width, height
+                )
+                painter.setBrush(Qt.NoBrush)
+                painter.setPen(QPen(QColor("#ffc94d"), 2, Qt.DashLine))
+                painter.drawRect(rect)
+        painter.restore()
 
     def _art_window(self, stage: QRectF, panel: QRectF) -> QRectF | None:
         """
@@ -444,9 +577,19 @@ class StageCanvas(QWidget):
     def _paint_characters(self, painter: QPainter, stage: QRectF) -> None:
         scene = self.scene
         assert scene is not None
+        timeline = self.timeline()
+        assert timeline is not None  # a scene on the stage always has a clock
+        seconds = timeline.seconds(self.progress)
+
         for index, placement in enumerate(scene.characters):
             sprite = self._pixmap_for(placement.image_file)
             rect = self.sprite_rect(placement)
+            size = (rect.width() / stage.width(), rect.height() / stage.height())
+            state = timeline.actor_state(placement, seconds, size)
+            if state is None:
+                # Waiting for its sentence, or already gone: either way this
+                # character is not part of the frame being previewed.
+                continue
             if sprite.isNull():
                 # A missing sprite still shows its footprint, so the author
                 # can see and fix the placement instead of hunting blind.
@@ -457,18 +600,25 @@ class StageCanvas(QWidget):
                 painter.drawText(rect, Qt.AlignCenter, "thieu anh")
                 continue
 
-            if placement.flip:
-                painter.save()
-                painter.translate(rect.center())
-                painter.scale(-1, 1)
-                painter.drawPixmap(
-                    QRectF(-rect.width() / 2, -rect.height() / 2, rect.width(), rect.height()),
-                    sprite,
-                    QRectF(sprite.rect()),
-                )
-                painter.restore()
-            else:
-                painter.drawPixmap(rect, sprite, QRectF(sprite.rect()))
+            # Entrance/exit travel moves the box; the turn (walk flip or a
+            # spin) and the size ride inside it, exactly as the render
+            # composes sprite travel, rotation and scale.
+            painter.save()
+            painter.setOpacity(max(0.0, min(1.0, state.opacity)))
+            painter.translate(
+                rect.center().x() + state.dx * stage.width(),
+                rect.center().y() + state.dy * stage.height(),
+            )
+            if state.rotation:
+                painter.rotate(state.rotation)
+            scale = state.scale
+            painter.scale(-scale if state.flip else scale, scale)
+            painter.drawPixmap(
+                QRectF(-rect.width() / 2, -rect.height() / 2, rect.width(), rect.height()),
+                sprite,
+                QRectF(sprite.rect()),
+            )
+            painter.restore()
 
             if index == self.selected or index in self.also_selected:
                 painter.setPen(QPen(QColor("#4ea3ff"), 2))
@@ -489,8 +639,15 @@ class StageCanvas(QWidget):
         """
         scene = self.scene
         assert scene is not None
+        timeline = self.timeline()
+        assert timeline is not None
+        seconds = timeline.seconds(self.progress)
         for index, overlay in enumerate(scene.overlays):
             if not overlay.text.strip():
+                continue
+            state = timeline.overlay_state(overlay, seconds)
+            if state is None or not state.text.strip():
+                # Not showing at this moment: the caption has its own window.
                 continue
             anchor = OVERLAY_ANCHORS.get(overlay.position, OVERLAY_ANCHORS["bottom"])
             size = max(8.0, overlay.font_size * (stage.height() / 1080.0))
@@ -510,9 +667,11 @@ class StageCanvas(QWidget):
                 metrics = QFontMetrics(font)
 
             point = QPointF(
-                stage.left() + anchor[0] * stage.width(),
+                stage.left() + (anchor[0] + state.dx) * stage.width(),
                 stage.top() + anchor[1] * stage.height(),
             )
+            # The box is measured from the full caption even mid-typewriter,
+            # so the words stay put instead of crawling as they appear.
             rect = metrics.boundingRect(overlay.text)
 
             left = {
@@ -532,11 +691,14 @@ class StageCanvas(QWidget):
             # The stroke is what keeps a caption readable over a bright
             # picture, so it is drawn twice: once fat in the stroke colour,
             # then the fill on top.
+            painter.save()
+            painter.setOpacity(max(0.0, min(1.0, state.opacity)))
             if overlay.stroke_width > 0:
                 painter.setPen(QPen(QColor(overlay.stroke_color), overlay.stroke_width))
-                painter.drawText(box, int(Qt.AlignLeft | Qt.AlignVCenter), overlay.text)
+                painter.drawText(box, int(Qt.AlignLeft | Qt.AlignVCenter), state.text)
             painter.setPen(QPen(QColor(overlay.color)))
-            painter.drawText(box, int(Qt.AlignLeft | Qt.AlignVCenter), overlay.text)
+            painter.drawText(box, int(Qt.AlignLeft | Qt.AlignVCenter), state.text)
+            painter.restore()
 
             if index == self.selected_overlay:
                 painter.setPen(QPen(QColor("#4ea3ff"), 1, Qt.DashLine))
@@ -566,23 +728,38 @@ class StageCanvas(QWidget):
 
     def _narrator_path(self) -> str | None:
         """
-        Where the narrator sprite lives: the registry entry the script names.
+        Where the narrator sprite lives.
 
-        `story_frame.use` is a registry key, exactly like `host_layout.use`,
-        so the frame can point at a narrator without repeating its path.
+        A picture dropped in `assets/narrators/` names itself
+        (`story_frame.image_file`); a registry key (`story_frame.use`) is
+        looked up instead, which is what brings the entry's mouth flap and
+        poses along.  The library reads the registry (repo's, then the
+        project's own), so preview and pipeline agree on a key's artwork.
         """
+        if self.frame.image_file:
+            return self.frame.image_file
         key = self.frame.use
         if not key:
             return None
-        registry = (
-            self.library.repo_root / "assets" / "characters" / "characters.json"
-        )
-        try:
-            entries = json.loads(registry.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            return None
-        entry = entries.get(key)
-        return entry.get("image_file") if isinstance(entry, dict) else None
+        entry = self.library.registry().get(key)
+        return str(entry.get("image_file")) if isinstance(entry, dict) else None
+
+    def _hit_move(self, position: QPointF) -> bool:
+        """Pick the walk stop under the cursor, if the walk is visible."""
+        placement = self.current()
+        if placement is None or not placement.moves or self.scene is None:
+            return False
+        stage = self._stage_rect()
+        radius = 14.0
+        for index, move in enumerate(placement.moves):
+            point = QPointF(
+                stage.left() + move.x * stage.width(),
+                stage.top() + placement.y * stage.height(),
+            )
+            if (point - position).manhattanLength() <= radius:
+                self.select_move(index)
+                return True
+        return False
 
     def _handles(self, rect: QRectF) -> list[QRectF]:
         size = HANDLE
@@ -596,6 +773,15 @@ class StageCanvas(QWidget):
         if self.scene is None:
             return
         position = event.position()
+        # A stop marker takes the click before the sprite does, so a dot on
+        # the floor can be picked without hitting a small character.
+        if self._hit_move(position):
+            self.selection_changed.emit(
+                self.selected if self.selected is not None else -1
+            )
+            self.move_changed.emit(self.selected_move if self.selected_move is not None else -1)
+            self.update()
+            return
         # Topmost first, so the character drawn last is the one grabbed.
         for index in range(len(self.scene.characters) - 1, -1, -1):
             rect = self.sprite_rect(self.scene.characters[index])
@@ -706,18 +892,87 @@ class StageCanvas(QWidget):
         self.update()
 
     # -- drag and drop ----------------------------------------------------
+    def choose_narrator(self, key: str) -> None:
+        """
+        Name the frame's storyteller from a registry key.
+
+        The frame is switched on in the same stroke: a narrator behind a
+        switched-off frame draws nothing, which reads as the pick having
+        been ignored.  Position, style and the rest are left alone -- the
+        author asked for a storyteller, not for a layout.
+        """
+        if not key:
+            return
+        already = (
+            self.frame.use == key
+            and not self.frame.image_file
+            and self.frame.enabled
+            and self.frame.show_narrator
+        )
+        self.frame.use = key
+        # A key and a picture are two ways to name the same slot: keeping
+        # both would leave the renderer reading the picture while the panel
+        # shows the key.
+        self.frame.image_file = None
+        self.frame.enabled = True
+        self.frame.show_narrator = True
+        if already:
+            return
+        if self.project is not None:
+            self.project.mark_dirty()
+        self.changed.emit()
+        self.update()
+
+    def choose_narrator_image(self, relative: str) -> None:
+        """
+        Name the frame's storyteller by picture.
+
+        This is the path a file dropped in `assets/narrators/` takes: no
+        registry entry to write, no key to remember -- the file name is the
+        identity, and the schema renders `story_frame.image_file` directly.
+        """
+        if not relative:
+            return
+        already = (
+            self.frame.image_file == relative
+            and self.frame.enabled
+            and self.frame.show_narrator
+        )
+        self.frame.image_file = relative
+        self.frame.use = None
+        self.frame.enabled = True
+        self.frame.show_narrator = True
+        if already:
+            return
+        if self.project is not None:
+            self.project.mark_dirty()
+        self.changed.emit()
+        self.update()
+
+    def choose_narrator_payload(self, payload: str) -> str:
+        """
+        Pick a storyteller from a library row's payload.
+
+        A row carries a registry key when the registry describes it, and
+        the picture's path when it is just a file in `assets/narrators/`,
+        so the canvas decides which slot to write.  Returns the name to
+        report back to the author.
+        """
+        entry = self.library.registry().get(payload)
+        if isinstance(entry, dict) and entry.get("image_file"):
+            self.choose_narrator(payload)
+            return payload
+        self.choose_narrator_image(payload)
+        return Path(payload).stem or payload
+
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
-        if event.mimeData().hasFormat(MIME_BACKGROUND) or event.mimeData().hasFormat(
-            MIME_CHARACTER
-        ):
+        if any(event.mimeData().hasFormat(mime) for mime in self.MIMES):
             event.acceptProposedAction()
             self._drop_target = self._stage_rect()
             self.update()
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # noqa: N802
-        if event.mimeData().hasFormat(MIME_BACKGROUND) or event.mimeData().hasFormat(
-            MIME_CHARACTER
-        ):
+        if any(event.mimeData().hasFormat(mime) for mime in self.MIMES):
             event.acceptProposedAction()
             self._drop_target = self._stage_rect()
             self.update()
@@ -735,6 +990,12 @@ class StageCanvas(QWidget):
                 self.project.mark_dirty()
             self.changed.emit()
             self.update()
+            event.acceptProposedAction()
+            return
+
+        if mime.hasFormat(MIME_NARRATOR):
+            payload = bytes(mime.data(MIME_NARRATOR)).decode("utf-8")
+            self.choose_narrator_payload(payload)
             event.acceptProposedAction()
             return
 

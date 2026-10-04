@@ -110,10 +110,12 @@ CHARACTER_EXIT_TYPES = frozenset(
 # of position, because a size cannot be animated inside one filtergraph
 # (see infrastructure/video/sprites.py): "talk" is the quick bob that
 # stands in for speech, "bob_sway" is the general "alive" setting.
-# "tilt" is the exception: it oscillates *rotation* (a head/upper-body
-# wobble), which rotate() can do with a timeline expression.
+# Two idles are the exception: they oscillate *rotation*, which rotate()
+# can do with a timeline expression.  "tilt" is the small one-sided
+# head/upper-body wobble; "lean" is the whole-body standing sway, swinging
+# left and right around the character's own feet.
 CHARACTER_IDLE_TYPES = frozenset(
-    {"none", "bob", "sway", "bob_sway", "shake", "talk", "tilt"}
+    {"none", "bob", "sway", "bob_sway", "shake", "talk", "tilt", "lean"}
 )
 
 CHARACTER_EDGES = frozenset(
@@ -206,10 +208,31 @@ MAX_MOUTH_SIZE_FRACTION = 0.6
 # fraction of the frame instead of as a host standing on the floor.
 CHARACTER_FLASHES = frozenset({"none", "white", "black"})
 
-# `tilt` sways rotation rather than position: amplitude_px is reinterpreted
-# as degrees.  Past about fifteen the wobble stops reading as a head tilt
-# and starts reading as a metronome, so the schema clamps it.
+# The rotational idles carry degrees in `amplitude_px` rather than pixels,
+# so each one is capped on its own scale.  `tilt` past about fifteen degrees
+# stops reading as a head tilt and starts reading as a metronome, so it stays
+# where it was.  `lean` is a whole body pivoting on its feet, which is a
+# far bigger gesture than a head, so it is allowed to swing much further --
+# but past about forty-five the character reads as falling over rather than
+# as standing there, and the sway stops being "alive" and starts being
+# "about to fall over".
 MAX_IDLE_TILT_DEGREES = 15.0
+MAX_IDLE_LEAN_DEGREES = 45.0
+
+# Which idles measure their amplitude in degrees, and how far each may go.
+IDLE_DEGREE_LIMITS_DEGREES: dict[str, float] = {
+    "tilt": MAX_IDLE_TILT_DEGREES,
+    "lean": MAX_IDLE_LEAN_DEGREES,
+}
+
+# What a script gets when it names a rotational idle but no amplitude.
+# `lean`'s default is a full thirty degrees each way: a sway too small to
+# see is the same as no sway at all, and this is the one idle whose entire
+# job is to be noticed while the character stands still.
+IDLE_DEGREE_AMPLITUDE_DEGREES: dict[str, float] = {
+    "tilt": 5.0,
+    "lean": 30.0,
+}
 
 # The persistent-host defaults: a presenter parked in the top-right corner,
 # at talk-head height, breathing with a gentle sway.  The corner keeps the
@@ -486,6 +509,9 @@ class CharacterOverlay:
     # The mouth flap that keeps the body still: 1-4 opaque patches
     # composited over the face at a fixed anchor.  Off when absent.
     mouth: CharacterMouth | None = None
+    # Places this character walks to during the scene, in order.  Empty
+    # means it stands where `x`/`y` put it, exactly as before.
+    moves: tuple[CharacterMove, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -573,6 +599,61 @@ class StoryFrameConfig:
     mouth: CharacterMouth | None = None
     poses: tuple[CharacterPose, ...] = ()
     auto_pose_s: float | None = None
+
+
+@dataclass(frozen=True)
+class CharacterMove:
+    """
+    One stop on a character's walk across the stage, or its final position.
+
+    A cue's own `x`/`y` say where the character stands when it arrives and
+    rests.  `moves` says where it goes from there: each entry is a place it
+    walks to, anchored either to a sentence (`at_sentence`) or to a
+    millisecond offset (`at_offset_ms`), and it walks there over
+    `duration_ms`.  The last entry is where it ends the cue.
+
+    Walking needs more than a second sprite for the legs: the character
+    slides while its idle keeps breathing, which is what a cut-out cast in
+    a 2D explainer actually looks like.  Walking the other way is a matter
+    of flipping.
+
+    `speed` is a pace multiplier on top of `duration_ms`: 0.5 walks the same
+    distance over twice the time, 2.0 dashes across it.  It is what an
+    author reaches for when a walk reads too hurried, because it changes how
+    fast the character covers the ground without moving where it ends up.
+
+    `sway_deg` is how far the body leans into the direction of travel while
+    the walk is under way, in degrees.  A cut-out that slides reads as a
+    sticker being dragged; a body that leans the way it is going reads as
+    walking.  The lean eases in and out with the stop, so the character
+    stands upright before and after.  Set it to 0 for a walk that must stay
+    perfectly vertical (a sign on a pole, a diagram element).
+    """
+
+    x: float
+    y: float | None = None
+    at_sentence: int | None = None
+    at_offset_ms: int | None = None
+    duration_ms: int = 600
+    flip: bool | None = None
+    ease: str = "in_out"
+    speed: float = 1.0
+    sway_deg: float = 8.0
+
+    @property
+    def anchor_kind(self) -> str:
+        """Which clock this stop is anchored to, for reporting and errors."""
+        return "sentence" if self.at_sentence is not None else "offset"
+
+
+MOVE_EASES = ("linear", "in_out", "out")
+
+# How far a walk's pace may be retuned, and how far its body may lean.  The
+# floor on `speed` keeps a walk from taking so long it is clipped off the
+# end of its own scene; the ceiling on `sway_deg` is a hard cap because a
+# lean past the diagonal looks like the sprite is falling over.
+MOVE_SPEED_RANGE = (0.2, 3.0)
+MOVE_SWAY_RANGE = (0.0, 70.0)
 
 
 @dataclass(frozen=True)
@@ -1020,16 +1101,19 @@ def _parse_character(
             minimum=0.2,
         ),
     )
-    # For a tilt the amplitude means degrees, so it is capped separately:
-    # the pixel cap would allow a 120-degree spin, which is a preset, not
-    # an idle.
-    if idle.type == "tilt":
+    # For a rotational idle the amplitude means degrees, so it is capped
+    # separately: the pixel cap would allow a 120-degree spin, which is a
+    # preset, not an idle.
+    degree_limit = IDLE_DEGREE_LIMITS_DEGREES.get(idle.type)
+    if degree_limit is not None:
         amplitude_degrees = parser.number(
             idle_raw.get("amplitude_px", _MISSING),
             f"{where}.idle.amplitude_px",
-            default=idle_defaults.get("amplitude_px", 5),
+            default=idle_defaults.get(
+                "amplitude_px", IDLE_DEGREE_AMPLITUDE_DEGREES[idle.type]
+            ),
             minimum=0.0,
-            maximum=MAX_IDLE_TILT_DEGREES,
+            maximum=degree_limit,
         )
         idle = CharacterIdle(
             type=idle.type,
@@ -1305,6 +1389,8 @@ def _parse_character(
             f"must be greater than start_offset_ms ({start}), got {end}",
         )
 
+    moves = _parse_character_moves(parser, raw.get("moves", _MISSING), where)
+
     return CharacterOverlay(
         image_file=image_file,
         preset=preset or "none",
@@ -1354,7 +1440,96 @@ def _parse_character(
         auto_pose_s=auto_pose_s,
         poses=tuple(poses),
         mouth=mouth,
+        moves=moves,
     )
+
+
+def _parse_character_moves(
+    parser: "_Parser", data: Any, where: str
+) -> tuple[CharacterMove, ...]:
+    """
+    The character's walk across the scene, in the order it is written.
+
+    Each stop must say when it happens -- a sentence or an offset -- and
+    where it ends (`x`).  An entry with neither is reported rather than
+    silently dropped, because a walk that never happens is exactly the kind
+    of thing an author needs told about.
+    """
+    if data is _MISSING:
+        return ()
+    raw_list = parser.array(data, f"{where}.moves")
+    if raw_list is None:
+        return ()
+
+    moves: list[CharacterMove] = []
+    for index, item in enumerate(raw_list):
+        spot = f"{where}.moves[{index}]"
+        raw = parser.obj(item, spot)
+        if raw is None:
+            continue
+        at_sentence = parser.integer(
+            raw.get("at_sentence", _MISSING), f"{spot}.at_sentence", minimum=1
+        )
+        at_offset = parser.integer(
+            raw.get("at_offset_ms", _MISSING), f"{spot}.at_offset_ms", minimum=0
+        )
+        if at_sentence is None and at_offset is None:
+            parser.fail(
+                spot,
+                "needs at_sentence or at_offset_ms so the walk has a moment "
+                "to happen",
+            )
+        moves.append(
+            CharacterMove(
+                x=parser.number(
+                    raw.get("x", _MISSING),
+                    f"{spot}.x",
+                    minimum=0.0,
+                    maximum=1.0,
+                ),
+                y=parser.number(
+                    raw.get("y", _MISSING),
+                    f"{spot}.y",
+                    minimum=-0.5,
+                    maximum=1.0,
+                ),
+                at_sentence=at_sentence,
+                at_offset_ms=at_offset,
+                duration_ms=parser.integer(
+                    raw.get("duration_ms", _MISSING),
+                    f"{spot}.duration_ms",
+                    default=600,
+                    minimum=0,
+                    maximum=10000,
+                ),
+                flip=parser.boolean(
+                    raw.get("flip", _MISSING), f"{spot}.flip", default=None
+                )
+                if "flip" in raw
+                else None,
+                ease=parser.enum(
+                    raw.get("ease", _MISSING),
+                    f"{spot}.ease",
+                    MOVE_EASES,
+                    default="in_out",
+                ),
+                speed=parser.number(
+                    raw.get("speed", _MISSING),
+                    f"{spot}.speed",
+                    default=1.0,
+                    minimum=MOVE_SPEED_RANGE[0],
+                    maximum=MOVE_SPEED_RANGE[1],
+                ),
+                sway_deg=parser.number(
+                    raw.get("sway_deg", _MISSING),
+                    f"{spot}.sway_deg",
+                    default=8.0,
+                    minimum=MOVE_SWAY_RANGE[0],
+                    maximum=MOVE_SWAY_RANGE[1],
+                ),
+            )
+        )
+    return tuple(moves)
 
 
 def _parse_impact(parser: _Parser, data: Any, where: str) -> Impact:
@@ -1846,13 +2021,16 @@ def _parse_story_frame(parser: "_Parser", data: Any) -> StoryFrameConfig:
         CHARACTER_IDLE_TYPES,
         default=DEFAULT_HOST_IDLE["type"],
     )
-    if idle_type == "tilt":
+    degree_limit = IDLE_DEGREE_LIMITS_DEGREES.get(idle_type)
+    if degree_limit is not None:
         amplitude = parser.number(
             idle_raw.get("amplitude_px", _MISSING),
             "story_frame.idle.amplitude_px",
-            default=DEFAULT_HOST_IDLE["amplitude_px"],
+            default=IDLE_DEGREE_AMPLITUDE_DEGREES.get(
+                idle_type, DEFAULT_HOST_IDLE["amplitude_px"]
+            ),
             minimum=0.0,
-            maximum=MAX_IDLE_TILT_DEGREES,
+            maximum=degree_limit,
         )
         idle_amplitude = int(round(amplitude or 0.0))
     else:
@@ -2042,13 +2220,16 @@ def _parse_host_layout(parser: "_Parser", data: Any) -> HostLayoutConfig:
         CHARACTER_IDLE_TYPES,
         default=DEFAULT_HOST_IDLE["type"],
     )
-    if idle_type == "tilt":
+    degree_limit = IDLE_DEGREE_LIMITS_DEGREES.get(idle_type)
+    if degree_limit is not None:
         amplitude = parser.number(
             idle_raw.get("amplitude_px", _MISSING),
             "host_layout.idle.amplitude_px",
-            default=DEFAULT_HOST_IDLE["amplitude_px"],
+            default=IDLE_DEGREE_AMPLITUDE_DEGREES.get(
+                idle_type, DEFAULT_HOST_IDLE["amplitude_px"]
+            ),
             minimum=0.0,
-            maximum=MAX_IDLE_TILT_DEGREES,
+            maximum=degree_limit,
         )
         idle_amplitude = int(round(amplitude or 0.0))
     else:

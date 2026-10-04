@@ -28,6 +28,7 @@ pause) is the gap that separates sentence i from sentence i+1.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 from autovid.domain.script import (
@@ -99,6 +100,10 @@ class CharacterCue:
     # without a second lookup: anchor/size are fractions of the trimmed
     # artwork, and the baker needs them at bake time, not at resolve time.
     mouth: "CharacterMouth | None" = None
+    # Places this character walks to while it is on stage, in order.  The
+    # planner turns these into overlay position expressions; an empty tuple
+    # means the character stands still, which is every pre-existing script.
+    moves: tuple[CharacterStop, ...] = ()
 
     @property
     def duration_s(self) -> float:
@@ -137,6 +142,7 @@ class CharacterCue:
             "sfx": self.sfx,
             "dropped": self.dropped,
             "note": self.note,
+            "moves": [stop.to_dict() for stop in self.moves],
             "hide_windows": [
                 [round(s, 4), round(e, 4)] for s, e in self.hide_windows
             ],
@@ -151,6 +157,156 @@ class CharacterCue:
                 else None
             ),
         }
+
+
+@dataclass(frozen=True)
+class CharacterStop:
+    """
+    One resolved walk target: where the character is at `start_s`.
+
+    The script's `CharacterMove` says "be at x by sentence 3"; this says
+    "be at 0.62 of the frame by 2.4 seconds", which is what the position
+    expression can actually use.  `duration_s` is how long the walk itself
+    takes, and the character stands still everywhere else.
+    """
+
+    x: float
+    # None means "keep the ground line the character already stands on": a
+    # walk that only names an x stays at the same depth in the frame.
+    y: float | None
+    start_s: float
+    duration_s: float
+    ease: str
+    flip: bool | None = None
+    # How far the body leans into the direction of travel, in degrees.  It is
+    # a property of the stop rather than of the renderer because the author
+    # sets it; the renderer just has to honour it.
+    sway_deg: float = 0.0
+
+    @property
+    def sway_rad(self) -> float:
+        """`sway_deg` in radians, the unit the rotation filter wants."""
+        return max(0.0, float(self.sway_deg)) * math.pi / 180.0
+
+    def to_dict(self) -> dict:
+        return {
+            "x": round(self.x, 4),
+            "y": round(self.y, 4) if self.y is not None else None,
+            "start_s": round(self.start_s, 4),
+            "duration_s": round(self.duration_s, 4),
+            "ease": self.ease,
+            "flip": self.flip,
+            "sway_deg": round(self.sway_deg, 4),
+        }
+
+
+def _resolve_moves(
+    moves: tuple,
+    *,
+    scene_id: int,
+    index: int,
+    cue_start: float,
+    cue_end: float,
+    windows: list[tuple[float, float]],
+    measured: bool,
+) -> tuple[tuple[CharacterStop, ...], list[dict]]:
+    """
+    Turn scripted walk stops into scene-local seconds.
+
+    A sentence-anchored stop resolves against the measured narration, the
+    same way a pose does, so the character reaches its new place while it is
+    saying the line that sent it there.  A stop that lands past the end of
+    the cue is clamped onto the last frame it is actually visible for rather
+    than dropped -- a character that walks off the end of its own scene just
+    looks like it froze.
+
+    Stops are returned in time order even if the script listed them out of
+    order, because the position expression walks a single path and a path
+    that doubles back reads as a mistake.
+    """
+    if not moves:
+        return (), []
+
+    warnings: list[dict] = []
+    resolved: list[CharacterStop] = []
+    previous_y = None
+    for order, move in enumerate(moves):
+        start_s: float | None = None
+        if move.at_sentence is not None and windows:
+            position = move.at_sentence - 1
+            if position < len(windows):
+                start_s = windows[position][0]
+            else:
+                warnings.append(
+                    {
+                        "code": "character_move_sentence_missing",
+                        "message": (
+                            f"character {index} walks at sentence "
+                            f"{move.at_sentence} but the scene narrates only "
+                            f"{len(windows)} sentence(s); the walk used its "
+                            "millisecond offset instead"
+                        ),
+                        "scene_id": scene_id,
+                    }
+                )
+        elif move.at_sentence is not None and not measured:
+            warnings.append(
+                {
+                    "code": "character_timing_unmeasured",
+                    "message": (
+                        f"character {index} anchors a walk to sentence "
+                        f"{move.at_sentence} but the tts/pacing reports are not "
+                        "available; the walk will not track the voice"
+                    ),
+                    "scene_id": scene_id,
+                }
+            )
+
+        if start_s is None:
+            offset = (
+                move.at_offset_ms / 1000.0
+                if move.at_offset_ms is not None
+                else float(order) * 0.5
+            )
+            start_s = cue_start + offset
+
+        # A walk that starts before the character is on screen is not a
+        # walk: the entrance owns that time.
+        start_s = max(start_s, cue_start)
+        # ...and one that would finish after it leaves is cut short, or the
+        # character walks on alone off the end of the clip.  `speed` divides
+        # the authored duration, so it is applied *before* that clamp: a dash
+        # that would overshoot the cue is still cut short at the cue's end.
+        duration_s = move.duration_ms / 1000.0 / max(
+            float(getattr(move, "speed", 1.0) or 1.0), 0.05
+        )
+        if start_s + duration_s > cue_end:
+            duration_s = max(0.0, cue_end - start_s)
+
+        resolved.append(
+            CharacterStop(
+                x=move.x,
+                y=move.y if move.y is not None else previous_y,
+                start_s=start_s,
+                duration_s=duration_s,
+                ease=move.ease,
+                flip=move.flip,
+                sway_deg=float(getattr(move, "sway_deg", 0.0) or 0.0),
+            )
+        )
+        previous_y = move.y if move.y is not None else previous_y
+
+    resolved.sort(key=lambda stop: stop.start_s)
+
+    # Two stops at the same instant would make the character teleport
+    # between two positions that no time separates; the later one wins.
+    deduplicated: list[CharacterStop] = []
+    for stop in resolved:
+        if deduplicated and abs(stop.start_s - deduplicated[-1].start_s) < 1e-3:
+            deduplicated[-1] = stop
+            continue
+        deduplicated.append(stop)
+    return tuple(deduplicated), warnings
 
 
 @dataclass(frozen=True)
@@ -969,6 +1125,17 @@ def resolve_character_cues(
             warnings.extend(enter_warnings)
             warnings.extend(exit_warnings)
 
+            resolved_moves, move_warnings = _resolve_moves(
+                character.moves,
+                scene_id=scene.id,
+                index=index,
+                cue_start=start,
+                cue_end=end,
+                windows=windows.get(scene.id, []),
+                measured=bool(windows.get(scene.id)),
+            )
+            warnings.extend(move_warnings)
+
             note = (
                 "no sentence timings from stage 2"
                 if source == "offset_fallback"
@@ -1001,6 +1168,7 @@ def resolve_character_cues(
                     dropped=dropped,
                     note=note,
                     mouth=character.mouth,
+                    moves=resolved_moves,
                 )
             )
 

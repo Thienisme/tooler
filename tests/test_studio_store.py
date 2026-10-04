@@ -15,6 +15,7 @@ from autovid.presentation.studio.store import (  # noqa: E402
     Placement,
     ProjectStore,
     Scene,
+    StoryFrame,
 )
 
 
@@ -111,6 +112,29 @@ class StoreTest(unittest.TestCase):
         project = ProjectStore.open(self.dir / "moi" / "script.json")
         self.assertEqual(len(project.scenes), 1)
         self.assertFalse(project.story_frame.enabled)
+
+    def test_a_character_without_an_enter_block_gets_a_usable_one(self) -> None:
+        """No `enter` key means the parser's default, not a dead effect."""
+        data = full_script()
+        data["scenes"][0]["characters"][0].pop("enter")
+        project = ProjectStore.open(self.write(data))
+        placement = project.scenes[0].characters[0]
+        self.assertEqual(placement.enter_type, "fade_in")
+        self.assertGreater(placement.enter_duration_ms, 0)
+
+    def test_an_effect_asked_for_without_a_length_gets_the_default(self) -> None:
+        data = full_script()
+        data["scenes"][0]["characters"][0]["enter"] = {"type": "fly_in"}
+        project = ProjectStore.open(self.write(data))
+        placement = project.scenes[0].characters[0]
+        self.assertEqual(placement.enter_type, "fly_in")
+        self.assertGreater(placement.enter_duration_ms, 0)
+
+    def test_an_explicit_none_stays_silent(self) -> None:
+        data = full_script()
+        data["scenes"][0]["characters"][0]["enter"] = {"type": "none"}
+        project = ProjectStore.open(self.write(data))
+        self.assertEqual(project.scenes[0].characters[0].enter_type, "none")
 
     def test_partial_document_does_not_crash(self) -> None:
         self.path.write_text('{"scenes": [{"id": 1}]}', encoding="utf-8")
@@ -235,6 +259,22 @@ class SceneTest(unittest.TestCase):
         scene = Scene.from_dict({"id": 1})
         self.assertIsNone(scene.story_frame_enabled)
         self.assertNotIn("story_frame", scene.to_dict())
+
+    def test_a_narrator_picture_round_trips_beside_a_registry_key(self) -> None:
+        """`story_frame` names its narrator either by key or by picture."""
+        frame = StoryFrame.from_dict(
+            {"enabled": True, "image_file": "assets/narrators/co_giao.png"}
+        )
+        self.assertIsNone(frame.use)
+        self.assertEqual(frame.image_file, "assets/narrators/co_giao.png")
+        self.assertEqual(
+            frame.to_dict()["image_file"], "assets/narrators/co_giao.png"
+        )
+
+        keyed = StoryFrame.from_dict({"enabled": True, "use": "ke_su"})
+        self.assertEqual(keyed.use, "ke_su")
+        self.assertIsNone(keyed.image_file)
+        self.assertNotIn("image_file", keyed.to_dict())
 
 
 class ProjectTest(unittest.TestCase):

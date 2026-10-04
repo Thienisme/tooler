@@ -345,7 +345,12 @@ def build_script(
     resolution: tuple[int, int] = (WIDTH, HEIGHT),
     motions: tuple[tuple[str, float, float], ...] = MOTIONS,
 ) -> dict:
-    section_breaks = sorted(index + 1 for index in overlays if index > 0)
+    # `overlays` is keyed by 0-based scene index, and `pacing.section_breaks`
+    # holds 0-based indices too (pacing looks one up with `index in
+    # section_breaks`, where index 0 is the first scene).  So a heading on
+    # scene N is the break N -- adding one pushed it past the last scene and
+    # every text with a heading failed validation.
+    section_breaks = sorted(index for index in overlays if index > 0)
 
     scene_payload = []
     for index, text in enumerate(scenes):

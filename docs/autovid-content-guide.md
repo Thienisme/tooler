@@ -152,7 +152,7 @@ python3 tools/make_sfx_pack.py                                               # k
 |---|---|
 | **Vào** | bay vào (`fly_in`), trượt vào (`slide_in`), rơi-nảy (`drop_bounce`), nở ra có overshoot (`pop`), xoay khi vào (`spin_in`), phóng to (`zoom_in`), mờ dần hiện (`fade_in`) — mỗi kiểu chọn được **từ 8 hướng** |
 | **Ra / biến mất** | tan biến mờ (`fade_out`), teo nhỏ rồi mất (`shrink_out`), bay ra (`fly_out`), trượt ra (`slide_out`), rơi khỏi khung (`drop_out`), xoay ra (`spin_out`), thu nhỏ nhanh (`zoom_out`) |
-| **Đang nói (idle)** | nhún nhảy (`bob`), lắc lư (`sway`), kết hợp (`bob_sway`), giật run rẩy (`shake`), nhún nhanh như đang nói (`talk`) |
+| **Đang nói (idle)** | nhún nhảy (`bob`), lắc lư (`sway`), kết hợp (`bob_sway`), giật run rẩy (`shake`), nhún nhanh như đang nói (`talk`), lắc đầu nhẹ (`tilt`), và **đứng yên lắc cả người** (`lean` — trái 30 độ rồi phải 30 độ quanh chân; hai kiểu này tính `amplitude_px` theo **độ**, không phải pixel) |
 | **Neo theo câu thoại** | hiện ở câu N (`at_sentence`) và ở lại N câu (`for_sentences`) — khớp đúng lúc giọng đọc tới đó |
 | **Miếng hài đóng gói** | `preset`: `pop`, `boing`, `whoosh`, `ta_da`, `sneak`, `ninja` (mỗi preset = enter + idle + exit + SFX) |
 | **Đối thoại / PIP** | nhiều nhân vật cùng scene; nhân vật phụ đặt góc khung (`height: 0.28`, `y: 0.35`) làm cutaway |

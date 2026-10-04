@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QMimeData, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
+from PySide6.QtGui import QAction, QDrag, QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -42,10 +42,16 @@ from PySide6.QtWidgets import (
 )
 
 from .assets import Asset, AssetLibrary
-from .canvas import MIME_BACKGROUND, MIME_CHARACTER, StageCanvas
+from .canvas import MIME_BACKGROUND, MIME_CHARACTER, MIME_NARRATOR, StageCanvas
 from .inspector import FramePanel, Inspector
 from .overlays import ImpactPanel, OverlayPanel
+from .scenepanel import ScenePanel
 from .store import Placement, Project, ProjectStore, Scene
+from .walk import WalkPanel
+
+# The preview's frame budget.  33ms is about 30fps, which is smooth enough to
+# read the entrances and slow enough to leave the UI responsive while it runs.
+PLAY_INTERVAL_MS = 33
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -95,6 +101,43 @@ class RenderThread(QThread):
         return "\n".join(self._log)
 
 
+class AssetList(QListWidget):
+    """
+    One library list whose rows drag onto the stage as the stage's own mime.
+
+    A stock `QListWidget` hands the drop handler Qt's internal model blob,
+    which the canvas does not read, so a drag from the library did nothing.
+    This one builds the mime itself, from the row's `UserRole` payload, and
+    overrides `startDrag` so it hands that same mime to the `QDrag`.
+    """
+
+    def __init__(self, mime_type: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.mime_type = mime_type
+        self.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.setDragEnabled(True)
+        self.setDragDropMode(QAbstractItemView.DragOnly)
+
+    def row_mime(self, item: QListWidgetItem) -> QMimeData:
+        """The mime for one row: our format, carrying its payload as text."""
+        mime = QMimeData()
+        mime.setData(
+            self.mime_type,
+            str(item.data(Qt.UserRole) or "").encode("utf-8"),
+        )
+        return mime
+
+    def startDrag(self, actions) -> None:  # noqa: N802 (Qt naming)
+        item = self.currentItem()
+        if item is None:
+            # Nothing picked: return rather than raising on a missing item.
+            return
+        drag = QDrag(self)
+        drag.setMimeData(self.row_mime(item))
+        drag.setPixmap(self.viewport().grab())
+        drag.exec(actions)
+
+
 class StudioWindow(QMainWindow):
     """The video design studio."""
 
@@ -107,6 +150,15 @@ class StudioWindow(QMainWindow):
         self.current_project: Project | None = None
         self.library: AssetLibrary | None = None
         self._render_thread: RenderThread | None = None
+
+        # The live preview clock: a timer that advances the canvas through the
+        # scene's estimated timeline so the author can watch a change without
+        # rendering.  `_play_progress` is where the clock stands, which is not
+        # always `canvas.progress` -- scrubbing by hand moves the canvas too.
+        self._play_progress = 0.0
+        self._play_timer = QTimer(self)
+        self._play_timer.setInterval(PLAY_INTERVAL_MS)
+        self._play_timer.timeout.connect(self._on_play_tick)
 
         self._build_ui()
         self._wire()
@@ -136,6 +188,73 @@ class StudioWindow(QMainWindow):
 
         outer.addWidget(self._build_bar())
 
+    # -- the live preview ----------------------------------------------------
+    def _on_scrub_changed(self, value: int) -> None:
+        """A hand on the scrubber: the canvas follows, the clock stands."""
+        self.canvas.set_progress(value / 100.0)
+
+    def toggle_play(self) -> None:
+        """Play, or stop if it is already playing."""
+        if self._play_timer.isActive():
+            self.pause_play()
+        else:
+            self.start_play()
+
+    def start_play(self) -> None:
+        """
+        Run the scene on its estimated clock.
+
+        A finished scene starts over rather than sitting at the end, so
+        pressing Play twice always shows the whole thing again.
+        """
+        if self.canvas.scene is None:
+            return
+        if self.canvas.progress >= 1.0:
+            self.canvas.set_progress(0.0)
+            self._sync_scrubber()
+        self._play_progress = self.canvas.progress
+        self._play_timer.start()
+        self.play_button.setText("Dung")
+
+    def pause_play(self) -> None:
+        """Stop the clock, leaving the stage wherever it got to."""
+        self._play_timer.stop()
+        self.play_button.setText("Chay")
+
+    def _preview_span(self) -> float:
+        """How long the current scene runs, in estimated seconds."""
+        timeline = self.canvas.timeline()
+        return timeline.span if timeline is not None else 0.0
+
+    def _on_play_tick(self) -> None:
+        """
+        One frame of the preview.
+
+        The clock is wall time, not a fixed step, so the preview takes as
+        long as the scene should -- a slow speaker reads slowly, however
+        fast the timer fires.
+        """
+        if not self._play_timer.isActive():
+            return
+        span = self._preview_span()
+        if span <= 0.0:
+            self.pause_play()
+            return
+        step = (PLAY_INTERVAL_MS / 1000.0) / span
+        self._play_progress = min(1.0, self._play_progress + step)
+        self.canvas.set_progress(self._play_progress)
+        self._sync_scrubber()
+        if self._play_progress >= 1.0:
+            # Stopped at the end, not left spinning past it.
+            self.pause_play()
+
+    def _sync_scrubber(self) -> None:
+        """Show where the canvas is, without the slider echoing back."""
+        self.scrub.blockSignals(True)
+        self.scrub.setValue(int(round(self.canvas.progress * 100)))
+        self.scrub.blockSignals(False)
+
+    # -- construction -----------------------------------------------------
     def _build_left(self) -> QWidget:
         panel = QWidget()
         layout = QVBoxLayout(panel)
@@ -164,19 +283,24 @@ class StudioWindow(QMainWindow):
         library_box = QGroupBox("Thu vien anh")
         library_layout = QVBoxLayout(library_box)
 
-        self.background_list = QListWidget()
-        self.background_list.setDragEnabled(True)
-        self.background_list.setDragDropMode(QAbstractItemView.DragOnly)
+        self.background_list = AssetList(MIME_BACKGROUND)
         self.background_list.itemDoubleClicked.connect(self._on_background_picked)
         library_layout.addWidget(QLabel("Anh nen (keo vao khung)"))
         library_layout.addWidget(self.background_list)
 
-        self.character_list = QListWidget()
-        self.character_list.setDragEnabled(True)
-        self.character_list.setDragDropMode(QAbstractItemView.DragOnly)
+        self.character_list = AssetList(MIME_CHARACTER)
         self.character_list.itemDoubleClicked.connect(self._on_character_picked)
         library_layout.addWidget(QLabel("Nhan vat (keo vao khung)"))
         library_layout.addWidget(self.character_list)
+
+        # The frame's storyteller: registry keys first, then any picture
+        # dropped in `assets/narrators/`.  Double-click is not wired here --
+        # a narrator is picked, not inserted into the cast -- so the list is
+        # dragged onto the stage like the others.
+        self.narrator_list = AssetList(MIME_NARRATOR)
+        self.narrator_list.itemDoubleClicked.connect(self._on_narrator_picked)
+        library_layout.addWidget(QLabel("Nguoi ke (keo vao khung)"))
+        library_layout.addWidget(self.narrator_list)
 
         refresh = QPushButton("Lam moi thu vien")
         refresh.clicked.connect(self._refresh_library)
@@ -193,15 +317,21 @@ class StudioWindow(QMainWindow):
         self.canvas = StageCanvas(AssetLibrary(Path.cwd(), _repo_root()))
         layout.addWidget(self.canvas, 1)
 
-        # Ken Burns scrubber: the author can watch the move instead of
-        # trusting two numbers.
-        self.scrub_slider = None
+        # The live preview: a Play button and a scrubber over the estimated
+        # clock.  The scrubber is always usable -- it drives entrances,
+        # walks, the punch-in and captions, not just Ken Burns, so a scene
+        # that stands still still has something to scrub through.
+        self.play_button = QPushButton("Chay")
+        self.play_button.clicked.connect(self.toggle_play)
+        layout.addWidget(self.play_button)
+
         self.scrub = QSlider(Qt.Horizontal)
         self.scrub.setRange(0, 100)
-        self.scrub.setEnabled(False)
-        self.scrub.valueChanged.connect(
-            lambda value: self.canvas.set_progress(value / 100.0)
+        self.scrub.setEnabled(True)
+        self.scrub.setToolTip(
+            "Keo de dung o mot moc bat ky trong scene"
         )
+        self.scrub.valueChanged.connect(self._on_scrub_changed)
         scrub = QHBoxLayout()
         scrub.addWidget(QLabel("Xem giua chuyen dong"))
         scrub.addWidget(self.scrub, 1)
@@ -224,6 +354,12 @@ class StudioWindow(QMainWindow):
         self.scene_list = QListWidget()
         self.scene_list.setMaximumHeight(170)
         layout.addWidget(self.scene_list)
+
+        # The whole script at a glance: every scene's narration, captions,
+        # style, punch-in, cast and frame in one table.  Read-only, so it can
+        # never disagree with the stage.
+        self.scene_panel = ScenePanel()
+        layout.addWidget(self.scene_panel, 1)
         return panel
 
     def _build_right(self) -> QWidget:
@@ -240,6 +376,9 @@ class StudioWindow(QMainWindow):
 
         self.overlay_panel = OverlayPanel(self.canvas)
         self.tabs.addTab(self.overlay_panel, "Chu de them")
+
+        self.walk_panel = WalkPanel(self.canvas)
+        self.tabs.addTab(self.walk_panel, "Di chuyen")
 
         self.impact_panel = ImpactPanel(self.canvas)
         self.tabs.addTab(self.impact_panel, "Punch-in")
@@ -311,6 +450,8 @@ class StudioWindow(QMainWindow):
         self.frame_panel.changed.connect(self._on_frame_changed)
         self.overlay_panel.changed.connect(self._on_panel_changed)
         self.impact_panel.changed.connect(self._on_panel_changed)
+        self.walk_panel.changed.connect(self._on_panel_changed)
+        self.scene_panel.scene_picked.connect(self._on_scene_panel_picked)
         self.title_field.editingFinished.connect(self._on_metadata_changed)
         self.author_field.editingFinished.connect(self._on_metadata_changed)
         self.resolution_box.currentTextChanged.connect(self._on_metadata_changed)
@@ -423,6 +564,27 @@ class StudioWindow(QMainWindow):
             self._attach_icon(item, asset)
             self.character_list.addItem(item)
 
+        self.narrator_list.clear()
+        for narrator in self.library.narrators:
+            item = QListWidgetItem(narrator.label)
+            # The row carries the registry key when the registry describes
+            # this storyteller, and the picture's own path when it is just a
+            # file in `assets/narrators/`; the canvas decides which slot to
+            # write from that payload.
+            item.setData(Qt.UserRole, narrator.key if narrator.use else narrator.image_file)
+            icon_path = self.library.resolve(narrator.image_file)
+            if icon_path is not None:
+                pixmap = QPixmap(str(icon_path))
+                if not pixmap.isNull():
+                    item.setIcon(
+                        QIcon(
+                            pixmap.scaled(
+                                48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                            )
+                        )
+                    )
+            self.narrator_list.addItem(item)
+
         if self.library.is_empty():
             self.status.setText(
                 "Chua co anh nao trong project. Bo anh vao "
@@ -462,6 +624,10 @@ class StudioWindow(QMainWindow):
 
     # -- scenes -----------------------------------------------------------
     def _refresh_scenes(self) -> None:
+        # Keep the author where they were.  This runs after every edit, and
+        # jumping back to scene 1 threw away the scene they were working on
+        # every time they touched the frame.
+        keep = self.scene_list.currentRow()
         self.scene_list.blockSignals(True)
         self.scene_list.clear()
         project = self.current_project
@@ -473,8 +639,9 @@ class StudioWindow(QMainWindow):
                     f"Scene {scene.id}  [{framed}]  {len(scene.characters)} nhan vat  {preview}"
                 )
         self.scene_list.blockSignals(False)
+        self.scene_panel.set_project(project)
         if project is not None and project.scenes:
-            self.scene_list.setCurrentRow(0)
+            self.scene_list.setCurrentRow(min(max(keep, 0), len(project.scenes) - 1))
 
     def _scene_framed(self, scene: Scene) -> bool:
         if self.current_project is None:
@@ -492,29 +659,34 @@ class StudioWindow(QMainWindow):
 
     def _on_scene_selected(self, row: int) -> None:
         project = self.current_project
+        # A new scene is a new clock: stop the old one before switching.
+        self.pause_play()
         if project is None or row < 0 or row >= len(project.scenes):
             self.canvas.set_scene(None)
             self.inspector.reload()
             self.overlay_panel.reload()
             self.impact_panel.reload()
+            self.scene_panel.select_scene(None)
+            self.scrub.setEnabled(False)
             return
         self.canvas.set_scene(project.scenes[row])
         self.inspector.reload()
         self.overlay_panel.reload()
         self.impact_panel.reload()
+        self.walk_panel.reload()
+        self.scene_panel.select_scene(project.scenes[row])
         self._build_scrubber()
 
     def _build_scrubber(self) -> None:
-        """Enable the Ken Burns slider when a scene is on the stage."""
-        scene = self.canvas.scene
-        active = scene is not None and scene.motion.enabled and scene.motion.type != "none"
-        self.scrub.setEnabled(active)
-        if not active:
-            self.scrub.setValue(0)
-            return
-        self.scrub.blockSignals(True)
-        self.scrub.setValue(int(self.canvas.progress * 100))
-        self.scrub.blockSignals(False)
+        """
+        Put the scrubber where the stage is, and keep it usable.
+
+        It used to be gated on Ken Burns being on.  The clock now runs
+        entrances, walks, the punch-in and captions too, so it works for
+        every scene -- a still scene just has nothing moving.
+        """
+        self.scrub.setEnabled(self.canvas.scene is not None)
+        self._sync_scrubber()
 
     def on_add_scene(self) -> None:
         project = self.current_project
@@ -532,6 +704,7 @@ class StudioWindow(QMainWindow):
         self._refresh_scenes()
         self.scene_list.setCurrentRow(len(project.scenes) - 1)
         self._update_title()
+        self.scene_panel.set_project_dirty(project)
 
     def can_delete_scene(self) -> bool:
         """
@@ -559,6 +732,7 @@ class StudioWindow(QMainWindow):
         self._refresh_scenes()
         self.scene_list.setCurrentRow(min(row, len(project.scenes) - 1))
         self._update_title()
+        self.scene_panel.set_project_dirty(project)
 
     def on_move_scene_up(self) -> None:
         self._reorder(-1)
@@ -583,6 +757,7 @@ class StudioWindow(QMainWindow):
         self._refresh_scenes()
         self.scene_list.setCurrentRow(target)
         self._update_title()
+        self.scene_panel.set_project_dirty(project)
 
     # -- reactions --------------------------------------------------------
     def _on_canvas_changed(self) -> None:
@@ -590,6 +765,7 @@ class StudioWindow(QMainWindow):
         self.inspector.reload()
         self._update_title()
         self._refresh_scene_row()
+        self.scene_panel.set_project_dirty(self.current_project)
 
     def _refresh_scene_row(self) -> None:
         scene = self.canvas.scene
@@ -612,6 +788,7 @@ class StudioWindow(QMainWindow):
     def _on_panel_changed(self) -> None:
         self._update_title()
         self._refresh_scene_row()
+        self.scene_panel.set_project_dirty(self.current_project)
 
     def _update_selection_hint(self) -> None:
         """Tell the author how many are selected and how to move them."""
@@ -630,6 +807,7 @@ class StudioWindow(QMainWindow):
         self.canvas.update()
         self._refresh_scenes()
         self._update_title()
+        self.scene_panel.set_project_dirty(self.current_project)
 
     def _on_metadata_changed(self) -> None:
         project = self.current_project
@@ -709,7 +887,43 @@ class StudioWindow(QMainWindow):
                 + (self._render_thread.log()[-3000:] if self._render_thread else "")
             )
 
+    def _on_scene_panel_picked(self, scene: Scene | None) -> None:
+        """
+        The author clicked a row of the summary table: open that scene.
+
+        The selection is moved through the scene list rather than set on the
+        canvas, so there is one path into a scene and the table, the list and
+        the stage cannot end up disagreeing about what is open.
+        """
+        if scene is None or self.current_project is None:
+            return
+        row = self.scene_panel.scene_row(scene)
+        if row < 0 or row >= self.scene_list.count():
+            return
+        if self.scene_list.currentRow() == row:
+            return
+        self.scene_list.setCurrentRow(row)
+
+    def _on_narrator_picked(self, item: QListWidgetItem) -> None:
+        """
+        The storyteller row the author picked.
+
+        The canvas owns which slot gets written -- `use` for a registry key,
+        `image_file` for a bare picture -- so the window only reports back
+        what the canvas decided, and says where it came from.
+        """
+        payload = item.data(Qt.UserRole)
+        name = self.canvas.choose_narrator_payload(payload)
+        source = "assets/narrators/" if "/" in str(payload) else "registry"
+        self.status.setText(f"Nguoi ke: {name} ({source})")
+        # The canvas switched the frame on; the panel's checkbox has to
+        # follow, or it would still read "off" while a host is standing there.
+        self.frame_panel.reload(self.current_project)
+
     def closeEvent(self, event) -> None:  # noqa: N802 (Qt naming)
+        # A timer outliving the window would keep the clock running.
+        if self._play_timer.isActive():
+            self._play_timer.stop()
         if self.current_project is not None and self.current_project.dirty:
             answer = QMessageBox.question(
                 self,

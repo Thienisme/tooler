@@ -333,11 +333,67 @@ và neo **theo câu thoại thật** (stage 2 đã đo từng câu), còn tiến
 |---|---|
 | `enter.type` | `none`, `fade_in`, `pop` (nở ra có overshoot), `fly_in` (bay vào), `slide_in` (trượt vào), `drop_bounce` (rơi + nảy), `spin_in` (xoay khi vào), `zoom_in` + `from` = `left/right/top/bottom/top_left/top_right/bottom_left/bottom_right/center` |
 | `exit.type` | `none`, `fade_out` (mờ đi), `shrink_out` (nhỏ rồi biến mất), `fly_out`, `slide_out`, `drop_out`, `spin_out`, `zoom_out` + `to` |
-| `idle.type` | `none`, `bob` (nhún nhẹ), `sway` (lắc lư), `bob_sway`, `shake` (run rẩy), `talk` (nhún nhanh như đang nói), `tilt` (lắc đầu/xoay người nhẹ — `amplitude_px` là **số độ**, ≤ 15) — `amplitude_px` ≤ 120, `period_s` ≥ 0.2 |
+| `idle.type` | `none`, `bob` (nhún nhẹ), `sway` (lắc lư), `bob_sway`, `shake` (run rẩy), `talk` (nhún nhanh như đang nói), `tilt` (lắc đầu/xoay người nhẹ — `amplitude_px` là **số độ**, ≤ 15), `lean` (đứng yên lắc cả người **sang trái 30 độ → phải 30 độ** quanh chân — `amplitude_px` là **số độ**, ≤ 45, mặc định 30) — `amplitude_px` ≤ 120, `period_s` ≥ 0.2 |
 | `preset` | `pop`, `boing`, `whoosh`, `ta_da`, `sneak`, `ninja` — cả một "miếng hài" điền sẵn enter/idle/exit/sfx; field viết tay luôn thắng preset |
 | Neo thời gian | `at_sentence` (câu thứ N trong scene, 1-based) + `for_sentences`, hoặc `start_offset_ms`/`end_offset_ms` |
 | Vị trí | `x`/`y` theo tỉ lệ khung (`y: 0.92` = chân đứng mép dưới), `height` = chiều cao nhân vật / chiều cao khung (0.05–1.0), `flip` để lật |
 | `impact` | cú punch-in cả scene: `{"at_sentence": 4, "intensity": 0.12, "shake_px": 14, "flash": "white", "duration_ms": 450}` |
+| `moves[]` | nhân vật **đi qua các điểm** trong lúc nói — xem bên dưới |
+
+#### Nhân vật di chuyển (`moves[]`)
+
+Thêm `moves[]` vào một phần tử `characters[]` để nhân vật bước đi giữa cuộc hội thoại thay vì
+đứng chết một chỗ. Mỗi phần tử là một chặng, nhân vật đi từ chặng này tới chặng sau bằng chính
+những con số đo được ở stage 2, nên nó tới nơi đúng lúc đang kể câu đó:
+
+```json
+"characters": [{
+  "image_file": "assets/characters/chi_pheo.png",
+  "x": 0.15, "y": 0.92, "height": 0.42,
+  "moves": [
+    {"x": 0.45, "at_sentence": 2, "duration_ms": 900},
+    {"x": 0.80, "y": 0.92, "at_sentence": 4, "duration_ms": 1200,
+     "ease": "out", "flip": true}
+  ]
+}]
+```
+
+| Field | Ý nghĩa |
+|---|---|
+| `x` (bắt buộc) | tỉ lệ khung của tâm nhân vật tại chặng đó (0 = mép trái, 1 = mép phải) |
+| `at_sentence` | chặng bắt đầu khi người kể tới câu thứ N — neo theo lời kể thật, không phải ước lượng |
+| `at_offset_ms` | neo theo mili giây tính từ đầu scene, dùng khi `at_sentence` không có; phải có một trong hai |
+| `y` | mặc định giữ nguyên mặt sàn nhân vật đang đứng — chỉ khai khi muốn nhân vật vừa đi vừa đổi độ sâu |
+| `duration_ms` | thời gian đi hết chặng; bị cắt nếu chặng đó tràn ra ngoài cuối scene |
+| `speed` | hệ số tốc độ (0.2–3.0, mặc định `1.0`) — `0.5` đi cùng quãng đường nhưng gấp đôi thời gian, `2.0` thì chạy nhanh. Dùng khi nhân vật đi quá nhanh mà **không** muốn đổi chặng đến |
+| `ease` | `in_out` (mượt, tốc độ bằng 0 ở cả đầu lẫn cuối — mặc định), `out` (rời đi nhanh rồi hãm vào chỗ), `linear` (đều đều, không mượt) |
+| `sway_deg` | độ **nghiêng người** theo hướng đi (0–70, mặc định `8`). Sprite trượt trên nền trông như sticker bị kéo; người nghiêng theo hướng đi thì trông như đang bước. Đặt `0` cho vật phải đứng thẳng (biển hiệu, sơ đồ) |
+| `flip` | lật hướng nhân vật **từ lúc tới chặng đó trở đi** (giữ hướng tới hết scene), để bước ngược hướng đi |
+
+Hành vi: các chặng được sắp theo thời gian và cộng dồn thành **một đường đi liền mạch** — trước
+chặng thì đứng yên, trong chặng thì chuyển động, sau đó giữ nguyên chỗ mới. Nhân vật vẫn đi được
+lúc đổi tư thế hoặc mấp môi (chuyển động và cả hướng lật gắn vào **cả** stack layer, không chỉ lớp
+nền), nên không bị giật về gốc ở mỗi lần đổi khung hình. Hai chặng trùng mốc thì chặng sau thắng;
+một chặng rơi ra ngoài cuối scene thì bị kéo về mốc cuối cùng thay vì bị bỏ rơi.
+
+> **Về `ease`:** `in_out` là smoothstep `3p²-2p³` — tốc độ bằng **0** ở cả lúc rời đi lẫn lúc
+> chạm chân, nên nhân vật bước chậm rồi mới đặt chân, không bị giật ra. `out` là ease-out `1-(1-p)²`:
+> rời đi ngay nhanh rồi hãm vào chỗ. Trước đây cả hai lựa chọn đều dùng `3p-3p²+p³` và `1-(1-p)³`
+> — hai đại thức **bằng nhau**, nên `out` chẳng khác gì mặc định; tệ hơn, đường cong đó có độ dốc
+> **3.0** ngay tại `p=0`, nên **mọi** nhân vật đi đều vồ ra khỏi chỗ với tốc độ gấp 3 rồi lê bước
+> về sau. Đo trên ffmpeg thật: bản cũ bay 18% quãng đường trong 10% đầu chặng, bản mới chỉ 1.3%.
+> Đây là nguyên nhân gốc của cảm giác "nhân vật đi rất nhanh" — không phải `duration_ms`.
+
+> **Về `sway_deg`:** độ nghiêng vào lúc mới xuất phát và **đứng thẳng lại khi tới nơi** (đường bao
+> hình sin), đỉnh đúng bằng số độ bạn khai; đi càng xa thì nghiêng càng nhiều (theo căn bậc hai,
+> nên đi cả sân không thành cú cúi). Lưu ý `hflip` chạy **sau** `rotate`, nên chặng có lật hướng
+> được tính nghiêng ngược trong không gian ảnh gốc — nhân vật vẫn nghiêng **theo** hướng nó đang
+> đi trên màn hình, không bao giờ nghiêng ngược. Studio xem trước dùng đúng công thức này nên
+> chỉnh ở panel là ra đúng video.
+
+> `flip` phát sinh filter `hflip` có `enable` theo thời gian, nên chỉ lật đúng khoảng được chỉ định
+> và **không** lật lại khi nhân vật dừng — nếu cần trở đầu ở giữa, hãy đặt một chặng nữa với
+> `flip` ngược lại.
 
 Nhiều nhân vật trong cùng scene = nhiều phần tử `characters` (đối thoại 2 nhân vật, hoặc 1 nhân vật
 kiểu PIP ở góc khung với `height: 0.28, y: 0.35`).
@@ -355,18 +411,21 @@ chuyển cảnh, nhân vật, khung kể chuyện. Không đụng audio (TTS/voi
 **Cách dùng:** kéo ảnh nền / sprite nhân vật từ panel **Thư viện ảnh** (bên trái) thả lên khung hình
 ở giữa. Kéo để đổi vị trí, kéo góc dưới để đổi cỡ, lăn chuột để phóng to/thu nhỏ, **double-click để
 xoá** nhân vật. Mọi thao tác ghi thẳng vào `script.json` theo tỉ lệ khung, nên chỗ bạn kéo là chỗ
-pipeline sẽ render.
+pipeline sẽ render. Sửa xong một scene thì bấm **Chay** ngay dưới khung hình để xem lại cả scene
+chạy (nhân vật vào – đi – ra, punch-in, chữ hiện/ẩn) mà không phải render video.
 
 | Vùng | Việc |
 |---|---|
 | **Du an** | Mở / tạo project (mọi `projects/*/script.json` trong repo) |
-| **Thu vien anh** | Ảnh nền (`images/backgrounds/`) và nhân vật (`assets/characters/`), có thumbnail. Bấm **Làm mới** sau khi bỏ ảnh mới vào thư mục |
-| **Khung hinh** | Khung kể chuyện dùng chung: bật/tắt, kiểu khung, hình học, người dẫn. Cảnh báo nếu khung che mất chỗ của người dẫn |
-| **Scene / Nhan vat** | Ken Burns, chuyển cảnh, khung riêng của scene; và `enter`/`idle`/`exit`/vị trí của nhân vật đang chọn |
+| **Thu vien anh** | 3 danh sách, tất cả **kéo được vào canvas** hoặc bấm đúp: Ảnh nền (`images/backgrounds/`), nhân vật (`assets/characters/`, `assets/sprites/`, `characters/`), và **Nhân vật kể chuyện**. Danh sách kể chuyện lấy từ **hai** nguồn: **thư mục `assets/narrators/`** (bỏ ảnh vào là xong — tên file thành tên nhân vật, ghi vào `story_frame.image_file`) và **registry** `assets/characters/characters.json` (key `story_host`, `ke_su`, … — dùng khi nhân vật cần miệng đóng/mở hoặc poses). Thư mục của project được đọc trước thư mục gốc repo; ảnh trùng tên với registry chỉ hiện một lần. Bấm **Làm mới** để quét lại |
+| **Khung hinh** | Khung kể chuyện dùng chung: bật/tắt, kiểu khung, hình học, người dẫn (chọn từ danh sách *Thu vien anh*, hoặc từ thư mục `assets/narrators/`). Cảnh báo nếu khung che mất chỗ của người dẫn. Chọn **nhân vật kể chuyện** từ list *Thu vien anh* (kéo vào canvas hoặc bấm đúp) → ghi vào `story_frame.use` và tự bật khung + người dẫn; style/vị trí giữ nguyên |
+| **Scene / Nhan vat** | Ken Burns, chuyển cảnh, khung riêng của scene; và `enter`/`idle`/`exit`/vị trí của nhân vật đang chọn. Nhân vật kéo vào mặc định `fade_in` 400ms; chọn kiểu vào mà "Thoi luong" đang 0ms thì tự điền 400ms (0ms = không hiện hiệu ứng gì). Ở mục **Dung im**, chọn `lean` là nhân vật đứng yên lắc cả người sang trái 30 độ rồi sang phải 30 độ; **Bien do** tự đổi đơn vị px → ° và lấy sẵn giá trị thấy được (30°), còn biên độ bạn tự chỉnh thì giữ nguyên khi đổi kiểu |
 | **Chu de them** | Chữ đốt vào hình (`text_overlays`): nội dung, vị trí 7 chỗ, kiểu hiện, cỡ chữ, màu + viền, cửa sổ thời gian. Nhiều chữ trên một scene |
 | **Punch-in** | Cú zoom giật cả scene (`impact`): neo theo câu hoặc theo mili giây, cường độ, rung màn hình, thời lượng, flash trắng/đen |
+| **Di chuyen** | Đường đi của nhân vật đang chọn (`moves`): thêm/bớt chặng, neo theo câu, đi bao lâu, **tốc độ** (0.2–3.0x), **độ nghiêng** (0–70 độ), kiểu nhanh dần, lật hướng. Thanh **Đế nơi nhanh** đặt thẳng vị trí đến (Trái/Giữa/Phải…) mà không phải gõ số phần nghìn. Danh sách hiện **thời gian đi thật** sau khi áp tốc độ, không chỉ `duration_ms`. Canvas vẽ đường đứt đoạn + chấm tròn ở mỗi chặng, bấm vào chấm để chọn và kéo để dời |
 | **Video** | Tiêu đề, tác giả, độ phân giải, fps |
-| **Xem giua chuyen dong** | Kéo thanh trượt để xem Ken Burns **và punch-in** chạy trong scene, thay vì tin hai con số |
+| **Chay / Xem giua chuyen dong** | Nút **Chay** phát cả scene theo *đồng hồ ước lượng* (14 ký tự/giây × `tts_config.speed`, chia cho từng câu theo độ dài), nên thấy ngay nhân vật **vào – đi – ra**, cú punch-in và chữ hiện đúng lúc mà không phải render. Thanh trượt luôn dùng được (không còn phụ thuộc Ken Burns): kéo để đứng ở một mốc bất kỳ, bấm **Chay** để chạy tiếp từ đó; mở scene thì con trỏ dừng ngay sau lúc mọi nhân vật đã vào, nên nhân vật vừa kéo vào là thấy liền. Bấm **Chay** khi scene đã chạy hết thì chạy lại từ đầu. Thời lượng thật vẫn do stage 2 đo nhịp đọc — preview chỉ là ước lượng |
+| **Tổng hợp scene** | Bảng ngay dưới danh sách scene: mỗi scene một dòng, mỗi trường một cột — Ảnh nền, **Nội dung thoại**, Chủ đề thêm, Style, Punch-up, Nhân vật, Khung hình. Để quét nhanh toàn bộ kịch bản (scene nào quên chữ, scene nào thiếu punch-in, scene nào đang đứng ngoài khung) mà không phải mở từng scene. **Bấm vào một dòng là mở scene đó** lên canvas; bảng không sửa được gì (chỉ đọc) và mọi thao tác sửa không làm bạn rời scene đang làm |
 
 **Chọn nhiều nhân vật:** `Shift`+click để thêm/bớt vào nhóm, `Cmd/Ctrl+A` chọn hết, rồi kéo để
 chuyển cả nhóm cùng lúc. Kéo góc dưới để đổi cỡ (không giãn méo — giữ đúng tỉ lệ sprite).
@@ -675,8 +734,14 @@ nên pipeline vẫn time-stretch bằng ffmpeg `atempo` như cũ — không bị
 ### Test
 
 ```bash
-python -m unittest discover -s tests -p "test_*.py"    # 228 test, gồm stage1–stage7 của autovid
+# `tests/` không phải package và code nằm trong `src/`, nên cần PYTHONPATH:
+PYTHONPATH="tests:src" python -m unittest discover -s tests -p "test_*.py"
 ```
+
+612 test, gồm stage1–stage7 của autovid, toàn bộ studio và các tool. Trên máy thiếu `libass`
+(ffmpeg build không có filter `subtitles`) thì đúng một test fail:
+`test_autovid_stage7.TestAttaching.test_burn_in_re_encodes_the_picture_and_has_no_soft_track`
+— đốt phụ đề vào hình không làm được, không liên quan tới phần còn lại.
 
 ---
 
